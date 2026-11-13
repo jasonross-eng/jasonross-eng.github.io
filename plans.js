@@ -35,7 +35,8 @@ const PLANS = [
           { label: "Teach Your Monster", type: "guide", guide: "2026-11-11-teach-your-monster", icon: "icons/tym.png" },
           { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
           { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
-          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" }
+          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home" }
         ]
       },
       // ---------- 2nd grade ----------
@@ -50,7 +51,8 @@ const PLANS = [
           { label: "Teach Your Monster", type: "guide", guide: "2026-11-11-teach-your-monster", icon: "icons/tym.png" },
           { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
           { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
-          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" }
+          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home" }
         ]
       },
       // ---------- 3rd grade ----------
@@ -65,7 +67,8 @@ const PLANS = [
           { label: "Teach Your Monster", type: "guide", guide: "2026-11-11-teach-your-monster", icon: "icons/tym.png" },
           { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
           { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
-          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" }
+          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home" }
         ]
       },
       // ---------- 4th grade ----------
@@ -80,7 +83,8 @@ const PLANS = [
           { label: "Teach Your Monster", type: "guide", guide: "2026-11-11-teach-your-monster", icon: "icons/tym.png" },
           { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
           { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
-          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" }
+          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home" }
         ]
       }
     }
