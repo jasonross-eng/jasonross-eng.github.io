@@ -36,7 +36,7 @@ const PLANS = [
           { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
           { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
           { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
-          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home" }
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home", icon: "icons/wigglepals.png" }
         ]
       },
       // ---------- 2nd grade ----------
@@ -52,7 +52,7 @@ const PLANS = [
           { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
           { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
           { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
-          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home" }
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home", icon: "icons/wigglepals.png" }
         ]
       },
       // ---------- 3rd grade ----------
@@ -68,7 +68,7 @@ const PLANS = [
           { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
           { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
           { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
-          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home" }
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home", icon: "icons/wigglepals.png" }
         ]
       },
       // ---------- 4th grade ----------
@@ -84,7 +84,7 @@ const PLANS = [
           { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
           { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
           { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
-          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home" }
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home", icon: "icons/wigglepals.png" }
         ]
       }
     }
