@@ -22,9 +22,9 @@ Each item:
 "All pages" lists every guide and every page or link used in any week.
 
 ## Hide and move (on the board)
-- Edit next to "This week": each row gets an up arrow, a down arrow and Hide. Tap Done when finished.
-- Edit inside "All pages": tap a row to hide it, tap again to bring it back.
-- Hidden things are hidden everywhere on that board: "This week" for every grade, and "All pages".
+- Edit next to "This week": each row gets an up arrow, a down arrow, Hide and Hide all. Tap Done when finished.
+- Hide is for the grade you are on. Hide all hides it for every grade.
+- Edit inside "All pages": tap a row to hide it for the grade you are on, tap again to bring it back.
 - Both are saved on that device only. The order is kept for each grade and week.
 
 ## Step guides

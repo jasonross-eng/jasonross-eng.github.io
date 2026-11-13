@@ -82,7 +82,10 @@
   .item.edit { cursor:default; } .item.edit:hover { transform:none; background:var(--accent2); }
   .item.edit .lbl { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .item.edit.hid .lbl, .item.edit.hid .ic, .item.edit.hid .n { opacity:.4; }
-  .pctl { flex:0 0 auto; display:flex; gap:6px; }
+  .item.edit { flex-wrap:wrap; row-gap:.25em; }
+  .item.edit .ic { width:1.4em; height:1.4em; } .item.edit .n { width:1.4em; height:1.4em; }
+  .pctl { flex:1 0 100%; display:flex; gap:6px; flex-wrap:wrap; }
+  .items.editing li { max-height:none; }
   .pctl button { font-family:var(--font); font-size:.62em; font-weight:700; min-width:2.3em; padding:.25em .6em; border-radius:999px; cursor:pointer;
                  border:3px solid var(--accent); background:var(--btn); color:var(--accent); }
   .pctl button:disabled { opacity:.3; cursor:default; }
@@ -346,7 +349,7 @@
 <div class="archive" id="archive" role="dialog" aria-label="All pages">
   <div class="box">
     <h2>All pages <span class="hbtns"><button class="tool" id="archEdit">Edit</button><button class="tool" id="archClose">Close</button></span></h2>
-    <p class="ahint">Tap a row to hide it everywhere on this board. Tap again to bring it back.</p>
+    <p class="ahint" id="archHint"></p>
     <ul id="archList"></ul>
   </div>
 </div>
@@ -495,7 +498,7 @@
     return a;
   }
   function setGrade(g) {
-    grade = g; store.set('grade', g);
+    grade = g; store.set('grade', g); hidden = hiddenBy[g];
     document.querySelectorAll('.gtab[data-grade]').forEach(b => { const on = b.dataset.grade === g; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
     renderPlan(shownIdx);
   }
@@ -505,11 +508,18 @@
     b.onclick = () => setGrade(id);
     $('grades').insertBefore(b, $('clarBtn'));
   });
-  // Hide and order, saved on this device. Hidden is one list for the whole board: a hidden thing is gone from
-  // "This week" (every grade) and from All pages until it is brought back. Order is kept per week and grade.
-  let hidden = new Set();
-  try { hidden = new Set(JSON.parse(store.get('archhide', '[]'))); } catch(e) {}
-  function saveHidden() { store.set('archhide', JSON.stringify([...hidden])); }
+  // Hide and order, saved on this device. Each grade has its own hidden list: a hidden thing is gone from that grade's
+  // "This week" and All pages until it is brought back. "Hide all" does it for every grade. Order is kept per week and grade.
+  const hiddenBy = {};
+  (function () {
+    const read = k => { try { const v = JSON.parse(store.get(k, 'null')); return Array.isArray(v) ? v : null; } catch(e) { return null; } };
+    const old = read('archhide') || [];   // earlier version: one list for the whole board
+    GRADES.forEach(([g]) => hiddenBy[g] = new Set(read('hide_' + g) || old));
+  })();
+  let hidden = hiddenBy[grade];
+  function saveHidden(g) { g = g || grade; store.set('hide_' + g, JSON.stringify([...hiddenBy[g]])); }
+  function hideAll(k, on) { GRADES.forEach(([g]) => { if (on) hiddenBy[g].add(k); else hiddenBy[g].delete(k); saveHidden(g); }); }
+  function hiddenEverywhere(k) { return GRADES.every(([g]) => hiddenBy[g].has(k)); }
   function itemKey(it) { return it.type === 'guide' ? 'guide|' + it.guide : it.type + '|' + ((it.url && it.url.trim()) || it.label); }
   function orderKey() { const p = plans[shownIdx] || {}; return 'order_' + (p.week || 'plan') + '_' + grade; }
   function orderedItems(p) {
@@ -564,6 +574,10 @@
           const k = itemKey(it); if (hidden.has(k)) hidden.delete(k); else hidden.add(k);
           saveHidden(); renderPlan(shownIdx);
         }).classList.toggle('showbtn', hid);
+        const k = itemKey(it), everywhere = hiddenEverywhere(k);
+        btn(everywhere ? 'Show all' : 'Hide all', (everywhere ? 'Show in all grades' : 'Hide in all grades'), () => {
+          hideAll(k, !everywhere); renderPlan(shownIdx);
+        }).classList.toggle('showbtn', everywhere);
         el.appendChild(ctl);
       } else wireItem(el, it, has);
       li.appendChild(el); ol.appendChild(li);
@@ -743,6 +757,7 @@
   function renderArchive() {
     const ul = $('archList'); ul.innerHTML = '';
     const editing = $('archive').classList.contains('editing');
+    $('archHint').textContent = 'Tap a row to hide it for ' + GRADES.find(g => g[0] === grade)[1] + ' grade. Tap again to bring it back.';
     const head = t => { const li = document.createElement('li'); li.className = 'ahead'; li.textContent = t; ul.appendChild(li); return li; };
     // One row. In Edit a tap hides or shows it; otherwise a tap opens it.
     const row = (key, label, note, wire) => {
