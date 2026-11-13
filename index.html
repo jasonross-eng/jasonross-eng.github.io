@@ -20,11 +20,12 @@
   button:focus-visible, a:focus-visible { outline:4px solid var(--yellow); outline-offset:3px; }
 
   /* ---------- layout ---------- */
-  .board { height:100%; display:grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-rows:auto 1fr;
+  .board { height:100%; display:grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-rows:auto 1fr auto;
            gap:2.2vh 1.8vw; padding:2.2vh 2vw; }
   .topbar { grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   .grades, .tools { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   .tools { margin-left:auto; }
+  .tools .tool { font-size:clamp(14px, 1.3vw, 18px); padding:8px clamp(10px, 1.1vw, 18px); }
   .card { background:var(--card); border-radius:28px; box-shadow:0 8px 30px rgba(20,40,70,.15); }
   .left { display:grid; grid-template-rows: auto 1fr; gap:2.2vh; min-height:0; }
 
@@ -32,11 +33,36 @@
           padding:8px 18px; cursor:pointer; box-shadow:0 3px 12px rgba(20,40,70,.12); }
   .tool.on { background:var(--accent); color:var(--onaccent); }
   /* grade tabs and the Teacher Clarity tab */
-  .gtab { font-size:clamp(20px, 3.2vh, 30px); padding:8px 26px; }
+  .gtab { font-size:clamp(18px, 3.2vh, 30px); padding:8px clamp(14px, 1.7vw, 26px); }
   .tool.clar { background:var(--yellow); color:#1d2433; }
   .empty { font-size:min(3.2vh, 26px); color:var(--soft); padding:1vh .4vw; }
 
   /* ---------- clock ---------- */
+  /* ---------- event countdown strip ---------- */
+  .ticker { grid-column:1 / -1; display:none; overflow:hidden; border-radius:999px; padding:.9vh 0; cursor:pointer; white-space:nowrap; min-width:0; }
+  .ticker.show { display:block; }
+  .track { display:inline-flex; will-change:transform; animation:tick linear infinite; }
+  @keyframes tick { to { transform:translateX(-50%); } }
+  .ev { font-size:min(4vh, 30px); font-weight:700; padding:0 1.2em; display:inline-flex; align-items:baseline; gap:.35em; }
+  .ev b { font-size:1.35em; color:var(--yellow); }
+  .ev::after { content:"\2605"; color:var(--yellow); margin-left:2.4em; font-size:.8em; }
+  @media (prefers-reduced-motion: reduce) { .track { animation:none; } }
+  /* countdown editor */
+  .cd h3 { margin:6px 0 0; font-size:20px; }
+  .cd .hint { margin:0; font-size:15px; color:var(--soft); }
+  .cd .rows { display:flex; flex-direction:column; gap:8px; }
+  .cd .r { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .cd input { font-family:var(--font); font-size:18px; padding:8px 10px; border-radius:12px; border:2px solid var(--line); background:#fff; color:#1d2433; min-width:0; }
+  .cd input[type=text] { flex:1 1 120px; }
+  .cd .box { width:min(820px, 100%); }
+  .cd .left { min-width:7.5em; }
+  .cd .scroll { overflow:auto; display:flex; flex-direction:column; gap:10px; padding-right:4px; }
+  .cd .tool { box-shadow:none; border:2px solid var(--line); }
+  .cd .left { font-size:15px; color:var(--soft); white-space:nowrap; }
+  .cd #cdOff .left { display:none; }
+  .tool.onoff.on { background:var(--green); color:#062b12; }
+  body.dark.purple .tool.onoff.on { background:#22e36b; }
+
   .clock { display:flex; align-items:center; justify-content:center; gap:2.5vw; padding:2.4vh 2vw; min-height:0; }
   .clocktext { display:flex; flex-direction:column; align-items:center; }
   .time { font-size:min(11vh, 7vw); font-weight:700; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
@@ -270,6 +296,7 @@
       <button class="tool gtab clar" id="clarBtn">Teacher Clarity</button>
     </div>
     <div class="tools">
+      <button class="tool" id="cdBtn">Countdown</button>
       <button class="tool" id="bgBtn">Background</button>
       <button class="tool" id="drawBtn">Draw</button>
       <button class="tool" id="kbdBtn">Keyboard</button>
@@ -309,6 +336,24 @@
     </header>
     <ol class="items" id="items"></ol>
   </section>
+
+  <div class="card ticker" id="ticker" title="Tap to edit the countdown"><div class="track" id="track"></div></div>
+</div>
+
+<div class="archive cd" id="cdBox" role="dialog" aria-label="Event countdown">
+  <div class="box">
+    <h2>Countdown <span class="hbtns"><button class="tool onoff" id="cdOn">On</button><button class="tool" id="cdClose">Close</button></span></h2>
+    <div class="scroll">
+      <h3>Events</h3>
+      <div class="rows" id="cdEvents"></div>
+      <div class="r"><button class="tool" id="cdAdd">Add event</button></div>
+      <h3>No school days</h3>
+      <p class="hint">Weekends are skipped already. Add breaks and days off here so they are not counted.</p>
+      <div class="rows" id="cdOff"></div>
+      <div class="r"><button class="tool" id="cdAddOff">Add days off</button><button class="tool" id="cdReset">Reset</button></div>
+      <p class="hint">Saved on this board only.</p>
+    </div>
+  </div>
 </div>
 
 <div class="viewer" id="viewer">
@@ -382,6 +427,7 @@
 
 <script src="guides.js"></script>
 <script src="plans.js"></script>
+<script src="events.js"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -599,6 +645,89 @@
   addEventListener('resize', fitPlan);
   $('planPick').value = curIdx; setGrade(grade);
   $('planPick').onchange = e => renderPlan(Number(e.target.value));
+
+  /* ---------- event countdown ---------- */
+  // Starting list comes from events.js. Edits on the board are saved on this device only; Reset drops them.
+  const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  function cdDefault() {
+    const c = (typeof COUNTDOWN !== 'undefined' && COUNTDOWN) || {};
+    return { on: c.on !== false, events: (c.events || []).map(e => ({ name: e.name || '', date: e.date || '' })),
+             off: (c.noSchool || []).map(r => [r[0] || '', r[1] || r[0] || '']) };
+  }
+  let cd = cdDefault();
+  try { const v = JSON.parse(store.get('countdown', 'null')); if (v && Array.isArray(v.events) && Array.isArray(v.off)) cd = v; } catch(e) {}
+  function cdSave() { store.set('countdown', JSON.stringify(cd)); renderTicker(); }
+  // School days from today up to (not counting) the event day. Skips weekends and the no school days.
+  function schoolDays(date) {
+    const end = new Date(date + 'T12:00'), d = new Date(); d.setHours(12, 0, 0, 0);
+    if (isNaN(end) || end < d) return -1;
+    let n = 0, guard = 0;
+    while (dayKey(d) < date && guard++ < 800) {
+      const k = dayKey(d), wd = d.getDay();
+      if (wd !== 0 && wd !== 6 && !cd.off.some(r => r[0] && k >= r[0] && k <= (r[1] || r[0]))) n++;
+      d.setDate(d.getDate() + 1);
+    }
+    return n;
+  }
+  function evText(e) {
+    const n = schoolDays(e.date);
+    if (n < 0) return null;
+    return n === 0 ? ['Today', e.name + '!'] : [String(n), (n === 1 ? 'school day' : 'school days') + ' until ' + e.name];
+  }
+  let tickerDay = '';
+  function renderTicker() {
+    tickerDay = dayKey(new Date());
+    const box = $('ticker'), track = $('track');
+    const list = cd.events.filter(e => e.name.trim() && e.date).sort((a, b) => a.date.localeCompare(b.date)).map(evText).filter(Boolean);
+    $('cdBtn').classList.toggle('on', cd.on && list.length > 0);
+    track.innerHTML = '';
+    box.classList.toggle('show', cd.on && list.length > 0);
+    if (!cd.on || !list.length) { requestAnimationFrame(fitPlan); return; }
+    const group = () => list.forEach(([n, t]) => {
+      const s = document.createElement('span'); s.className = 'ev'; s.innerHTML = '<b></b><span></span>';
+      s.querySelector('b').textContent = n; s.querySelector('span').textContent = t; track.appendChild(s);
+    });
+    group();
+    // Repeat until one set is wider than the strip, then double it so the loop has no gap.
+    const one = track.scrollWidth || 1, reps = Math.min(40, Math.ceil(box.clientWidth / one) + 1);
+    for (let i = 1; i < reps * 2; i++) group();
+    track.style.animationDuration = Math.max(12, (one * reps) / 70) + 's';
+    requestAnimationFrame(fitPlan);
+  }
+  function cdRow(parent, fields, onRemove, extra) {
+    const r = document.createElement('div'); r.className = 'r';
+    fields.forEach(([type, val, label, set]) => {
+      const i = document.createElement('input'); i.type = type; i.value = val; i.setAttribute('aria-label', label);
+      if (type === 'text') { i.placeholder = label; i.maxLength = 40; }
+      i.oninput = () => { set(i.value); cdSave(); if (extra) extra(r); };
+      r.appendChild(i);
+    });
+    const note = document.createElement('span'); note.className = 'left'; r.appendChild(note);
+    const x = document.createElement('button'); x.className = 'tool'; x.textContent = 'Remove'; x.onclick = onRemove; r.appendChild(x);
+    if (extra) extra(r);
+    parent.appendChild(r);
+  }
+  function renderCd() {
+    $('cdOn').textContent = cd.on ? 'On' : 'Off'; $('cdOn').classList.toggle('on', cd.on);
+    const ev = $('cdEvents'), off = $('cdOff'); ev.innerHTML = ''; off.innerHTML = '';
+    cd.events.forEach((e, i) => cdRow(ev, [['text', e.name, 'Event name', v => e.name = v], ['date', e.date, 'Event date', v => e.date = v]],
+      () => { cd.events.splice(i, 1); cdSave(); renderCd(); },
+      r => { const n = e.date ? schoolDays(e.date) : null; r.querySelector('.left').textContent = n === null ? '' : n < 0 ? 'Past' : n === 0 ? 'Today' : n + (n === 1 ? ' school day' : ' school days'); }));
+    cd.off.forEach((o, i) => cdRow(off, [['date', o[0], 'First day off', v => { o[0] = v; if (!o[1] || o[1] < v) o[1] = v; }], ['date', o[1], 'Last day off', v => o[1] = v]],
+      () => { cd.off.splice(i, 1); cdSave(); renderCd(); }));
+  }
+  function cdOpen(on) { if (on) renderCd(); $('cdBox').classList.toggle('show', on); }
+  $('cdBtn').onclick = () => cdOpen(true);
+  $('ticker').onclick = () => cdOpen(true);
+  $('cdClose').onclick = () => cdOpen(false);
+  $('cdBox').onclick = e => { if (e.target === $('cdBox')) cdOpen(false); };
+  $('cdOn').onclick = () => { cd.on = !cd.on; cdSave(); renderCd(); };
+  $('cdAdd').onclick = () => { cd.events.push({ name: '', date: '' }); renderCd(); const a = $('cdEvents').querySelectorAll('input[type=text]'); a[a.length - 1].focus(); };
+  $('cdAddOff').onclick = () => { cd.off.push(['', '']); renderCd(); };
+  $('cdReset').onclick = () => { store.del('countdown'); cd = cdDefault(); renderTicker(); renderCd(); };
+  renderTicker();
+  addEventListener('resize', renderTicker);
+  setInterval(() => { if (dayKey(new Date()) !== tickerDay) renderTicker(); }, 60000);
 
   /* ---------- steps viewer ---------- */
   const viewer = $('viewer'), frame = $('frame');
@@ -920,10 +1049,12 @@
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'SELECT') return;
     if (e.target.isContentEditable) { if (e.key === 'Escape') clarEdit(false); return; }
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') { if (e.key === 'Escape') cdOpen(false); return; }
     const guideOpen = $('guide').classList.contains('show');
     if (e.key === 'Escape') {
       if (document.body.classList.contains('drawing')) setDraw(false);
       else if ($('kbd').classList.contains('show')) setKbd(false);
+      else if ($('cdBox').classList.contains('show')) cdOpen(false);
       else if ($('archive').classList.contains('show')) archClose();
       else if (viewer.classList.contains('over')) backToSteps();
       else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show')) closeSteps();

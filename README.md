@@ -10,6 +10,9 @@ The yellow Teacher Clarity button shows three big lines for the grade that is pi
 - Type the words in `plans.js` (under that grade's `clarity`), or
 - Tap Edit on the board, type, and tap Done. That copy is saved on that device only. Reset goes back to what is in `plans.js`.
 
+## Event countdown
+A strip across the bottom shows how many school days are left until each event. Tap Countdown (top right) to turn it On or Off, add events, and add no school days (weekends are skipped already). That is saved on that device only. To set the list for every device, type it in `events.js`.
+
 ## Weekly plan
 `plans.js` has one block per week, keyed by that week's Monday. Inside each week, each grade ("1" to "4") has its own `clarity` words and its own `items` list. The board opens to the newest week that has started, so next week can be added ahead of time and it switches on its own Monday. Old weeks stay in the file and in the week menu.
 
