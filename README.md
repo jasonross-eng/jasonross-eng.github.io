@@ -25,6 +25,9 @@ A strip across the bottom shows how many school days are left until each event. 
 ## Must Do / May Do
 The green Must Do / May Do button opens two checklists for the grade that is picked. Tap Edit to type the jobs, then Done. Tap a job to check it off. Uncheck all clears the checks for the next class. Saved on that device only, one pair of lists per grade.
 
+## Scores
+The Scores button (top right) opens a team scoreboard for the grade that is picked. Teams - / + sets how many teams. Tap a team name to rename it. Tap + or - to change points. Reset scores sets everyone to 0. Saved on that device only.
+
 ## Weekly plan
 `plans.js` has one block per week, keyed by that week's Monday. Inside each week, each grade ("1" to "4") has its own `clarity` words and its own `items` list. The board opens to the newest week that has started, so next week can be added ahead of time and it switches on its own Monday. Old weeks stay in the file and in the week menu.
 

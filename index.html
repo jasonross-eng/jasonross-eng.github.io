@@ -36,6 +36,24 @@
   .gtab { font-size:clamp(14px, 1.45vw, 30px); padding:8px clamp(8px, 1.05vw, 26px); }
   .tool.clar { background:var(--yellow); color:#1d2433; }
   .tool.todo { background:#7be0a2; color:#1d2433; }
+  /* ---------- team scoreboard ---------- */
+  .srows { flex:1; min-height:0; display:flex; flex-direction:column; gap:1vh; width:min(96vw, 1600px); margin:0 auto; --n:4;
+           font-size:clamp(18px, calc(58vh / var(--n) * .42), 64px); }
+  .srow { flex:1 1 0; min-height:0; display:flex; align-items:center; gap:.5em; background:var(--card); border-radius:.6em; padding:0 .6em; box-shadow:0 4px 14px rgba(30,60,90,.12); }
+  .srow input { flex:0 0 7.5em; min-width:0; width:7.5em; font-family:var(--font); font-size:.8em; font-weight:700; color:var(--ink); background:transparent;
+                border:2px solid transparent; border-radius:.3em; padding:.1em .25em; }
+  .srow input:focus { background:#fff; color:#1d2433; border-color:var(--yellow); outline:none; }
+  .srow .pm { flex:0 0 auto; width:1.7em; height:1.7em; border-radius:50%; cursor:pointer; padding:0; font-family:var(--font); font-size:.8em; font-weight:700; line-height:1;
+              border:3px solid var(--accent); background:var(--btn); color:var(--accent); }
+  .srow .pm.plus { background:var(--accent); color:var(--onaccent); }
+  .strack { flex:1; min-width:0; position:relative; height:.28em; border-radius:999px; background:var(--line); margin:0 .9em 0 .7em; }
+  .strack i { position:absolute; left:0; top:0; bottom:0; border-radius:999px; background:var(--yellow); transition:width .35s; }
+  .strack span { position:absolute; top:50%; font-size:1.25em; line-height:1; transform:translate(-50%, -50%) rotate(45deg); transition:left .35s; }
+  .srow .pts { flex:0 0 2.2em; text-align:right; font-weight:700; font-size:1.2em; font-variant-numeric:tabular-nums; }
+  .srow.lead .pts { color:var(--yellow); }
+  .scount { display:flex; align-items:center; gap:8px; font-size:clamp(18px, 2.6vh, 28px); font-weight:700; background:var(--card); border-radius:999px; padding:2px 14px; }
+  @media (prefers-reduced-motion: reduce) { .strack i, .strack span { transition:none; } }
+
   /* ---------- must do / may do checklists ---------- */
   .tcols { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:1.6vw; width:min(96vw, 1600px); margin:0 auto; }
   .tcol { min-height:0; display:flex; flex-direction:column; gap:1.2vh; background:var(--card); border-radius:26px; padding:1.6vh 1.4vw; box-shadow:0 4px 14px rgba(30,60,90,.12); }
@@ -338,6 +356,7 @@
     .item { font-size:24px; }
     .topbar { order:-2; } .plan { order:-1; }
     .guide, .clarity { overflow:auto; padding-bottom:110px; }
+    .srows { flex:none; font-size:22px; } .srow { flex:none; flex-wrap:wrap; padding:8px 12px; } .srow input { flex:1 0 100%; width:auto; } .strack { flex:1 0 40%; }
     .tcols { grid-template-columns:1fr; flex:none; } .tlist { overflow:visible; }
     .crows { flex:none; } .crow { flex:none; flex-direction:column; } .crow h2 { flex:none; }
     .ctext { align-self:stretch; min-height:2.4em; }
@@ -359,6 +378,7 @@
       <button class="tool gtab todo" id="todoBtn">Must Do / May Do</button>
     </div>
     <div class="tools">
+      <button class="tool" id="scoreBtn">Scores</button>
       <button class="tool" id="cdBtn">Countdown</button>
       <button class="tool" id="bgBtn">Background</button>
       <button class="tool" id="drawBtn">Draw</button>
@@ -457,6 +477,17 @@
     <section class="crow"><h2>So I can</h2><div class="ctext" id="cSo"></div></section>
     <section class="crow"><h2>I know I have it when</h2><div class="ctext" id="cKnow"></div></section>
   </main>
+</div>
+
+<div class="clarity" id="score">
+  <header>
+    <h1 id="sTitle"></h1>
+    <div class="gctl">
+      <span class="scount">Teams <button id="sLess" aria-label="Fewer teams">-</button><span id="sN">4</span><button id="sMore" aria-label="More teams">+</button></span>
+      <button id="sZero">Reset scores</button>
+    </div>
+  </header>
+  <main class="srows" id="sRows"></main>
 </div>
 
 <div class="clarity" id="todo">
@@ -949,7 +980,7 @@
     if ($('clarity').classList.contains('editing')) clarEdit(false);
     $('clarity').classList.remove('show');
     if ($('todo').classList.contains('editing')) todoEdit(false);
-    $('todo').classList.remove('show');
+    $('todo').classList.remove('show'); $('score').classList.remove('show');
     clearInk(); setDraw(false);
   }
   $('closeView').onclick = closeSteps;
@@ -996,6 +1027,46 @@
   $('clarBtn').onclick = openClarity;
   $('cEdit').onclick = () => clarEdit(!$('clarity').classList.contains('editing'));
   $('cReset').onclick = () => { store.del(clarKey()); clarPaint(); };
+
+  /* ---------- team scoreboard ---------- */
+  // One scoreboard per grade, saved on this device: how many teams (1 to 10), their names and points.
+  function scoreGet() {
+    let v = null; try { v = JSON.parse(store.get('score_' + grade, 'null')); } catch(e) {}
+    const n = v && v.n >= 1 && v.n <= 10 ? v.n : 4, teams = (v && Array.isArray(v.teams) ? v.teams : []).map(t => ({ name: String(t.name || ''), score: Math.max(0, Number(t.score) || 0) }));
+    while (teams.length < n) teams.push({ name: 'Team ' + (teams.length + 1), score: 0 });
+    return { n, teams };
+  }
+  function scoreSet(v) { store.set('score_' + grade, JSON.stringify(v)); }
+  function scorePaint() {
+    const v = scoreGet(), box = $('sRows'), shown = v.teams.slice(0, v.n);
+    const top = Math.max(...shown.map(t => t.score)), goal = Math.max(10, Math.ceil(top / 5) * 5);
+    $('sN').textContent = v.n; box.style.setProperty('--n', v.n); box.innerHTML = '';
+    shown.forEach((t, i) => {
+      const r = document.createElement('div'); r.className = 'srow' + (top > 0 && t.score === top ? ' lead' : '');
+      r.innerHTML = '<input type="text" maxlength="18"><button class="pm" aria-label="Take 1 away">-</button><button class="pm plus" aria-label="Add 1">+</button>' +
+        '<div class="strack"><i></i><span>\ud83d\ude80</span></div><div class="pts"></div>';
+      const inp = r.querySelector('input'); inp.value = t.name; inp.setAttribute('aria-label', 'Team ' + (i + 1) + ' name');
+      inp.oninput = () => { const w = scoreGet(); w.teams[i].name = inp.value; scoreSet(w); };
+      const bump = d => () => { const w = scoreGet(); w.teams[i].score = Math.max(0, w.teams[i].score + d); scoreSet(w); scorePaint(); };
+      const pm = r.querySelectorAll('.pm'); pm[0].onclick = bump(-1); pm[1].onclick = bump(1);
+      const pct = Math.min(100, t.score / goal * 100) + '%';
+      r.querySelector('.strack i').style.width = pct; r.querySelector('.strack span').style.left = pct;
+      r.querySelector('.pts').textContent = t.score;
+      box.appendChild(r);
+    });
+  }
+  function scoreTeams(d) { const v = scoreGet(); v.n = Math.max(1, Math.min(10, v.n + d)); while (v.teams.length < v.n) v.teams.push({ name: 'Team ' + (v.teams.length + 1), score: 0 }); scoreSet(v); scorePaint(); }
+  function openScore() {
+    clearInk();
+    $('sTitle').textContent = GRADES.find(g => g[0] === grade)[1] + ' Grade Scores';
+    scorePaint();
+    $('score').classList.add('show'); document.body.classList.add('viewing');
+    goFull();
+  }
+  $('scoreBtn').onclick = openScore;
+  $('sLess').onclick = () => scoreTeams(-1);
+  $('sMore').onclick = () => scoreTeams(1);
+  $('sZero').onclick = () => { const v = scoreGet(); v.teams.forEach(t => t.score = 0); scoreSet(v); scorePaint(); };
 
   /* ---------- must do / may do ---------- */
   // One pair of checklists per grade. Lists typed on the board are saved on this device (Reset drops them and goes back to
@@ -1365,7 +1436,7 @@
       else if ($('cdBox').classList.contains('show')) cdOpen(false);
       else if ($('archive').classList.contains('show')) archClose();
       else if (viewer.classList.contains('over')) backToSteps();
-      else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show') || $('todo').classList.contains('show')) closeSteps();
+      else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show') || $('todo').classList.contains('show') || $('score').classList.contains('show')) closeSteps();
     }
     if ($('kbd').classList.contains('show')) return;
     if (guideOpen && gWall.classList.contains('editing')) return;
