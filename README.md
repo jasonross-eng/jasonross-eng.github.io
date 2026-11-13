@@ -10,6 +10,9 @@ The yellow Teacher Clarity button shows three big lines for the grade that is pi
 - Type the words in `plans.js` (under that grade's `clarity`), or
 - Tap Edit on the board, type, and tap Done. That copy is saved on that device only. Reset goes back to what is in `plans.js`.
 
+## Voice level
+Next to the clock: tap 0, 1 or 2 to show the voice level (0 Silent, 1 Whisper, 2 Normal talking). Tap the lit number again to clear it.
+
 ## Event countdown
 A strip across the bottom shows how many school days are left until each event. Tap Countdown (top right) to turn it On or Off, add events, and add no school days (weekends are skipped already). That is saved on that device only. To set the list for every device, type it in `events.js`.
 
