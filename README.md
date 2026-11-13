@@ -34,6 +34,9 @@ The clock, timer and "This week" each have a small round button. Tap - to make t
 ## Arrange
 Tap Arrange (top right). Drag a card to move it. Drag its yellow corner to make it bigger or smaller. Tap Done. Reset layout puts everything back. Saved on that device only.
 
+## Backgrounds
+Each grade has its own background. Tap the grade, tap Background, then pick a color or Upload picture. Saved on that device only.
+
 ## Weekly plan
 `plans.js` has one block per week, keyed by that week's Monday. Inside each week, each grade ("1" to "4") has its own `clarity` words and its own `items` list. The board opens to the newest week that has started, so next week can be added ahead of time and it switches on its own Monday. Old weeks stay in the file and in the week menu.
 

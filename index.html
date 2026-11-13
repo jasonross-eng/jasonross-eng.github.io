@@ -755,10 +755,12 @@
     Object.keys(p.grades || {}).forEach(k => { const g = p.grades[k]; if (g && Array.isArray(g.items)) a = a.concat(g.items); });
     return a;
   }
+  const gradeHooks = [];   // run after the grade changes (the background follows the grade)
   function setGrade(g) {
     grade = g; store.set('grade', g); hidden = hiddenBy[g];
     document.querySelectorAll('.gtab[data-grade]').forEach(b => { const on = b.dataset.grade === g; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
     renderPlan(shownIdx);
+    gradeHooks.forEach(f => f());
   }
   GRADES.forEach(([id, name]) => {
     const b = document.createElement('button');
@@ -1447,11 +1449,13 @@
     const mode = BGS[i][2] || '';
     document.body.classList.toggle('dark', mode.includes('dark'));
     document.body.classList.toggle('purple', mode.includes('purple'));
-    store.set('bg2', i); bgCur = i;
+    store.set('bg2_' + grade, i); bgCur = i;
     paintBg();
   }
   // Your own picture: shrunk and saved on this device only. Tapping a color turns it off but keeps it.
-  let bgCur = 0, bgImg = store.get('bgimg', ''), bgPicOn = store.get('bgpic', '0') === '1' && !!bgImg;
+  // Each grade has its own background (color and picture). A grade that has none yet starts from the old board-wide one.
+  const bgGet = (k, d) => store.get(k + '_' + grade, store.get(k, d));
+  let bgCur = 0, bgImg = '', bgPicOn = false;
   function paintBg() {
     if (bgPicOn && bgImg) document.documentElement.style.setProperty('--bg', 'url("' + bgImg + '") center / cover no-repeat');
     else document.documentElement.style.setProperty('--bg', BGS[bgCur][1]);
@@ -1461,7 +1465,7 @@
     pic.classList.toggle('on', bgPicOn);
     $('bgRemove').style.display = bgImg ? '' : 'none';
   }
-  function setPic(on) { bgPicOn = on && !!bgImg; store.set('bgpic', bgPicOn ? 1 : 0); paintBg(); }
+  function setPic(on) { bgPicOn = on && !!bgImg; store.set('bgpic_' + grade, bgPicOn ? 1 : 0); paintBg(); }
   function loadPic(file) {
     if (!file) return;
     const note = $('bgNote'), url = URL.createObjectURL(file), im = new Image();
@@ -1472,7 +1476,7 @@
       const x = c.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
       URL.revokeObjectURL(url);
       const data = c.toDataURL('image/jpeg', .82);
-      try { localStorage.setItem('cb_bgimg', data); note.textContent = 'Picture saved on this board only.'; }
+      try { localStorage.setItem('cb_bgimg_' + grade, data); note.textContent = 'Picture saved for ' + GRADES.find(g => g[0] === grade)[1] + ' grade, on this board only.'; }
       catch(e) { note.textContent = 'Picture is on, but it was too big to save. It will be gone after a refresh.'; }
       bgImg = data; setPic(true);
     };
@@ -1481,7 +1485,7 @@
   BGS.forEach(([name, css, mode, swatch], i) => {
     const b = document.createElement('button');
     b.className = 'swatch'; b.style.background = swatch || css; b.title = name; b.setAttribute('aria-label', name);
-    b.onclick = () => { bgPicOn = false; store.set('bgpic', 0); setBg(i); };
+    b.onclick = () => { bgPicOn = false; store.set('bgpic_' + grade, 0); setBg(i); };
     $('bgpick').appendChild(b);
   });
   (function () {
@@ -1494,10 +1498,15 @@
     const note = document.createElement('p'); note.className = 'note'; note.id = 'bgNote'; pick.appendChild(note);
     $('bgUpload').onclick = () => $('bgFile').click();
     $('bgFile').onchange = e => { loadPic(e.target.files[0]); e.target.value = ''; };
-    $('bgRemove').onclick = () => { bgImg = ''; store.del('bgimg'); $('bgNote').textContent = ''; setPic(false); };
+    $('bgRemove').onclick = () => { bgImg = ''; store.set('bgimg_' + grade, ''); $('bgNote').textContent = ''; setPic(false); };
   })();
   const BG_DEFAULT = BGS.findIndex(b => b[0] === 'Black + purple');
-  let bgi = Number(store.get('bg2', BG_DEFAULT)); setBg(bgi >= 0 && bgi < BGS.length ? bgi : BG_DEFAULT);
+  function loadBg() {
+    bgImg = bgGet('bgimg', ''); bgPicOn = bgGet('bgpic', '0') === '1' && !!bgImg;
+    const i = Number(bgGet('bg2', BG_DEFAULT)); $('bgNote').textContent = '';
+    setBg(i >= 0 && i < BGS.length ? i : BG_DEFAULT);
+  }
+  gradeHooks.push(loadBg); loadBg();
   $('bgBtn').onclick = e => { e.stopPropagation(); $('bgpick').classList.toggle('show'); $('bgBtn').classList.toggle('on'); };
   document.addEventListener('click', e => {
     if (!$('bgpick').contains(e.target) && e.target !== $('bgBtn')) { $('bgpick').classList.remove('show'); $('bgBtn').classList.remove('on'); }
