@@ -20,7 +20,7 @@
   button:focus-visible, a:focus-visible { outline:4px solid var(--yellow); outline-offset:3px; }
 
   /* ---------- layout ---------- */
-  .board { height:100%; display:grid; grid-template-columns: 1.35fr 1fr; grid-template-rows:auto 1fr;
+  .board { height:100%; display:grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-rows:auto 1fr;
            gap:2.2vh 1.8vw; padding:2.2vh 2vw; }
   .topbar { grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   .grades, .tools { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
@@ -78,6 +78,17 @@
   .item .kind { font-size:.5em; color:var(--soft); font-weight:400; white-space:nowrap; }
   .item.missing { opacity:.55; cursor:default; }
   .item.missing:hover { transform:none; background:var(--accent2); }
+  /* Edit on the plan: move up, move down, hide (saved on this device) */
+  .item.edit { cursor:default; } .item.edit:hover { transform:none; background:var(--accent2); }
+  .item.edit .lbl { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .item.edit.hid .lbl, .item.edit.hid .ic, .item.edit.hid .n { opacity:.4; }
+  .pctl { flex:0 0 auto; display:flex; gap:6px; }
+  .pctl button { font-family:var(--font); font-size:.62em; font-weight:700; min-width:2.3em; padding:.25em .6em; border-radius:999px; cursor:pointer;
+                 border:3px solid var(--accent); background:var(--btn); color:var(--accent); }
+  .pctl button:disabled { opacity:.3; cursor:default; }
+  .pctl button.showbtn { background:#d93025; border-color:#d93025; color:#fff; }
+  .plan header { flex-wrap:wrap; }
+  .plan { min-width:0; } .items li, .items li .item { min-width:0; }
 
   /* black + green theme */
   body.dark { --ink:#f2f5f2; --soft:#9fb3a5; --card:#151515; --line:#2c2c2c; --accent:#22e36b; --accent2:#1d1d1d;
@@ -230,7 +241,7 @@
 
   @media (max-width:820px) {
     body { overflow:auto; }
-    .board { grid-template-columns:1fr; height:auto; padding:16px; }
+    .board { grid-template-columns:minmax(0, 1fr); height:auto; padding:16px; }
     .left { grid-template-rows:auto auto; }
     .clock, .timer { padding:3vh 0; }
     .time { font-size:16vw; } .date { font-size:4.5vw; } .tdisplay { font-size:16vw; }
@@ -289,6 +300,7 @@
       <h2 id="planTitle">Plan</h2>
       <div class="hbtns">
         <select id="planPick" aria-label="Choose plan"></select>
+        <button class="tool" id="planEdit">Edit</button>
         <button class="tool" id="pastBtn">All pages</button>
       </div>
     </header>
@@ -334,7 +346,7 @@
 <div class="archive" id="archive" role="dialog" aria-label="All pages">
   <div class="box">
     <h2>All pages <span class="hbtns"><button class="tool" id="archEdit">Edit</button><button class="tool" id="archClose">Close</button></span></h2>
-    <p class="ahint">Tap a row to hide it. Tap again to bring it back.</p>
+    <p class="ahint">Tap a row to hide it everywhere on this board. Tap again to bring it back.</p>
     <ul id="archList"></ul>
   </div>
 </div>
@@ -493,29 +505,73 @@
     b.onclick = () => setGrade(id);
     $('grades').insertBefore(b, $('clarBtn'));
   });
+  // Hide and order, saved on this device. Hidden is one list for the whole board: a hidden thing is gone from
+  // "This week" (every grade) and from All pages until it is brought back. Order is kept per week and grade.
+  let hidden = new Set();
+  try { hidden = new Set(JSON.parse(store.get('archhide', '[]'))); } catch(e) {}
+  function saveHidden() { store.set('archhide', JSON.stringify([...hidden])); }
+  function itemKey(it) { return it.type === 'guide' ? 'guide|' + it.guide : it.type + '|' + ((it.url && it.url.trim()) || it.label); }
+  function orderKey() { const p = plans[shownIdx] || {}; return 'order_' + (p.week || 'plan') + '_' + grade; }
+  function orderedItems(p) {
+    let ord = []; try { ord = JSON.parse(store.get(orderKey(), '[]')) || []; } catch(e) {}
+    const pos = k => { const i = ord.indexOf(k); return i < 0 ? 1e6 : i; };
+    return planItems(p).map((it, i) => [it, i]).sort((x, y) => (pos(itemKey(x[0])) - pos(itemKey(y[0]))) || (x[1] - y[1])).map(x => x[0]);
+  }
+  let planEditing = false;
+  function setPlanEdit(on) {
+    planEditing = on;
+    $('planEdit').textContent = on ? 'Done' : 'Edit'; $('planEdit').classList.toggle('editon', on);
+    renderPlan(shownIdx);
+  }
   function renderPlan(i) {
     const p = plans[i] || plans[0];
     shownIdx = plans[i] ? i : 0;
     $('planTitle').textContent = i === curIdx ? 'This week' : weekLabel(p);
     const ol = $('items'); ol.innerHTML = '';
-    if (!planItems(p).length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Nothing here yet.'; ol.appendChild(li); }
-    planItems(p).forEach((it, n) => {
+    ol.classList.toggle('editing', planEditing);
+    const all = orderedItems(p), list = planEditing ? all : all.filter(it => !hidden.has(itemKey(it)));
+    if (!list.length) {
+      const li = document.createElement('li'); li.className = 'empty';
+      li.textContent = all.length ? 'Everything is hidden. Tap Edit to bring things back.' : 'Nothing here yet.'; ol.appendChild(li);
+    }
+    let num = 0;
+    list.forEach((it, n) => {
       const li = document.createElement('li');
       const isGuide = it.type === 'guide';
       const has = isGuide ? !!findGuide(it.guide) : !!(it.url && it.url.trim());
-      const el = document.createElement(has && it.type === 'link' ? 'a' : 'button');
-      el.className = 'item' + (has ? '' : ' missing');
+      const hid = hidden.has(itemKey(it));
+      const el = document.createElement(planEditing ? 'div' : (has && it.type === 'link' ? 'a' : 'button'));
+      el.className = 'item' + (has ? '' : ' missing') + (planEditing ? ' edit' : '') + (hid ? ' hid' : '');
       el.innerHTML = '<span class="n"></span><span class="lbl"></span><span class="kind"></span>';
-      el.querySelector('.n').textContent = n + 1;
+      el.querySelector('.n').textContent = hid ? '×' : ++num;
       if (it.icon) { const ic = document.createElement('img'); ic.className = 'ic'; ic.src = it.icon; ic.alt = ''; el.querySelector('.n').replaceWith(ic); }
       el.querySelector('.lbl').textContent = it.label;
       el.querySelector('.kind').textContent = !has ? (isGuide ? 'Guide missing' : 'Link needed') : '';
-      wireItem(el, it, has);
+      if (planEditing) {
+        el.querySelector('.kind').remove();
+        const ctl = document.createElement('span'); ctl.className = 'pctl';
+        const btn = (txt, label, fn, off) => {
+          const x = document.createElement('button'); x.textContent = txt; x.setAttribute('aria-label', label + ' ' + it.label); x.disabled = !!off;
+          x.onclick = fn; ctl.appendChild(x); return x;
+        };
+        const move = d => {
+          const keys = all.map(itemKey), j = n + d; [keys[n], keys[j]] = [keys[j], keys[n]];
+          store.set(orderKey(), JSON.stringify(keys)); renderPlan(shownIdx);
+        };
+        btn('▲', 'Move up', () => move(-1), n === 0);
+        btn('▼', 'Move down', () => move(1), n === all.length - 1);
+        btn(hid ? 'Show' : 'Hide', hid ? 'Show' : 'Hide', () => {
+          const k = itemKey(it); if (hidden.has(k)) hidden.delete(k); else hidden.add(k);
+          saveHidden(); renderPlan(shownIdx);
+        }).classList.toggle('showbtn', hid);
+        el.appendChild(ctl);
+      } else wireItem(el, it, has);
       li.appendChild(el); ol.appendChild(li);
     });
     requestAnimationFrame(fitPlan);
     if (document.fonts) document.fonts.ready.then(fitPlan);
   }
+  $('planEdit').onclick = () => setPlanEdit(!planEditing);
   // Shrink plan text until every item fits without scrolling.
   function fitPlan() {
     const ol = $('items'); ol.style.fontSize = '';
@@ -679,8 +735,6 @@
 
   /* ---------- archive ---------- */
   // Hidden rows are remembered on this device. Edit shows them again so they can be brought back.
-  let archHidden = new Set();
-  try { archHidden = new Set(JSON.parse(store.get('archhide', '[]'))); } catch(e) {}
   function archSetEdit(on) {
     $('archive').classList.toggle('editing', on);
     $('archEdit').textContent = on ? 'Done' : 'Edit'; $('archEdit').classList.toggle('editon', on);
@@ -693,14 +747,14 @@
     // One row. In Edit a tap hides or shows it; otherwise a tap opens it.
     const row = (key, label, note, wire) => {
       const li = document.createElement('li'); const b = document.createElement('button');
-      const hid = archHidden.has(key);
+      const hid = hidden.has(key);
       li.classList.toggle('hid', hid);
       b.innerHTML = '<span></span><small></small>';
       b.querySelector('span').textContent = label;
       b.querySelector('small').textContent = editing && hid ? 'Hidden' : note;
       if (editing) b.onclick = () => {
-        if (archHidden.has(key)) archHidden.delete(key); else archHidden.add(key);
-        store.set('archhide', JSON.stringify([...archHidden])); renderArchive();
+        if (hidden.has(key)) hidden.delete(key); else hidden.add(key);
+        saveHidden(); renderArchive(); renderPlan(shownIdx);
       };
       else wire(b);
       li.appendChild(b); ul.appendChild(li);
@@ -724,7 +778,7 @@
     if (others.length) {
       const oHead = head('Pages and links'); shown = 0;
       others.forEach(it => {
-        if (row(it.type + '|' + it.url, it.label, it.type === 'link' ? 'Opens tab' : 'Steps', b => {
+        if (row(itemKey(it), it.label, it.type === 'link' ? 'Opens tab' : 'Steps', b => {
           wireItem(b, it, true);
           b.addEventListener('click', () => $('archive').classList.remove('show'));
         })) shown++;

@@ -19,7 +19,13 @@ Each item:
 - `url` or `guide`: what it opens. Leave `url` as `""` if the link isn't ready.
 - `icon` (optional): `"icons/name.png"`, a real app icon shown in place of the number
 
-"All pages" lists every guide and every page or link used in any week. Tap Edit there, then tap a row to hide it from the list. Tap it again in Edit to bring it back. Hiding is saved on that device only.
+"All pages" lists every guide and every page or link used in any week.
+
+## Hide and move (on the board)
+- Edit next to "This week": each row gets an up arrow, a down arrow and Hide. Tap Done when finished.
+- Edit inside "All pages": tap a row to hide it, tap again to bring it back.
+- Hidden things are hidden everywhere on that board: "This week" for every grade, and "All pages".
+- Both are saved on that device only. The order is kept for each grade and week.
 
 ## Step guides
 New guides go in `guides.js`, pictures in `guides/<guide id>/`. Old guides stay in the list and show under "All pages" on the board.
