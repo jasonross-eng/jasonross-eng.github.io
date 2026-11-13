@@ -25,7 +25,7 @@
   .topbar { grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
   .grades, .tools { display:flex; gap:clamp(5px, .6vw, 10px); flex-wrap:wrap; align-items:center; }
   .tools { margin-left:auto; }
-  .tools .tool { font-size:clamp(12px, 1.08vw, 18px); padding:8px clamp(7px, .8vw, 18px); }
+  .tools .tool { font-size:clamp(11px, 1vw, 18px); padding:8px clamp(6px, .7vw, 18px); }
   .card { background:var(--card); border-radius:28px; box-shadow:0 8px 30px rgba(20,40,70,.15); }
   .left { display:grid; grid-template-rows: auto 1fr; gap:2.2vh; min-height:0; }
 
@@ -33,7 +33,7 @@
           padding:8px 18px; cursor:pointer; box-shadow:0 3px 12px rgba(20,40,70,.12); }
   .tool.on { background:var(--accent); color:var(--onaccent); }
   /* grade tabs and the Teacher Clarity tab */
-  .gtab { font-size:clamp(14px, 1.45vw, 30px); padding:8px clamp(8px, 1.05vw, 26px); }
+  .gtab { font-size:clamp(13px, 1.35vw, 30px); padding:8px clamp(7px, .95vw, 26px); }
   .tool.clar { background:var(--yellow); color:#1d2433; }
   .tool.todo { background:#7be0a2; color:#1d2433; }
   /* ---------- small / big cards, and hiding the top row ---------- */
@@ -47,10 +47,10 @@
   body.min-clock.min-timer.min-plan .board { grid-template-columns:auto auto; justify-content:space-between; }
   body.min-clock.min-timer .left { grid-template-rows:auto auto; align-content:start; }
   body.min-timer:not(.min-clock) .left { grid-template-rows:1fr auto; }
-  body.min-timer:not(.min-clock) .time { font-size:min(20vh, 9vw); }
-  body.min-timer:not(.min-clock) .date { font-size:min(5vh, 2.3vw); white-space:nowrap; }
-  body.min-timer.min-plan:not(.min-clock) .time { font-size:min(24vh, 13vw); }
-  body.min-timer.min-plan:not(.min-clock) .date { font-size:min(6vh, 3.6vw); }
+  body:not(.free).min-timer:not(.min-clock) .time { font-size:min(20vh, 9vw); }
+  body:not(.free).min-timer:not(.min-clock) .date { font-size:min(5vh, 2.3vw); white-space:nowrap; }
+  body:not(.free).min-timer.min-plan:not(.min-clock) .time { font-size:min(24vh, 13vw); }
+  body:not(.free).min-timer.min-plan:not(.min-clock) .date { font-size:min(6vh, 3.6vw); }
   /* small clock */
   body.min-clock .clock { justify-self:start; padding:1vh 56px 1vh 1.2vw; gap:1.2vw; }
   body.min-clock .time { font-size:min(5.5vh, 3.6vw); }
@@ -75,6 +75,26 @@
   body.min-plan .item .ic, body.min-plan .item .n { width:1em; height:1em; border-radius:.22em; }
   body.min-plan .item .n { font-size:.5em; width:2em; height:2em; border-radius:.44em; }
   body.min-plan .items .empty { font-size:16px; }
+  /* ---------- Arrange: move and resize the cards (saved on this device) ---------- */
+  /* With a saved layout each card floats at its own spot and its content is scaled to fit its box. */
+  body.free .left { display:contents; }
+  body.free .card.clock, body.free .card.timer, body.free .card.plan { position:fixed; z-index:1; margin:0; transform-origin:0 0; }
+  body.free .ticker { grid-row:3; } body.free.nobar .ticker { grid-row:2; }
+  body.free .items li { max-height:none; }
+  .grab, .rs { display:none; }
+  body.arranging .grab { display:block; position:absolute; inset:0; z-index:5; border-radius:inherit; cursor:move; touch-action:none;
+                         outline:calc(4px * var(--inv, 1)) dashed var(--yellow); outline-offset:calc(-4px * var(--inv, 1)); background:rgba(246,192,38,.08); }
+  body.arranging .rs { display:block; position:absolute; right:0; bottom:0; z-index:6; width:calc(46px * var(--inv, 1)); height:calc(46px * var(--inv, 1));
+                       cursor:nwse-resize; touch-action:none; background:var(--yellow); border-radius:calc(14px * var(--inv, 1)) 0 calc(24px * var(--inv, 1)) 0; }
+  body.arranging .rs::after { content:""; position:absolute; inset:28%; border-right:calc(4px * var(--inv, 1)) solid #1d2433; border-bottom:calc(4px * var(--inv, 1)) solid #1d2433; }
+  body.arranging.min-clock .clock .rs, body.arranging.min-timer .timer .rs, body.arranging.min-plan .plan .rs { display:none; }
+  body.arranging { user-select:none; -webkit-user-select:none; }
+  .arrbar { position:fixed; left:50%; top:8px; transform:translateX(-50%); z-index:45; display:none; gap:10px; align-items:center;
+            background:#fff; color:#1d2433; border-radius:999px; padding:8px 14px; box-shadow:0 8px 26px rgba(20,40,70,.35); font-weight:700; font-size:17px; white-space:nowrap; }
+  body.arranging .arrbar { display:flex; }
+  .arrbar .tool { box-shadow:none; background:#eef1f6; color:#1d2433; font-size:17px; padding:7px 14px; }
+  .arrbar .tool.on { background:#391273; color:#fff; }
+
   /* top row hidden: a small Menu button brings it back */
   body.nobar .topbar { display:none; }
   body.nobar .board { grid-template-rows:1fr auto; padding-top:42px; }
@@ -431,6 +451,7 @@
       <button class="tool" id="drawBtn">Draw</button>
       <button class="tool" id="kbdBtn">Keyboard</button>
       <button class="tool" id="fsBtn">Full screen</button>
+      <button class="tool" id="arrBtn" title="Move and resize the cards">Arrange</button>
       <button class="tool" id="barBtn" title="Hide this top row">Hide</button>
     </div>
   </div>
@@ -573,6 +594,7 @@
 </button>
 <button class="homebtn tabbtn" id="openTab">Open in tab</button>
 <button class="tool menubtn" id="menuBtn">Menu</button>
+<div class="arrbar" id="arrBar"><span>Drag a card to move it. Drag its yellow corner to resize.</span><button class="tool" id="arrReset">Reset layout</button><button class="tool on" id="arrDone">Done</button></div>
 <button class="tool drawtoggle" id="drawBtn2">Draw</button>
 <button class="tool kbdtoggle" id="kbdBtn2">Keyboard</button>
 <div class="kbd" id="kbd"><iframe id="kbdFrame" title="Chromebook keyboard"></iframe></div>
@@ -1092,7 +1114,72 @@
     });
     if (on.includes('plan') && planEditing) setPlanEdit(false); else requestAnimationFrame(fitPlan);
     renderTicker();
+    applyLayout();
   }
+
+  /* ---------- arrange: move and resize the cards ---------- */
+  // Layout is saved on this device as parts of the screen (0 to 1), so it keeps its shape on any screen size.
+  // A card's content is laid out at its normal size or bigger and then scaled to fit the box it was given.
+  const NAT = { clock: [.54, .23], timer: [.54, .60], plan: [.40, .84] };   // normal size, as parts of the screen
+  const cardEl = k => document.querySelector('.card.' + k);
+  function layoutGet() {
+    try { const v = JSON.parse(store.get('layout', 'null')); if (v && MINS.every(k => v[k] && [v[k].x, v[k].y, v[k].w, v[k].h].every(n => typeof n === 'number' && isFinite(n)))) return v; } catch(e) {}
+    return null;
+  }
+  let layout = layoutGet();
+  function applyLayout() {
+    const free = !!layout && innerWidth > 820;
+    document.body.classList.toggle('free', free);
+    MINS.forEach(k => {
+      const el = cardEl(k), st = el.style, r = free && layout[k];
+      if (!free) { st.left = st.top = st.width = st.height = st.transform = ''; el.style.removeProperty('--inv'); return; }
+      st.left = r.x * innerWidth + 'px'; st.top = r.y * innerHeight + 'px';
+      if (document.body.classList.contains('min-' + k)) { st.width = st.height = st.transform = ''; el.style.setProperty('--inv', 1); return; }
+      const W = r.w * innerWidth, H = r.h * innerHeight, sc = Math.min(W / (NAT[k][0] * innerWidth), H / (NAT[k][1] * innerHeight));
+      st.width = W / sc + 'px'; st.height = H / sc + 'px'; st.transform = 'scale(' + sc + ')'; el.style.setProperty('--inv', 1 / sc);
+    });
+    requestAnimationFrame(fitPlan);
+  }
+  MINS.forEach(k => {
+    const el = cardEl(k), grab = document.createElement('div'), rs = document.createElement('div');
+    grab.className = 'grab'; rs.className = 'rs'; el.appendChild(grab); el.appendChild(rs);
+    const drag = (handle, resize) => {
+      let start = null;
+      handle.addEventListener('pointerdown', e => { if (!layout) return; e.preventDefault(); e.stopPropagation(); handle.setPointerCapture(e.pointerId); start = { x: e.clientX, y: e.clientY, r: Object.assign({}, layout[k]) }; });
+      handle.addEventListener('pointermove', e => {
+        if (!start) return;
+        const dx = (e.clientX - start.x) / innerWidth, dy = (e.clientY - start.y) / innerHeight, r = layout[k];
+        if (resize) { r.w = Math.max(.1, Math.min(1 - r.x, start.r.w + dx)); r.h = Math.max(.08, Math.min(1 - r.y, start.r.h + dy)); }
+        else { r.x = Math.max(0, Math.min(.97, start.r.x + dx)); r.y = Math.max(0, Math.min(.94, start.r.y + dy)); }
+        applyLayout();
+      });
+      const end = () => { if (!start) return; start = null; store.set('layout', JSON.stringify(layout)); };
+      handle.addEventListener('pointerup', end); handle.addEventListener('pointercancel', end);
+    };
+    drag(grab, false); drag(rs, true);
+  });
+  function setArrange(on) {
+    if (on && innerWidth <= 820) return;
+    if (on) {
+      if (planEditing) setPlanEdit(false);
+      setDraw(false);
+      if (!layout) {   // first time: start from where the cards are right now
+        layout = {};
+        MINS.forEach(k => {
+          const b = cardEl(k).getBoundingClientRect(), small = document.body.classList.contains('min-' + k);
+          const w = small ? NAT[k][0] * .6 : b.width / innerWidth, h = small ? NAT[k][1] * .6 : b.height / innerHeight;
+          layout[k] = { x: Math.max(0, Math.min(1 - w, b.left / innerWidth)), y: Math.max(0, Math.min(1 - h, b.top / innerHeight)), w, h };
+        });
+        store.set('layout', JSON.stringify(layout));
+      }
+    }
+    document.body.classList.toggle('arranging', on); $('arrBtn').classList.toggle('on', on);
+    applyLayout();
+  }
+  $('arrBtn').onclick = () => setArrange(!document.body.classList.contains('arranging'));
+  $('arrDone').onclick = () => setArrange(false);
+  $('arrReset').onclick = () => { layout = null; store.del('layout'); setArrange(false); };
+  addEventListener('resize', applyLayout);
   document.querySelectorAll('.minbtn').forEach(b => b.onclick = () => {
     let on = []; try { on = JSON.parse(store.get('min', '[]')) || []; } catch(e) {}
     const k = b.dataset.min; on = on.includes(k) ? on.filter(x => x !== k) : on.concat(k);
@@ -1509,6 +1596,7 @@
     if (e.key === 'Escape') {
       if (document.body.classList.contains('drawing')) setDraw(false);
       else if ($('kbd').classList.contains('show')) setKbd(false);
+      else if (document.body.classList.contains('arranging')) setArrange(false);
       else if ($('cdBox').classList.contains('show')) cdOpen(false);
       else if ($('archive').classList.contains('show')) archClose();
       else if (viewer.classList.contains('over')) backToSteps();
