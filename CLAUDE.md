@@ -42,7 +42,7 @@ All five came with the copied board. Remove or replace as asked.
 - How to open Seesaw (Open Classlink, purple S, green robot, Tap Start on generic card)
 
 ## Weekly plan
-- Week of Nov 9, 2026: all four grades have the same copied list (Dance Slides, Teach Your Monster, Login Practice, Classroom, TapLights) and blank Teacher Clarity words.
+- Week of Nov 9, 2026: all four grades have the same list (Typing Club first, link to typingclub.com with the teacher's own icon, then the copied Teach Your Monster, Login Practice, Classroom, TapLights) and blank Teacher Clarity words.
 - That list came with the copied board. The teacher will say what goes on each grade.
 
 ## Open items
