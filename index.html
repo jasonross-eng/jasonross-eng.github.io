@@ -25,7 +25,7 @@
   .topbar { grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
   .grades, .tools { display:flex; gap:clamp(5px, .6vw, 10px); flex-wrap:wrap; align-items:center; }
   .tools { margin-left:auto; }
-  .tools .tool { font-size:clamp(13px, 1.15vw, 18px); padding:8px clamp(8px, .9vw, 18px); }
+  .tools .tool { font-size:clamp(12px, 1.08vw, 18px); padding:8px clamp(7px, .8vw, 18px); }
   .card { background:var(--card); border-radius:28px; box-shadow:0 8px 30px rgba(20,40,70,.15); }
   .left { display:grid; grid-template-rows: auto 1fr; gap:2.2vh; min-height:0; }
 
@@ -36,6 +36,53 @@
   .gtab { font-size:clamp(14px, 1.45vw, 30px); padding:8px clamp(8px, 1.05vw, 26px); }
   .tool.clar { background:var(--yellow); color:#1d2433; }
   .tool.todo { background:#7be0a2; color:#1d2433; }
+  /* ---------- small / big cards, and hiding the top row ---------- */
+  .card { position:relative; }
+  .minbtn { position:absolute; top:8px; right:8px; z-index:2; width:34px; height:34px; border-radius:50%; cursor:pointer; padding:0;
+            border:2px solid var(--line); background:var(--btn); color:var(--ink); font-family:var(--font); font-size:20px; font-weight:700; line-height:1; opacity:.7; }
+  .minbtn:hover { opacity:1; }
+  .plan .minbtn { position:static; flex:0 0 auto; }
+  body.min-plan .board { grid-template-columns:minmax(0, 1fr) auto; }
+  body.min-clock.min-timer .board { grid-template-columns:auto minmax(0, 1fr); }
+  body.min-clock.min-timer.min-plan .board { grid-template-columns:auto auto; justify-content:space-between; }
+  body.min-clock.min-timer .left { grid-template-rows:auto auto; align-content:start; }
+  body.min-timer:not(.min-clock) .left { grid-template-rows:1fr auto; }
+  body.min-timer:not(.min-clock) .time { font-size:min(20vh, 9vw); }
+  body.min-timer:not(.min-clock) .date { font-size:min(5vh, 2.3vw); white-space:nowrap; }
+  body.min-timer.min-plan:not(.min-clock) .time { font-size:min(24vh, 13vw); }
+  body.min-timer.min-plan:not(.min-clock) .date { font-size:min(6vh, 3.6vw); }
+  /* small clock */
+  body.min-clock .clock { justify-self:start; padding:1vh 56px 1vh 1.2vw; gap:1.2vw; }
+  body.min-clock .time { font-size:min(5.5vh, 3.6vw); }
+  body.min-clock .date, body.min-clock #vCap { display:none; }
+  body.min-clock .voice { flex-direction:row; gap:.8vw; }
+  body.min-clock .vbig { font-size:min(2.4vh, 1.5vw); box-shadow:0 0 0 2px #fff; }
+  /* small timer */
+  body.min-timer .timer { justify-self:start; flex-direction:row; padding:1vh 56px 1vh 1.2vw; gap:1.2vw; }
+  body.min-timer .tdisplay { font-size:min(5.5vh, 3.6vw); }
+  body.min-timer .bar, body.min-timer #presets, body.min-timer #minus, body.min-timer #plus { display:none; }
+  body.min-timer .chip { font-size:min(2.4vh, 18px); } body.min-timer .chip.main { min-width:4.5em; }
+  /* small plan: just the icons, still tappable */
+  body.min-plan .plan { align-self:start; padding:1.2vh .8vw; }
+  body.min-plan .plan header { margin-bottom:1vh; flex-wrap:nowrap; }
+  body.min-plan .plan h2 { font-size:min(2.8vh, 22px); }
+  body.min-plan #planEdit, body.min-plan #pastBtn, body.min-plan #planPick, body.min-plan .embedit { display:none !important; }
+  body.min-plan .items { flex-direction:row; flex-wrap:wrap; align-content:flex-start; gap:8px; max-width:calc(3 * min(7vh, 60px) + 16px + 6px); overflow:visible; }
+  body.min-plan .items li { flex:0 0 auto; max-height:none; }
+  body.min-plan .item { padding:0; border-left:none !important; background:none; border-radius:14px; font-size:min(7vh, 60px); }
+  body.min-plan .item:hover { transform:none; background:none; }
+  body.min-plan .item .lbl, body.min-plan .item .kind { display:none; }
+  body.min-plan .item .ic, body.min-plan .item .n { width:1em; height:1em; border-radius:.22em; }
+  body.min-plan .item .n { font-size:.5em; width:2em; height:2em; border-radius:.44em; }
+  body.min-plan .items .empty { font-size:16px; }
+  /* top row hidden: a small Menu button brings it back */
+  body.nobar .topbar { display:none; }
+  body.nobar .board { grid-template-rows:1fr auto; padding-top:42px; }
+  .menubtn { position:fixed; top:6px; right:8px; z-index:40; display:none; font-size:15px; padding:4px 12px; opacity:.55; }
+  .menubtn:hover { opacity:1; }
+  body.nobar .menubtn { display:block; }
+  body.nobar.viewing .menubtn { display:none; }
+
   /* ---------- team scoreboard ---------- */
   .srows { flex:1; min-height:0; display:flex; flex-direction:column; gap:1vh; width:min(96vw, 1600px); margin:0 auto; --n:4;
            font-size:clamp(18px, calc(58vh / var(--n) * .42), 64px); }
@@ -384,11 +431,13 @@
       <button class="tool" id="drawBtn">Draw</button>
       <button class="tool" id="kbdBtn">Keyboard</button>
       <button class="tool" id="fsBtn">Full screen</button>
+      <button class="tool" id="barBtn" title="Hide this top row">Hide</button>
     </div>
   </div>
 
   <div class="left">
     <section class="card clock" aria-label="Clock">
+      <button class="minbtn" data-min="clock"></button>
       <div class="voice" id="voice" aria-label="Voice level">
         <div class="vbig" id="vBig"><b id="vNum"></b><span><small>Voice level</small><span id="vName"></span></span></div>
         <div class="vpick" id="vPick"><span id="vCap">Voice level</span></div>
@@ -400,6 +449,7 @@
     </section>
 
     <section class="card timer" id="timer" aria-label="Timer">
+      <button class="minbtn" data-min="timer"></button>
       <div class="tdisplay" id="tdisplay">5:00</div>
       <div class="bar"><i id="tbar"></i></div>
       <div class="row" id="presets"></div>
@@ -419,6 +469,7 @@
         <select id="planPick" aria-label="Choose plan"></select>
         <button class="tool" id="planEdit">Edit</button>
         <button class="tool" id="pastBtn">All pages</button>
+        <button class="minbtn" data-min="plan"></button>
       </div>
     </header>
     <ol class="items" id="items"></ol>
@@ -521,6 +572,7 @@
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h4v4H3zm6 1h12v2H9zM3 10h4v4H3zm6 1h12v2H9zm-6 4h4v4H3zm6 1h12v2H9z" fill="currentColor"/></svg>Steps
 </button>
 <button class="homebtn tabbtn" id="openTab">Open in tab</button>
+<button class="tool menubtn" id="menuBtn">Menu</button>
 <button class="tool drawtoggle" id="drawBtn2">Draw</button>
 <button class="tool kbdtoggle" id="kbdBtn2">Keyboard</button>
 <div class="kbd" id="kbd"><iframe id="kbdFrame" title="Chromebook keyboard"></iframe></div>
@@ -843,7 +895,7 @@
   function fitPlan() {
     const ol = $('items'); ol.style.fontSize = '';
     const items = ol.querySelectorAll('.item'); items.forEach(x => x.style.fontSize = '');
-    if (!items.length || innerWidth <= 820) return;
+    if (!items.length || innerWidth <= 820 || document.body.classList.contains('min-plan')) return;
     if (planEditing) { items.forEach(x => x.style.fontSize = 'min(3vh, 24px)'); return; }   // Edit: keep buttons big, let the list scroll
     let size = parseFloat(getComputedStyle(items[0]).fontSize);
     while (ol.scrollHeight > ol.clientHeight + 1 && size > 16) {
@@ -1027,6 +1079,30 @@
   $('clarBtn').onclick = openClarity;
   $('cEdit').onclick = () => clarEdit(!$('clarity').classList.contains('editing'));
   $('cReset').onclick = () => { store.del(clarKey()); clarPaint(); };
+
+  /* ---------- small / big cards, hide the top row ---------- */
+  // Each card has a round button: - makes it small, + makes it big again. Remembered on this device.
+  const MINS = ['clock', 'timer', 'plan'];
+  function paintMin() {
+    let on = []; try { on = JSON.parse(store.get('min', '[]')) || []; } catch(e) {}
+    MINS.forEach(k => document.body.classList.toggle('min-' + k, on.includes(k)));
+    document.querySelectorAll('.minbtn').forEach(b => {
+      const small = on.includes(b.dataset.min), name = b.dataset.min === 'plan' ? 'This week' : b.dataset.min;
+      b.textContent = small ? '+' : '\u2013'; b.title = small ? 'Make big' : 'Make small'; b.setAttribute('aria-label', (small ? 'Make big: ' : 'Make small: ') + name);
+    });
+    if (on.includes('plan') && planEditing) setPlanEdit(false); else requestAnimationFrame(fitPlan);
+    renderTicker();
+  }
+  document.querySelectorAll('.minbtn').forEach(b => b.onclick = () => {
+    let on = []; try { on = JSON.parse(store.get('min', '[]')) || []; } catch(e) {}
+    const k = b.dataset.min; on = on.includes(k) ? on.filter(x => x !== k) : on.concat(k);
+    store.set('min', JSON.stringify(on)); paintMin();
+  });
+  function setBar(hide) { document.body.classList.toggle('nobar', hide); store.set('nobar', hide ? 1 : 0); $('bgpick').classList.remove('show'); requestAnimationFrame(fitPlan); }
+  $('barBtn').onclick = () => setBar(true);
+  $('menuBtn').onclick = () => setBar(false);
+  setBar(store.get('nobar', '0') === '1');
+  paintMin();
 
   /* ---------- team scoreboard ---------- */
   // One scoreboard per grade, saved on this device: how many teams (1 to 10), their names and points.
