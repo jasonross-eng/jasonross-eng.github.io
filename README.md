@@ -44,7 +44,7 @@ New guides go in `guides.js`, pictures in `guides/<guide id>/`. Old guides stay 
 In a guide: Next/Back, "Show all" for the wall of cards, "Big" for one picture at a time.
 
 ## Keys
-- D: draw on/off
+- D: draw on/off (the draw bar has Blank page: a white or black page to draw on)
 - Esc: stop drawing, or close steps
 - Left / Right: back / next on a steps page
 - Ctrl+Z: undo last mark

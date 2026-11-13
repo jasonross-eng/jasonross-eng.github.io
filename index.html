@@ -280,6 +280,12 @@
   /* ---------- draw layer ---------- */
   #ink { position:fixed; inset:0; z-index:60; pointer-events:none; touch-action:none; }
   body.drawing #ink { pointer-events:auto; cursor:crosshair; }
+  /* blank page to draw on: covers the board while Draw is on */
+  #blank { position:fixed; inset:0; z-index:59; display:none; background:#fff; }
+  .drawbar .tool { white-space:nowrap; }
+  body.drawing .drawtoggle, body.drawing .kbdtoggle { display:none !important; }   /* the draw bar has Done; keeps the bar clear */
+  body.drawing.blankw #blank { display:block; }
+  body.drawing.blankb #blank { display:block; background:#0b0b0b; }
   .drawbar { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:80; display:none; gap:8px; align-items:center;
              background:#fff; border-radius:999px; padding:8px 12px; box-shadow:0 8px 26px rgba(20,40,70,.28); }
   body.drawing .drawbar { display:flex; }
@@ -453,6 +459,7 @@
 
 <div class="bgpick" id="bgpick" role="dialog" aria-label="Pick background"></div>
 
+<div id="blank"></div>
 <canvas id="ink"></canvas>
 <div class="drawbar" id="drawbar">
   <button class="tool on" data-shape="pen">Pen</button>
@@ -460,6 +467,8 @@
   <button class="tool" data-shape="circle">Circle</button>
   <span class="sep"></span>
   <span id="colors" style="display:flex;gap:6px"></span>
+  <span class="sep"></span>
+  <button class="tool" id="blankBtn">Blank page</button>
   <span class="sep"></span>
   <button class="tool" id="undo">Undo</button>
   <button class="tool" id="clear">Clear</button>
@@ -1206,7 +1215,15 @@
   document.querySelectorAll('[data-shape]').forEach(b => b.onclick = () => {
     shape = b.dataset.shape; document.querySelectorAll('[data-shape]').forEach(x => x.classList.toggle('on', x === b));
   });
+  // Blank page: tap to cycle Off, White, Black. It goes away when drawing is turned off.
+  function setBlank(m) {
+    document.body.classList.toggle('blankw', m === 'w'); document.body.classList.toggle('blankb', m === 'b');
+    $('blankBtn').textContent = m === 'w' ? 'White page' : m === 'b' ? 'Black page' : 'Blank page';
+    $('blankBtn').classList.toggle('on', !!m);
+  }
+  $('blankBtn').onclick = () => { const b = document.body.classList; setBlank(b.contains('blankw') ? 'b' : b.contains('blankb') ? '' : 'w'); };
   function setDraw(on) {
+    if (!on) setBlank('');
     document.body.classList.toggle('drawing', on);
     $('drawBtn').classList.toggle('on', on); $('drawBtn2').classList.toggle('on', on);
   }
