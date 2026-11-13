@@ -242,6 +242,11 @@
   .bgpick.show { display:grid; }
   .swatch { width:64px; height:44px; border-radius:12px; border:3px solid transparent; cursor:pointer; }
   .swatch.on { border-color:var(--ink); }
+  /* your own picture as the background (kept on this device) */
+  .bgpick .wide { grid-column:1 / -1; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .bgpick .wide .tool { box-shadow:none; border:2px solid var(--line); font-size:16px; padding:6px 14px; }
+  .bgpick .note { grid-column:1 / -1; margin:0; font-size:14px; color:var(--soft); max-width:286px; }
+  .swatch.pic { background-size:cover; background-position:center; }
 
   /* ---------- draw layer ---------- */
   #ink { position:fixed; inset:0; z-index:60; pointer-events:none; touch-action:none; }
@@ -953,19 +958,58 @@
     ['Black + purple', 'linear-gradient(#0b0b0b, #0b0b0b)', 'dark purple', 'linear-gradient(135deg, #0b0b0b 55%, #391273 55%)']
   ];
   function setBg(i) {
-    document.documentElement.style.setProperty('--bg', BGS[i][1]);
     const mode = BGS[i][2] || '';
     document.body.classList.toggle('dark', mode.includes('dark'));
     document.body.classList.toggle('purple', mode.includes('purple'));
-    document.querySelectorAll('.swatch').forEach((s, j) => s.classList.toggle('on', j === i));
-    store.set('bg2', i);
+    store.set('bg2', i); bgCur = i;
+    paintBg();
+  }
+  // Your own picture: shrunk and saved on this device only. Tapping a color turns it off but keeps it.
+  let bgCur = 0, bgImg = store.get('bgimg', ''), bgPicOn = store.get('bgpic', '0') === '1' && !!bgImg;
+  function paintBg() {
+    if (bgPicOn && bgImg) document.documentElement.style.setProperty('--bg', 'url("' + bgImg + '") center / cover no-repeat');
+    else document.documentElement.style.setProperty('--bg', BGS[bgCur][1]);
+    document.querySelectorAll('.swatch:not(.pic)').forEach((s, j) => s.classList.toggle('on', !bgPicOn && j === bgCur));
+    const pic = $('bgPicSw'); if (!pic) return;
+    pic.style.display = bgImg ? '' : 'none'; pic.style.backgroundImage = bgImg ? 'url("' + bgImg + '")' : '';
+    pic.classList.toggle('on', bgPicOn);
+    $('bgRemove').style.display = bgImg ? '' : 'none';
+  }
+  function setPic(on) { bgPicOn = on && !!bgImg; store.set('bgpic', bgPicOn ? 1 : 0); paintBg(); }
+  function loadPic(file) {
+    if (!file) return;
+    const note = $('bgNote'), url = URL.createObjectURL(file), im = new Image();
+    im.onerror = () => { URL.revokeObjectURL(url); note.textContent = 'That file did not open as a picture. Try a JPG or PNG.'; };
+    im.onload = () => {
+      const k = Math.min(1, 1920 / Math.max(im.width, im.height));
+      const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      const x = c.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      const data = c.toDataURL('image/jpeg', .82);
+      try { localStorage.setItem('cb_bgimg', data); note.textContent = 'Picture saved on this board only.'; }
+      catch(e) { note.textContent = 'Picture is on, but it was too big to save. It will be gone after a refresh.'; }
+      bgImg = data; setPic(true);
+    };
+    im.src = url;
   }
   BGS.forEach(([name, css, mode, swatch], i) => {
     const b = document.createElement('button');
     b.className = 'swatch'; b.style.background = swatch || css; b.title = name; b.setAttribute('aria-label', name);
-    b.onclick = () => setBg(i);
+    b.onclick = () => { bgPicOn = false; store.set('bgpic', 0); setBg(i); };
     $('bgpick').appendChild(b);
   });
+  (function () {
+    const pick = $('bgpick');
+    const sw = document.createElement('button'); sw.className = 'swatch pic'; sw.id = 'bgPicSw'; sw.title = 'My picture'; sw.setAttribute('aria-label', 'My picture');
+    sw.onclick = () => setPic(true); pick.appendChild(sw);
+    const row = document.createElement('div'); row.className = 'wide';
+    row.innerHTML = '<button class="tool" id="bgUpload">Upload picture</button><button class="tool" id="bgRemove">Remove picture</button><input type="file" id="bgFile" accept="image/*" hidden>';
+    pick.appendChild(row);
+    const note = document.createElement('p'); note.className = 'note'; note.id = 'bgNote'; pick.appendChild(note);
+    $('bgUpload').onclick = () => $('bgFile').click();
+    $('bgFile').onchange = e => { loadPic(e.target.files[0]); e.target.value = ''; };
+    $('bgRemove').onclick = () => { bgImg = ''; store.del('bgimg'); $('bgNote').textContent = ''; setPic(false); };
+  })();
   const BG_DEFAULT = BGS.findIndex(b => b[0] === 'Black + purple');
   let bgi = Number(store.get('bg2', BG_DEFAULT)); setBg(bgi >= 0 && bgi < BGS.length ? bgi : BG_DEFAULT);
   $('bgBtn').onclick = e => { e.stopPropagation(); $('bgpick').classList.toggle('show'); $('bgBtn').classList.toggle('on'); };
