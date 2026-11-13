@@ -16,8 +16,8 @@
 - Original login-steps.html and login-practice.html stay untouched.
 
 ## Files
-- index.html: the board. Clock (compact, text only; the tiger avatar and tap-to-celebrate from the original were removed, the teacher may add their own images later), timer (1/2/3/5/10 min, +/-1, chime), weekly plan panel, steps viewer, guide viewer (Wall / Big; Edit button lets the teacher tap steps to hide or show them, saved on that device only, remaining steps renumber), All pages list, backgrounds (Black + purple is default: purple cards #2a0f58 / #391273 with white accents; Black + green still an option), Draw layer (pen/arrow/circle; its white bar uses fixed dark text so it reads in every theme), big Home button on full-screen pages.
-- plans.js: one block per week, keyed by that week's Monday (YYYY-MM-DD). Optional icon: "icons/name.png" (real app icon cropped from screenshots, rounded square) replaces the number. Board opens to the newest week that has started. Future weeks can be added ahead. Old weeks stay.
+- index.html: the board. Grade tabs in the top bar (1st, 2nd, 3rd, 4th; one page, the tab only swaps the plan and Teacher Clarity words; last grade is remembered on that device). Yellow Teacher Clarity tab opens a full-screen page for the picked grade: Today I will / So I can / I know I have it when. Its Edit button lets the teacher type on the board (saved on that device only, per week and grade; Reset goes back to plans.js). Clock (compact, text only; the tiger avatar and tap-to-celebrate from the original were removed, the teacher may add their own images later), timer (1/2/3/5/10 min, +/-1, chime), weekly plan panel, steps viewer, guide viewer (Wall / Big; Edit button lets the teacher tap steps to hide or show them, saved on that device only, remaining steps renumber), All pages list, backgrounds (Black + purple is default: purple cards #2a0f58 / #391273 with white accents; Black + green still an option), Draw layer (pen/arrow/circle; its white bar uses fixed dark text so it reads in every theme), big Home button on full-screen pages.
+- plans.js: one block per week, keyed by that week's Monday (YYYY-MM-DD). Each week has grades: { "1": { clarity: { will, so, know }, items: [...] }, ... "4" }. A grade with no items list falls back to a week-level items list if there is one. Optional icon: "icons/name.png" (real app icon cropped from screenshots, rounded square) replaces the number. Board opens to the newest week that has started. Future weeks can be added ahead. Old weeks stay.
 - guides.js: step guides. id format YYYY-MM-DD-name. Optional practice: "page.html" adds a yellow Practice button on the guide and a Steps button on that page (Teach Your Monster uses login-practice.html). Images in guides/<guide id>/1.jpg, 2.jpg... Old guides stay and show in All pages.
 - keyboard.html: projected Chromebook keyboard (lowercase keys, search key, Chromebook top row). Tap a key to light it orange (tap again to unlight, Clear resets). Typing on a real keyboard flashes that key. Opens as an overlay from anywhere: Keyboard button in the home top bar and next to Draw on guide/practice pages; Close keyboard returns to the same spot. Also works alone at jasonross-eng.github.io/keyboard.html. Drawn, not a screenshot, on purpose.
 - sub.html, sub-note.pdf, sub-qr.svg: printable half-sheet sub note with QR code to the board.
@@ -42,8 +42,8 @@ All five came with the copied board. Remove or replace as asked.
 - How to open Seesaw (Open Classlink, purple S, green robot, Tap Start on generic card)
 
 ## Weekly plan
-- Week of Nov 9, 2026: Dance Slides, Teach Your Monster, Login Practice, Classroom, TapLights.
-- That week came with the copied board. The teacher will say what goes on their own weeks.
+- Week of Nov 9, 2026: all four grades have the same copied list (Dance Slides, Teach Your Monster, Login Practice, Classroom, TapLights) and blank Teacher Clarity words.
+- That list came with the copied board. The teacher will say what goes on each grade.
 
 ## Open items
 - Sub access: check whether the Newline board's built-in browser opens the site without a login; if so bookmark it. Phone + QR is the fallback.

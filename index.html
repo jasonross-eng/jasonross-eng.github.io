@@ -22,13 +22,19 @@
   /* ---------- layout ---------- */
   .board { height:100%; display:grid; grid-template-columns: 1.35fr 1fr; grid-template-rows:auto 1fr;
            gap:2.2vh 1.8vw; padding:2.2vh 2vw; }
-  .topbar { grid-column:1 / -1; display:flex; justify-content:flex-end; gap:10px; }
+  .topbar { grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .grades, .tools { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .tools { margin-left:auto; }
   .card { background:var(--card); border-radius:28px; box-shadow:0 8px 30px rgba(20,40,70,.15); }
   .left { display:grid; grid-template-rows: auto 1fr; gap:2.2vh; min-height:0; }
 
   .tool { border:none; background:var(--card); color:var(--ink); font-size:18px; font-weight:700; border-radius:999px;
           padding:8px 18px; cursor:pointer; box-shadow:0 3px 12px rgba(20,40,70,.12); }
   .tool.on { background:var(--accent); color:var(--onaccent); }
+  /* grade tabs and the Teacher Clarity tab */
+  .gtab { font-size:clamp(20px, 3.2vh, 30px); padding:8px 26px; }
+  .tool.clar { background:var(--yellow); color:#1d2433; }
+  .empty { font-size:min(3.2vh, 26px); color:var(--soft); padding:1vh .4vw; }
 
   /* ---------- clock ---------- */
   .clock { display:flex; align-items:center; justify-content:center; gap:2.5vw; padding:2.4vh 2vw; min-height:0; }
@@ -91,6 +97,26 @@
            background:var(--bg); background-color:#bfe3fa; }
   body.dark .guide { background-color:#0b0b0b; }
   .guide.show { display:flex; }
+  /* ---------- teacher clarity (Today I will / So I can / I know I have it when) ---------- */
+  .clarity { position:fixed; inset:0; z-index:50; display:none; flex-direction:column; gap:1.6vh; padding:1.5vh 16px 96px;
+             background:var(--bg); background-color:#bfe3fa; }
+  body.dark .clarity { background-color:#0b0b0b; }
+  .clarity.show { display:flex; }
+  .clarity header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .clarity h1 { margin:0; font-size:clamp(26px, 4.2vh, 46px); background:var(--card); border-radius:999px; padding:4px 22px; }
+  .clarity .ghint { display:none; }
+  .clarity.editing .ghint { display:block; }
+  .crows { flex:1; min-height:0; display:flex; flex-direction:column; gap:1.6vh; width:min(96vw, 1500px); margin:0 auto; }
+  .crow { flex:1 1 0; min-height:0; display:flex; align-items:stretch; gap:1.6vw; background:var(--card); border-radius:26px;
+          padding:1.6vh 1.6vw; box-shadow:0 4px 14px rgba(30,60,90,.12); }
+  .crow h2 { flex:0 0 28%; margin:0; display:flex; align-items:center; justify-content:center; text-align:center; text-wrap:balance;
+             background:var(--accent); color:var(--onaccent); border-radius:18px; padding:.3em .5em;
+             font-size:clamp(24px, 5vh, 54px); line-height:1.1; }
+  .ctext { flex:1; min-width:0; align-self:center; max-height:100%; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere;
+           font-size:clamp(26px, 5.6vh, 62px); font-weight:700; line-height:1.15; border-radius:14px; padding:.15em .3em; outline:none; }
+  .ctext.blank { color:var(--soft); font-weight:400; font-size:clamp(20px, 3.4vh, 34px); }
+  .clarity.editing .ctext { align-self:stretch; background:#fff; color:#1d2433; font-weight:400; font-size:clamp(22px, 4vh, 40px);
+                            box-shadow:inset 0 0 0 4px var(--yellow); cursor:text; }
   .guide header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .guide h1 { margin:0; font-size:clamp(26px, 4.2vh, 46px); background:var(--card); border-radius:999px; padding:4px 22px; }
   .gctl { display:flex; gap:10px; flex-wrap:wrap; }
@@ -201,7 +227,9 @@
     .time { font-size:16vw; } .date { font-size:4.5vw; } .tdisplay { font-size:16vw; }
     .item { font-size:24px; }
     .topbar { order:-2; } .plan { order:-1; }
-    .guide { overflow:auto; padding-bottom:110px; }
+    .guide, .clarity { overflow:auto; padding-bottom:110px; }
+    .crows { flex:none; } .crow { flex:none; flex-direction:column; } .crow h2 { flex:none; }
+    .ctext { align-self:stretch; min-height:2.4em; }
     .gwall { flex:none; align-content:flex-start; }
     .gstep { width:100%; }
     .gwall.focus .gstep.on { transform:none; }
@@ -215,10 +243,15 @@
 
 <div class="board">
   <div class="topbar">
-    <button class="tool" id="bgBtn">Background</button>
-    <button class="tool" id="drawBtn">Draw</button>
-    <button class="tool" id="kbdBtn">Keyboard</button>
-    <button class="tool" id="fsBtn">Full screen</button>
+    <div class="grades" id="grades" role="tablist" aria-label="Grade">
+      <button class="tool gtab clar" id="clarBtn">Teacher Clarity</button>
+    </div>
+    <div class="tools">
+      <button class="tool" id="bgBtn">Background</button>
+      <button class="tool" id="drawBtn">Draw</button>
+      <button class="tool" id="kbdBtn">Keyboard</button>
+      <button class="tool" id="fsBtn">Full screen</button>
+    </div>
   </div>
 
   <div class="left">
@@ -273,6 +306,22 @@
   <main class="gwall focus" id="gWall"></main>
 </div>
 
+<div class="clarity" id="clarity">
+  <header>
+    <h1 id="cTitle"></h1>
+    <div class="ghint">Type in the white boxes, then tap Done. Saved on this board only.</div>
+    <div class="gctl">
+      <button id="cReset">Reset</button>
+      <button id="cEdit">Edit</button>
+    </div>
+  </header>
+  <main class="crows">
+    <section class="crow"><h2>Today I will</h2><div class="ctext" id="cWill"></div></section>
+    <section class="crow"><h2>So I can</h2><div class="ctext" id="cSo"></div></section>
+    <section class="crow"><h2>I know I have it when</h2><div class="ctext" id="cKnow"></div></section>
+  </main>
+</div>
+
 <div class="archive" id="archive" role="dialog" aria-label="All pages">
   <div class="box">
     <h2>All pages <button class="tool" id="archClose">Close</button></h2>
@@ -313,7 +362,8 @@
   const $ = id => document.getElementById(id);
   const store = {
     get(k, d) { try { const v = localStorage.getItem('cb_' + k); return v === null ? d : v; } catch(e) { return d; } },
-    set(k, v) { try { localStorage.setItem('cb_' + k, v); } catch(e) {} }
+    set(k, v) { try { localStorage.setItem('cb_' + k, v); } catch(e) {} },
+    del(k) { try { localStorage.removeItem('cb_' + k); } catch(e) {} }
   };
 
   /* ---------- clock ---------- */
@@ -410,11 +460,36 @@
     else if (el.tagName === 'A') { el.href = presentUrl(it.url); el.target = '_blank'; el.rel = 'noopener'; }
     else el.onclick = () => window.open(presentUrl(it.url), '_blank', 'noopener');
   }
+  // Grades: each week can hold grades: { "1": { clarity:{...}, items:[...] }, ... }.
+  // A grade with no items of its own shows the week's shared items.
+  const GRADES = [['1', '1st'], ['2', '2nd'], ['3', '3rd'], ['4', '4th']];
+  let grade = store.get('grade', '1'); if (!GRADES.some(g => g[0] === grade)) grade = '1';
+  let shownIdx = curIdx;
+  function gradeData(p) { return (p && p.grades && p.grades[grade]) || {}; }
+  function planItems(p) { const g = gradeData(p); return Array.isArray(g.items) ? g.items : ((p && p.items) || []); }
+  function allItems(p) {
+    let a = (p.items || []).slice();
+    Object.keys(p.grades || {}).forEach(k => { const g = p.grades[k]; if (g && Array.isArray(g.items)) a = a.concat(g.items); });
+    return a;
+  }
+  function setGrade(g) {
+    grade = g; store.set('grade', g);
+    document.querySelectorAll('.gtab[data-grade]').forEach(b => { const on = b.dataset.grade === g; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    renderPlan(shownIdx);
+  }
+  GRADES.forEach(([id, name]) => {
+    const b = document.createElement('button');
+    b.className = 'tool gtab'; b.dataset.grade = id; b.textContent = name; b.setAttribute('role', 'tab'); b.setAttribute('aria-label', name + ' grade');
+    b.onclick = () => setGrade(id);
+    $('grades').insertBefore(b, $('clarBtn'));
+  });
   function renderPlan(i) {
     const p = plans[i] || plans[0];
+    shownIdx = plans[i] ? i : 0;
     $('planTitle').textContent = i === curIdx ? 'This week' : weekLabel(p);
     const ol = $('items'); ol.innerHTML = '';
-    p.items.forEach((it, n) => {
+    if (!planItems(p).length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Nothing here yet.'; ol.appendChild(li); }
+    planItems(p).forEach((it, n) => {
       const li = document.createElement('li');
       const isGuide = it.type === 'guide';
       const has = isGuide ? !!findGuide(it.guide) : !!(it.url && it.url.trim());
@@ -442,7 +517,7 @@
     }
   }
   addEventListener('resize', fitPlan);
-  $('planPick').value = curIdx; renderPlan(curIdx);
+  $('planPick').value = curIdx; setGrade(grade);
   $('planPick').onchange = e => renderPlan(Number(e.target.value));
 
   /* ---------- steps viewer ---------- */
@@ -470,9 +545,54 @@
     if ($('kbd').classList.contains('show')) setKbd(false);
     document.body.classList.remove('pracmode'); viewer.classList.remove('over');
     viewer.classList.remove('show'); $('guide').classList.remove('show'); document.body.classList.remove('viewing'); frame.src = 'about:blank';
+    if ($('clarity').classList.contains('editing')) clarEdit(false);
+    $('clarity').classList.remove('show');
     clearInk(); setDraw(false);
   }
   $('closeView').onclick = closeSteps;
+
+  /* ---------- teacher clarity ---------- */
+  // Words come from plans.js (that week, that grade). Edit on the board saves a copy on this device only; Reset drops that copy.
+  const CL = [['will', 'cWill'], ['so', 'cSo'], ['know', 'cKnow']];
+  function clarKey() { const p = plans[shownIdx] || {}; return 'clar_' + (p.week || 'plan') + '_' + grade; }
+  function clarDev() { try { const v = JSON.parse(store.get(clarKey(), 'null')); return v && typeof v === 'object' ? v : null; } catch(e) { return null; } }
+  function clarPaint() {
+    const dev = clarDev(), cur = dev || gradeData(plans[shownIdx]).clarity || {};
+    const editing = $('clarity').classList.contains('editing');
+    CL.forEach(([k, id]) => {
+      const el = $(id), t = String(cur[k] || '').trim();
+      el.contentEditable = editing ? 'true' : 'false';
+      el.classList.toggle('blank', !t && !editing);
+      el.textContent = t || (editing ? '' : 'Tap Edit to type this.');
+    });
+    $('cEdit').textContent = editing ? 'Done' : 'Edit';
+    $('cEdit').classList.toggle('editon', editing);
+    $('cReset').style.display = dev && !editing ? '' : 'none';
+  }
+  function clarEdit(on) {
+    const box = $('clarity');
+    if (!on && box.classList.contains('editing')) {
+      const v = {}; CL.forEach(([k, id]) => v[k] = $(id).innerText.replace(/\u00a0/g, ' ').trim());
+      const pub = gradeData(plans[shownIdx]).clarity || {};
+      if (CL.every(([k]) => v[k] === String(pub[k] || '').trim())) store.del(clarKey());
+      else store.set(clarKey(), JSON.stringify(v));
+    }
+    box.classList.toggle('editing', on);
+    clarPaint();
+    if (on) { setDraw(false); $('cWill').focus(); }
+  }
+  function openClarity() {
+    const p = plans[shownIdx] || {};
+    clearInk();
+    $('clarity').classList.remove('editing');
+    $('cTitle').textContent = GRADES.find(g => g[0] === grade)[1] + ' Grade' + (shownIdx === curIdx ? '' : ', ' + weekLabel(p));
+    clarPaint();
+    $('clarity').classList.add('show'); document.body.classList.add('viewing');
+    goFull();
+  }
+  $('clarBtn').onclick = openClarity;
+  $('cEdit').onclick = () => clarEdit(!$('clarity').classList.contains('editing'));
+  $('cReset').onclick = () => { store.del(clarKey()); clarPaint(); };
 
   /* ---------- guides ---------- */
   const gWall = $('gWall'); let gCur = 0, gSteps = [], gAllSteps = [], gId = '', gHidden = new Set();
@@ -564,7 +684,7 @@
     });
     // Every other page or link used in any week, newest week first, no repeats.
     const seen = new Set(), others = [];
-    plans.forEach(p => p.items.forEach(it => {
+    plans.forEach(p => allItems(p).forEach(it => {
       if (it.type === 'guide' || !(it.url && it.url.trim())) return;
       const k = it.type + '|' + it.url; if (seen.has(k)) return; seen.add(k); others.push(it);
     }));
@@ -695,13 +815,14 @@
   /* ---------- keys ---------- */
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'SELECT') return;
+    if (e.target.isContentEditable) { if (e.key === 'Escape') clarEdit(false); return; }
     const guideOpen = $('guide').classList.contains('show');
     if (e.key === 'Escape') {
       if (document.body.classList.contains('drawing')) setDraw(false);
       else if ($('kbd').classList.contains('show')) setKbd(false);
       else if ($('archive').classList.contains('show')) $('archive').classList.remove('show');
       else if (viewer.classList.contains('over')) backToSteps();
-      else if (viewer.classList.contains('show') || guideOpen) closeSteps();
+      else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show')) closeSteps();
     }
     if ($('kbd').classList.contains('show')) return;
     if (guideOpen && gWall.classList.contains('editing')) return;
