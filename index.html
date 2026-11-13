@@ -22,10 +22,10 @@
   /* ---------- layout ---------- */
   .board { height:100%; display:grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-rows:auto 1fr auto;
            gap:2.2vh 1.8vw; padding:2.2vh 2vw; }
-  .topbar { grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
-  .grades, .tools { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .topbar { grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+  .grades, .tools { display:flex; gap:clamp(5px, .6vw, 10px); flex-wrap:wrap; align-items:center; }
   .tools { margin-left:auto; }
-  .tools .tool { font-size:clamp(14px, 1.3vw, 18px); padding:8px clamp(10px, 1.1vw, 18px); }
+  .tools .tool { font-size:clamp(13px, 1.15vw, 18px); padding:8px clamp(8px, .9vw, 18px); }
   .card { background:var(--card); border-radius:28px; box-shadow:0 8px 30px rgba(20,40,70,.15); }
   .left { display:grid; grid-template-rows: auto 1fr; gap:2.2vh; min-height:0; }
 
@@ -33,8 +33,28 @@
           padding:8px 18px; cursor:pointer; box-shadow:0 3px 12px rgba(20,40,70,.12); }
   .tool.on { background:var(--accent); color:var(--onaccent); }
   /* grade tabs and the Teacher Clarity tab */
-  .gtab { font-size:clamp(18px, 3.2vh, 30px); padding:8px clamp(14px, 1.7vw, 26px); }
+  .gtab { font-size:clamp(14px, 1.45vw, 30px); padding:8px clamp(8px, 1.05vw, 26px); }
   .tool.clar { background:var(--yellow); color:#1d2433; }
+  .tool.todo { background:#7be0a2; color:#1d2433; }
+  /* ---------- must do / may do checklists ---------- */
+  .tcols { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:1.6vw; width:min(96vw, 1600px); margin:0 auto; }
+  .tcol { min-height:0; display:flex; flex-direction:column; gap:1.2vh; background:var(--card); border-radius:26px; padding:1.6vh 1.4vw; box-shadow:0 4px 14px rgba(30,60,90,.12); }
+  .tcol h2 { margin:0; text-align:center; border-radius:18px; padding:.15em .5em; font-size:clamp(26px, 5vh, 54px); line-height:1.15; }
+  .tcol.must h2 { background:#d93025; color:#fff; } .tcol.may h2 { background:#1e8e3e; color:#fff; }
+  .tlist { list-style:none; margin:0; padding:0 4px 0 0; flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column; gap:1vh; }
+  .tlist li { display:flex; align-items:center; gap:.5em; }
+  .titem { flex:1; min-width:0; display:flex; align-items:center; gap:.5em; text-align:left; border:none; cursor:pointer; border-radius:18px; padding:.3em .5em;
+           background:var(--accent2); color:var(--ink); font-family:var(--font); font-size:clamp(22px, 4.4vh, 48px); font-weight:700; line-height:1.15; }
+  .titem .box { flex:0 0 auto; width:1.15em; height:1.15em; border-radius:.25em; border:.12em solid var(--ink); display:flex; align-items:center; justify-content:center; background:transparent; }
+  .titem.done .box { background:#1e8e3e; border-color:#1e8e3e; }
+  .titem.done .box::after { content:"\2713"; color:#fff; font-size:.9em; line-height:1; }
+  .titem.done .txt { opacity:.5; text-decoration:line-through; }
+  .titem .txt { overflow-wrap:anywhere; }
+  .tlist .none { color:var(--soft); font-size:clamp(18px, 3vh, 30px); padding:.4em; }
+  .tlist input { flex:1; min-width:0; font-family:var(--font); font-size:clamp(18px, 3.2vh, 32px); padding:.3em .5em; border-radius:12px; border:3px solid var(--yellow); background:#fff; color:#1d2433; }
+  .tlist .tool, .tcol > .tool { box-shadow:none; border:2px solid var(--line); flex:0 0 auto; }
+  .tcol > .tool { align-self:flex-start; display:none; }
+  .clarity.editing .tcol > .tool { display:block; }
   .empty { font-size:min(3.2vh, 26px); color:var(--soft); padding:1vh .4vw; }
 
   /* ---------- clock ---------- */
@@ -318,6 +338,7 @@
     .item { font-size:24px; }
     .topbar { order:-2; } .plan { order:-1; }
     .guide, .clarity { overflow:auto; padding-bottom:110px; }
+    .tcols { grid-template-columns:1fr; flex:none; } .tlist { overflow:visible; }
     .crows { flex:none; } .crow { flex:none; flex-direction:column; } .crow h2 { flex:none; }
     .ctext { align-self:stretch; min-height:2.4em; }
     .gwall { flex:none; align-content:flex-start; }
@@ -335,6 +356,7 @@
   <div class="topbar">
     <div class="grades" id="grades" role="tablist" aria-label="Grade">
       <button class="tool gtab clar" id="clarBtn">Teacher Clarity</button>
+      <button class="tool gtab todo" id="todoBtn">Must Do / May Do</button>
     </div>
     <div class="tools">
       <button class="tool" id="cdBtn">Countdown</button>
@@ -434,6 +456,22 @@
     <section class="crow"><h2>Today I will</h2><div class="ctext" id="cWill"></div></section>
     <section class="crow"><h2>So I can</h2><div class="ctext" id="cSo"></div></section>
     <section class="crow"><h2>I know I have it when</h2><div class="ctext" id="cKnow"></div></section>
+  </main>
+</div>
+
+<div class="clarity" id="todo">
+  <header>
+    <h1 id="tTitle"></h1>
+    <div class="ghint">Type each job, then tap Done. Saved on this board only.</div>
+    <div class="gctl">
+      <button id="tClear">Uncheck all</button>
+      <button id="tReset">Reset</button>
+      <button id="tEdit">Edit</button>
+    </div>
+  </header>
+  <main class="tcols">
+    <section class="tcol must"><h2>Must Do</h2><ul class="tlist" id="tMust"></ul><button class="tool" id="tAddMust">Add a Must Do</button></section>
+    <section class="tcol may"><h2>May Do</h2><ul class="tlist" id="tMay"></ul><button class="tool" id="tAddMay">Add a May Do</button></section>
   </main>
 </div>
 
@@ -910,6 +948,8 @@
     viewer.classList.remove('show'); $('guide').classList.remove('show'); document.body.classList.remove('viewing'); frame.src = 'about:blank';
     if ($('clarity').classList.contains('editing')) clarEdit(false);
     $('clarity').classList.remove('show');
+    if ($('todo').classList.contains('editing')) todoEdit(false);
+    $('todo').classList.remove('show');
     clearInk(); setDraw(false);
   }
   $('closeView').onclick = closeSteps;
@@ -956,6 +996,69 @@
   $('clarBtn').onclick = openClarity;
   $('cEdit').onclick = () => clarEdit(!$('clarity').classList.contains('editing'));
   $('cReset').onclick = () => { store.del(clarKey()); clarPaint(); };
+
+  /* ---------- must do / may do ---------- */
+  // One pair of checklists per grade. Lists typed on the board are saved on this device (Reset drops them and goes back to
+  // mustDo / mayDo in plans.js, if that week has any). Check marks are saved on this device too.
+  const TL = [['must', 'tMust', 'mustDo'], ['may', 'tMay', 'mayDo']];
+  function todoDev() { try { const v = JSON.parse(store.get('todo_' + grade, 'null')); return v && Array.isArray(v.must) && Array.isArray(v.may) ? v : null; } catch(e) { return null; } }
+  function todoLists() {
+    const d = todoDev(); if (d) return d;
+    const g = gradeData(plans[shownIdx]);
+    return { must: (g.mustDo || []).map(String), may: (g.mayDo || []).map(String) };
+  }
+  function todoChecks() { try { return new Set(JSON.parse(store.get('todock_' + grade, '[]'))); } catch(e) { return new Set(); } }
+  let todoDraft = null;
+  function todoPaint() {
+    const editing = $('todo').classList.contains('editing'), lists = editing ? todoDraft : todoLists(), checks = todoChecks();
+    TL.forEach(([k, id]) => {
+      const ul = $(id); ul.innerHTML = '';
+      if (!lists[k].length && !editing) { const li = document.createElement('li'); li.className = 'none'; li.textContent = 'Nothing yet. Tap Edit to add.'; ul.appendChild(li); }
+      lists[k].forEach((t, i) => {
+        const li = document.createElement('li');
+        if (editing) {
+          const inp = document.createElement('input'); inp.type = 'text'; inp.value = t; inp.maxLength = 80; inp.placeholder = 'Type a job'; inp.setAttribute('aria-label', (k === 'must' ? 'Must Do ' : 'May Do ') + (i + 1));
+          inp.oninput = () => todoDraft[k][i] = inp.value;
+          const x = document.createElement('button'); x.className = 'tool'; x.textContent = 'Remove'; x.onclick = () => { todoDraft[k].splice(i, 1); todoPaint(); };
+          li.appendChild(inp); li.appendChild(x);
+        } else {
+          const b = document.createElement('button'); b.className = 'titem' + (checks.has(k + '|' + t) ? ' done' : '');
+          b.innerHTML = '<span class="box"></span><span class="txt"></span>'; b.querySelector('.txt').textContent = t;
+          b.setAttribute('aria-pressed', checks.has(k + '|' + t));
+          b.onclick = () => { const c = todoChecks(), key = k + '|' + t; if (c.has(key)) c.delete(key); else c.add(key); store.set('todock_' + grade, JSON.stringify([...c])); todoPaint(); };
+          li.appendChild(b);
+        }
+        ul.appendChild(li);
+      });
+    });
+    $('tEdit').textContent = editing ? 'Done' : 'Edit'; $('tEdit').classList.toggle('editon', editing);
+    $('tReset').style.display = todoDev() && !editing ? '' : 'none';
+    $('tClear').style.display = checks.size && !editing ? '' : 'none';
+  }
+  function todoEdit(on) {
+    const box = $('todo');
+    if (on) { const l = todoLists(); todoDraft = { must: l.must.slice(), may: l.may.slice() }; setDraw(false); }
+    else if (box.classList.contains('editing')) {
+      const v = { must: todoDraft.must.map(t => t.trim()).filter(Boolean), may: todoDraft.may.map(t => t.trim()).filter(Boolean) };
+      store.set('todo_' + grade, JSON.stringify(v));
+    }
+    box.classList.toggle('editing', on);
+    todoPaint();
+  }
+  function todoAdd(k, id) { todoDraft[k].push(''); todoPaint(); const a = $(id).querySelectorAll('input'); a[a.length - 1].focus(); }
+  function openTodo() {
+    clearInk(); $('todo').classList.remove('editing');
+    $('tTitle').textContent = GRADES.find(g => g[0] === grade)[1] + ' Grade';
+    todoPaint();
+    $('todo').classList.add('show'); document.body.classList.add('viewing');
+    goFull();
+  }
+  $('todoBtn').onclick = openTodo;
+  $('tEdit').onclick = () => todoEdit(!$('todo').classList.contains('editing'));
+  $('tReset').onclick = () => { store.del('todo_' + grade); todoPaint(); };
+  $('tClear').onclick = () => { store.del('todock_' + grade); todoPaint(); };
+  $('tAddMust').onclick = () => todoAdd('must', 'tMust');
+  $('tAddMay').onclick = () => todoAdd('may', 'tMay');
 
   /* ---------- guides ---------- */
   const gWall = $('gWall'); let gCur = 0, gSteps = [], gAllSteps = [], gId = '', gHidden = new Set();
@@ -1250,7 +1353,11 @@
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'SELECT') return;
     if (e.target.isContentEditable) { if (e.key === 'Escape') clarEdit(false); return; }
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') { if (e.key === 'Escape') cdOpen(false); return; }
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      if (e.key === 'Escape') { cdOpen(false); if ($('todo').classList.contains('editing')) todoEdit(false); }
+      if (e.key === 'Enter' && e.target.closest('#todo')) { const k = e.target.closest('#tMust') ? ['must', 'tMust'] : ['may', 'tMay']; todoAdd(k[0], k[1]); }
+      return;
+    }
     const guideOpen = $('guide').classList.contains('show');
     if (e.key === 'Escape') {
       if (document.body.classList.contains('drawing')) setDraw(false);
@@ -1258,7 +1365,7 @@
       else if ($('cdBox').classList.contains('show')) cdOpen(false);
       else if ($('archive').classList.contains('show')) archClose();
       else if (viewer.classList.contains('over')) backToSteps();
-      else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show')) closeSteps();
+      else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show') || $('todo').classList.contains('show')) closeSteps();
     }
     if ($('kbd').classList.contains('show')) return;
     if (guideOpen && gWall.classList.contains('editing')) return;
