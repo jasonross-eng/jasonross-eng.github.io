@@ -32,17 +32,6 @@
 
   /* ---------- clock ---------- */
   .clock { display:flex; align-items:center; justify-content:center; gap:2.5vw; padding:2.4vh 2vw; min-height:0; }
-  .avatar { height:min(17vh, 11vw); width:auto; aspect-ratio:1; flex:0 0 auto; cursor:pointer; border-radius:50%; transition:transform .15s; }
-  .avatar:hover { transform:scale(1.05); }
-  /* tap the tiger: celebration */
-  .party { position:fixed; inset:0; z-index:95; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); cursor:pointer; }
-  .party.show { display:flex; }
-  .party canvas { position:absolute; inset:0; width:100%; height:100%; }
-  .party img { position:relative; height:min(62vh, 62vw); aspect-ratio:1; border-radius:50%; box-shadow:0 0 0 1.2vh #fff, 0 0 12vh #b48cff;
-               animation:tigerpop 4s cubic-bezier(.2,1.4,.4,1) both; }
-  @keyframes tigerpop { 0% { transform:scale(0) rotate(-25deg); } 14% { transform:scale(1.12) rotate(6deg); } 22% { transform:scale(1) rotate(-4deg); }
-    30% { transform:scale(1.05) rotate(3deg); } 38%, 88% { transform:scale(1) rotate(0); } 100% { transform:scale(0) rotate(15deg); } }
-  @media (prefers-reduced-motion: reduce) { .party img { animation:none; } }
   .clocktext { display:flex; flex-direction:column; align-items:center; }
   .time { font-size:min(11vh, 7vw); font-weight:700; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
   .date { font-size:min(3.6vh, 2.2vw); color:var(--ink); opacity:.85; margin-top:1vh; }
@@ -91,7 +80,7 @@
   body.dark .plan select { background:#202020; color:var(--ink); border-color:#333; }
   body.dark .item { border-left:6px solid var(--accent); }
   body.dark .swatch.on { border-color:var(--accent); }
-  /* black + purple theme (matches the avatar) */
+  /* black + purple theme */
   body.dark.purple { --card:#2a0f58; --accent:#ffffff; --onaccent:#391273; --accent2:#391273; --accent3:#4a1a8c;
                      --line:#4a2a80; --btn:#2a0f58; --pop:#2a0f58; --soft:#c9bce6; --green:#ffffff; }
   body.dark.purple .card, body.dark.purple .tool { box-shadow:0 0 0 1px #3d1a78, 0 8px 30px rgba(0,0,0,.5); }
@@ -209,7 +198,7 @@
     .board { grid-template-columns:1fr; height:auto; padding:16px; }
     .left { grid-template-rows:auto auto; }
     .clock, .timer { padding:3vh 0; }
-    .time { font-size:16vw; } .date { font-size:4.5vw; } .avatar { height:24vw; } .tdisplay { font-size:16vw; }
+    .time { font-size:16vw; } .date { font-size:4.5vw; } .tdisplay { font-size:16vw; }
     .item { font-size:24px; }
     .topbar { order:-2; } .plan { order:-1; }
     .guide { overflow:auto; padding-bottom:110px; }
@@ -234,7 +223,6 @@
 
   <div class="left">
     <section class="card clock" aria-label="Clock">
-      <img class="avatar" id="avatar" src="avatar.png" alt="Celebrate" title="Tap to celebrate">
       <div class="clocktext">
         <div class="time" id="time">12:00</div>
         <div class="date" id="date"></div>
@@ -305,7 +293,6 @@
 
 <div class="bgpick" id="bgpick" role="dialog" aria-label="Pick background"></div>
 
-<div class="party" id="party"><canvas id="confetti"></canvas><img src="avatar.png" alt=""></div>
 <canvas id="ink"></canvas>
 <div class="drawbar" id="drawbar">
   <button class="tool on" data-shape="pen">Pen</button>
@@ -704,48 +691,6 @@
   $('kbdBtn').onclick = () => setKbd(true);
   $('kbdBtn2').onclick = () => setKbd(true);
   $('kbdClose').onclick = () => setKbd(false);
-
-  /* ---------- tap the tiger: celebration ---------- */
-  let partyT = null, partyRaf = null;
-  function fanfare() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      [[523, 0], [659, .13], [784, .26], [1047, .39], [784, .58], [1047, .7]].forEach(([f, t], i, a) => {
-        const o = ctx.createOscillator(), g = ctx.createGain(), len = i === a.length - 1 ? .9 : .22;
-        o.type = 'triangle'; o.frequency.value = f;
-        g.gain.setValueAtTime(0, ctx.currentTime + t);
-        g.gain.linearRampToValueAtTime(.3, ctx.currentTime + t + .02);
-        g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + t + len);
-        o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + len + .05);
-      });
-    } catch(e) {}
-  }
-  function endParty() { clearTimeout(partyT); cancelAnimationFrame(partyRaf); $('party').classList.remove('show'); }
-  function celebrate() {
-    endParty();
-    const box = $('party'), c = $('confetti'), x = c.getContext('2d');
-    box.classList.add('show');
-    const W = c.width = innerWidth, H = c.height = innerHeight;
-    const cols = ['#ffffff', '#b48cff', '#7a4fe0', '#e9dcff', '#ffd94a'];
-    const bits = Array.from({ length: 220 }, () => ({
-      x: Math.random() * W, y: -Math.random() * H, w: 8 + Math.random() * 12, h: 5 + Math.random() * 8,
-      vy: H / 260 + Math.random() * H / 180, vx: (Math.random() - .5) * 3, r: Math.random() * 6.3, vr: (Math.random() - .5) * .3,
-      c: cols[Math.floor(Math.random() * cols.length)]
-    }));
-    (function frame() {
-      x.clearRect(0, 0, W, H);
-      bits.forEach(b => {
-        b.y += b.vy; b.x += b.vx + Math.sin(b.y / 40) * .8; b.r += b.vr;
-        if (b.y > H + 20) { b.y = -20; b.x = Math.random() * W; }
-        x.save(); x.translate(b.x, b.y); x.rotate(b.r); x.fillStyle = b.c; x.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); x.restore();
-      });
-      partyRaf = requestAnimationFrame(frame);
-    })();
-    fanfare();
-    partyT = setTimeout(endParty, 4000);
-  }
-  $('avatar').onclick = celebrate;
-  $('party').onclick = endParty;
 
   /* ---------- keys ---------- */
   document.addEventListener('keydown', e => {
