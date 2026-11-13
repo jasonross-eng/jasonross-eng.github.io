@@ -13,6 +13,9 @@ The yellow Teacher Clarity button shows three big lines for the grade that is pi
 ## Voice level
 Next to the clock: tap 0, 1 or 2 to show the voice level (0 Silent, 1 Whisper, 2 Normal talking). Tap the lit number again to clear it.
 
+## YouTube video
+Tap Edit next to "This week". At the bottom is a YouTube video box: paste a link, type a button name if you want one, and tap Off to turn it On. A Video button joins that grade's list and plays the video inside the board. Saved on that device only, one video per grade.
+
 ## Event countdown
 A strip across the bottom shows how many school days are left until each event. Tap Countdown (top right) to turn it On or Off, add events, and add no school days (weekends are skipped already). That is saved on that device only. To set the list for every device, type it in `events.js`.
 

@@ -130,6 +130,17 @@
   .pctl button:disabled { opacity:.3; cursor:default; }
   .pctl button.showbtn { background:#d93025; border-color:#d93025; color:#fff; }
   .plan header { flex-wrap:wrap; }
+  /* YouTube video button: set up in Edit, saved on this device per grade */
+  .ytedit { display:none; flex-direction:column; gap:8px; margin-top:1.4vh; padding:1.2vh 1vw; border-radius:18px; background:var(--accent2); }
+  .ytedit.show { display:flex; }
+  .ytedit .r { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .ytedit b { font-size:min(2.8vh, 22px); margin-right:auto; }
+  .ytedit input { font-family:var(--font); font-size:17px; padding:7px 10px; border-radius:12px; border:2px solid var(--line); background:#fff; color:#1d2433; min-width:0; flex:1 1 150px; }
+  .ytedit #ytName { flex:0 1 150px; }
+  .ytedit .tool { box-shadow:none; border:2px solid var(--line); }
+  .ytedit .hint { margin:0; font-size:14px; color:var(--soft); }
+  /* video leaves a strip at the bottom so Home does not cover the player buttons */
+  .viewer.video iframe { height:calc(100% - 92px); background:#000; }
   .plan { min-width:0; } .items li, .items li .item { min-width:0; }
 
   /* black + green theme */
@@ -358,6 +369,11 @@
       </div>
     </header>
     <ol class="items" id="items"></ol>
+    <div class="ytedit" id="ytEdit">
+      <div class="r"><b>YouTube video</b><button class="tool onoff" id="ytOn">Off</button></div>
+      <div class="r"><input type="text" id="ytUrl" placeholder="Paste a YouTube link" aria-label="YouTube link"><input type="text" id="ytName" placeholder="Button name" aria-label="Button name" maxlength="24"></div>
+      <p class="hint" id="ytHint"></p>
+    </div>
   </section>
 
   <div class="card ticker" id="ticker" title="Tap to edit the countdown"><div class="track" id="track"></div></div>
@@ -380,7 +396,7 @@
 </div>
 
 <div class="viewer" id="viewer">
-  <iframe id="frame" title="Steps"></iframe>
+  <iframe id="frame" title="Steps" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
 </div>
 <div class="guide" id="guide">
   <header>
@@ -569,6 +585,7 @@
     if (!has) return;
     if (it.type === 'guide') el.onclick = () => openGuide(it.guide);
     else if (it.type === 'steps') el.onclick = () => openSteps(it.url);
+    else if (it.type === 'video') el.onclick = () => openVideo(it.url);
     else if (el.tagName === 'A') { el.href = presentUrl(it.url); el.target = '_blank'; el.rel = 'noopener'; }
     else el.onclick = () => window.open(presentUrl(it.url), '_blank', 'noopener');
   }
@@ -607,12 +624,35 @@
   function saveHidden(g) { g = g || grade; store.set('hide_' + g, JSON.stringify([...hiddenBy[g]])); }
   function hideAll(k, on) { GRADES.forEach(([g]) => { if (on) hiddenBy[g].add(k); else hiddenBy[g].delete(k); saveHidden(g); }); }
   function hiddenEverywhere(k) { return GRADES.every(([g]) => hiddenBy[g].has(k)); }
-  function itemKey(it) { return it.type === 'guide' ? 'guide|' + it.guide : it.type + '|' + ((it.url && it.url.trim()) || it.label); }
+  function itemKey(it) { return it.type === 'video' ? 'video|yt' : it.type === 'guide' ? 'guide|' + it.guide : it.type + '|' + ((it.url && it.url.trim()) || it.label); }
+  // YouTube video button, one per grade, set up on the board. It joins the list like any other row.
+  const YT_ICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#fff"/><rect x="8" y="16" width="48" height="32" rx="10" fill="#e62117"/><path d="M27 24v16l14-8z" fill="#fff"/></svg>');
+  function ytGet() { try { const v = JSON.parse(store.get('yt_' + grade, 'null')); if (v && typeof v === 'object') return { on: !!v.on, url: String(v.url || ''), label: String(v.label || '') }; } catch(e) {} return { on: false, url: '', label: '' }; }
+  function ytSet(v) { store.set('yt_' + grade, JSON.stringify(v)); }
+  // Reads the video id (and start time) out of any normal YouTube link.
+  function ytParse(url) {
+    const m = String(url).trim().match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([\w-]{11})/);
+    if (!m) return null;
+    const t = String(url).match(/[?&#](?:t|start)=(?:(\d+)h)?(?:(\d+)m)?(\d+)?s?/);
+    const start = t ? (Number(t[1] || 0) * 3600 + Number(t[2] || 0) * 60 + Number(t[3] || 0)) : 0;
+    return { id: m[1], start };
+  }
+  function ytItem() { const y = ytGet(); return y.on ? { label: y.label.trim() || 'Video', type: 'video', url: y.url, icon: YT_ICON } : null; }
+  function paintYt() {
+    const y = ytGet(), box = $('ytEdit');
+    box.classList.toggle('show', planEditing);
+    if (!planEditing) return;
+    $('ytOn').textContent = y.on ? 'On' : 'Off'; $('ytOn').classList.toggle('on', y.on);
+    if (document.activeElement !== $('ytUrl')) $('ytUrl').value = y.url;
+    if (document.activeElement !== $('ytName')) $('ytName').value = y.label;
+    $('ytHint').textContent = !y.url.trim() ? 'Paste the link, then turn it On. For ' + GRADES.find(g => g[0] === grade)[1] + ' grade, on this board only.'
+      : ytParse(y.url) ? 'Link looks good.' : 'That does not look like a YouTube video link.';
+  }
   function orderKey() { const p = plans[shownIdx] || {}; return 'order_' + (p.week || 'plan') + '_' + grade; }
   function orderedItems(p) {
     let ord = []; try { ord = JSON.parse(store.get(orderKey(), '[]')) || []; } catch(e) {}
     const pos = k => { const i = ord.indexOf(k); return i < 0 ? 1e6 : i; };
-    return planItems(p).map((it, i) => [it, i]).sort((x, y) => (pos(itemKey(x[0])) - pos(itemKey(y[0]))) || (x[1] - y[1])).map(x => x[0]);
+    return planItems(p).concat(ytItem() || []).map((it, i) => [it, i]).sort((x, y) => (pos(itemKey(x[0])) - pos(itemKey(y[0]))) || (x[1] - y[1])).map(x => x[0]);
   }
   let planEditing = false;
   function setPlanEdit(on) {
@@ -635,7 +675,7 @@
     list.forEach((it, n) => {
       const li = document.createElement('li');
       const isGuide = it.type === 'guide';
-      const has = isGuide ? !!findGuide(it.guide) : !!(it.url && it.url.trim());
+      const has = isGuide ? !!findGuide(it.guide) : it.type === 'video' ? !!ytParse(it.url) : !!(it.url && it.url.trim());
       const hid = hidden.has(itemKey(it));
       const el = document.createElement(planEditing ? 'div' : (has && it.type === 'link' ? 'a' : 'button'));
       el.className = 'item' + (has ? '' : ' missing') + (planEditing ? ' edit' : '') + (hid ? ' hid' : '');
@@ -657,6 +697,8 @@
         };
         btn('▲', 'Move up', () => move(-1), n === 0);
         btn('▼', 'Move down', () => move(1), n === all.length - 1);
+        if (it.type === 'video') btn('Off', 'Turn off', () => { const y = ytGet(); y.on = false; ytSet(y); renderPlan(shownIdx); });
+        else {
         btn(hid ? 'Show' : 'Hide', hid ? 'Show' : 'Hide', () => {
           const k = itemKey(it); if (hidden.has(k)) hidden.delete(k); else hidden.add(k);
           saveHidden(); renderPlan(shownIdx);
@@ -665,19 +707,25 @@
         btn(everywhere ? 'Show all' : 'Hide all', (everywhere ? 'Show in all grades' : 'Hide in all grades'), () => {
           hideAll(k, !everywhere); renderPlan(shownIdx);
         }).classList.toggle('showbtn', everywhere);
+        }
         el.appendChild(ctl);
       } else wireItem(el, it, has);
       li.appendChild(el); ol.appendChild(li);
     });
+    paintYt();
     requestAnimationFrame(fitPlan);
     if (document.fonts) document.fonts.ready.then(fitPlan);
   }
+  $('ytOn').onclick = () => { const y = ytGet(); y.on = !y.on; ytSet(y); renderPlan(shownIdx); };
+  $('ytUrl').oninput = () => { const y = ytGet(); y.url = $('ytUrl').value; ytSet(y); renderPlan(shownIdx); };
+  $('ytName').oninput = () => { const y = ytGet(); y.label = $('ytName').value; ytSet(y); renderPlan(shownIdx); };
   $('planEdit').onclick = () => setPlanEdit(!planEditing);
   // Shrink plan text until every item fits without scrolling.
   function fitPlan() {
     const ol = $('items'); ol.style.fontSize = '';
     const items = ol.querySelectorAll('.item'); items.forEach(x => x.style.fontSize = '');
     if (!items.length || innerWidth <= 820) return;
+    if (planEditing) { items.forEach(x => x.style.fontSize = 'min(3vh, 24px)'); return; }   // Edit: keep buttons big, let the list scroll
     let size = parseFloat(getComputedStyle(items[0]).fontSize);
     while (ol.scrollHeight > ol.clientHeight + 1 && size > 16) {
       size -= 1; items.forEach(x => { x.style.fontSize = size + 'px'; x.style.paddingBlock = (size * .32) + 'px'; });
@@ -777,11 +825,21 @@
   let pracGuide = null;
   function openSteps(url) {
     clearInk();
+    viewer.classList.remove('video');
     pracGuide = guides.find(g => g.practice === url) || null;
     document.body.classList.toggle('pracmode', !!pracGuide);
     viewer.classList.toggle('over', $('guide').classList.contains('show'));
     frame.src = url; viewer.classList.add('show'); document.body.classList.add('viewing');
     frame.onload = () => { try { frame.contentWindow.focus(); } catch(e) {} };
+    goFull();
+  }
+  // YouTube plays inside the board, full screen, with Home to come back.
+  function openVideo(url) {
+    const v = ytParse(url); if (!v) return;
+    clearInk(); pracGuide = null; document.body.classList.remove('pracmode');
+    viewer.classList.remove('over'); viewer.classList.add('video');
+    frame.src = 'https://www.youtube-nocookie.com/embed/' + v.id + '?rel=0&autoplay=1' + (v.start ? '&start=' + v.start : '');
+    viewer.classList.add('show'); document.body.classList.add('viewing');
     goFull();
   }
   function backToSteps() {
@@ -793,7 +851,7 @@
   $('toSteps').onclick = backToSteps;
   function closeSteps() {
     if ($('kbd').classList.contains('show')) setKbd(false);
-    document.body.classList.remove('pracmode'); viewer.classList.remove('over');
+    document.body.classList.remove('pracmode'); viewer.classList.remove('over', 'video');
     viewer.classList.remove('show'); $('guide').classList.remove('show'); document.body.classList.remove('viewing'); frame.src = 'about:blank';
     if ($('clarity').classList.contains('editing')) clarEdit(false);
     $('clarity').classList.remove('show');
