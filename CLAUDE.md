@@ -47,6 +47,12 @@ All five came with the copied board. Remove or replace as asked.
 - Week of Nov 9, 2026: all four grades have the same list (Typing Club first, link to typingclub.com with the teacher's own icon, then the copied Teach Your Monster, Login Practice, Classroom, TapLights, then Wiggle Pals, a link the teacher added, with the teacher's own icon) and blank Teacher Clarity words.
 - That list came with the copied board. The teacher will say what goes on each grade.
 
+## Teacher Clarity each week
+- The teacher posts in chat what each grade is doing that week ("this is what I am doing for 2nd grade: ..."). That is the cue.
+- Write the three statements for that grade in kid-friendly words (will / so / know: only the ending of each sentence, short enough for the projector), show them in chat, then put them in that week's block in plans.js under that grade's clarity and push.
+- If the week has no block yet, add one keyed by that Monday and carry the last week's items forward unless the teacher says the buttons change.
+- Remind the teacher that words typed on the board with Edit win on that device until Reset is tapped.
+
 ## Open items
 - Sub access: check whether the Newline board's built-in browser opens the site without a login; if so bookmark it. Phone + QR is the fallback.
 - Teacher may add their own image by the clock later.
