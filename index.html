@@ -168,6 +168,15 @@
   .archive li button:hover { background:var(--accent3); }
   .archive li.ahead { font-size:16px; font-weight:700; color:var(--soft); text-transform:uppercase; letter-spacing:.06em; padding:8px 4px 0; }
   .archive li small { font-weight:400; color:var(--soft); font-size:16px; white-space:nowrap; }
+  /* Edit: tap a row to hide it from this list (saved on this device) */
+  .archive h2 .hbtns { display:flex; gap:8px; }
+  .archive .ahint { display:none; margin:0; font-size:18px; font-weight:700; }
+  .archive.editing .ahint { display:block; }
+  .archive li.hid { display:none; }
+  .archive.editing li.hid { display:block; }
+  .archive.editing li.hid button { opacity:.55; }
+  .archive.editing li.hid small { background:#d93025; color:#fff; font-weight:700; border-radius:999px; padding:0 12px; }
+  .tool.editon { background:#d93025; color:#fff; }
   .plan header .hbtns { display:flex; gap:8px; align-items:center; }
 
   /* ---------- steps overlay ---------- */
@@ -324,7 +333,8 @@
 
 <div class="archive" id="archive" role="dialog" aria-label="All pages">
   <div class="box">
-    <h2>All pages <button class="tool" id="archClose">Close</button></h2>
+    <h2>All pages <span class="hbtns"><button class="tool" id="archEdit">Edit</button><button class="tool" id="archClose">Close</button></span></h2>
+    <p class="ahint">Tap a row to hide it. Tap again to bring it back.</p>
     <ul id="archList"></ul>
   </div>
 </div>
@@ -668,40 +678,65 @@
   $('gEdit').onclick = () => gSetEdit(!gWall.classList.contains('editing'));
 
   /* ---------- archive ---------- */
+  // Hidden rows are remembered on this device. Edit shows them again so they can be brought back.
+  let archHidden = new Set();
+  try { archHidden = new Set(JSON.parse(store.get('archhide', '[]'))); } catch(e) {}
+  function archSetEdit(on) {
+    $('archive').classList.toggle('editing', on);
+    $('archEdit').textContent = on ? 'Done' : 'Edit'; $('archEdit').classList.toggle('editon', on);
+    renderArchive();
+  }
   function renderArchive() {
     const ul = $('archList'); ul.innerHTML = '';
-    const head = t => { const li = document.createElement('li'); li.className = 'ahead'; li.textContent = t; ul.appendChild(li); };
-    const list = guides.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-    head('Guides');
-    if (!list.length) { const li = document.createElement('li'); li.className = 'ahead'; li.textContent = 'None yet'; ul.appendChild(li); }
-    list.forEach(g => {
+    const editing = $('archive').classList.contains('editing');
+    const head = t => { const li = document.createElement('li'); li.className = 'ahead'; li.textContent = t; ul.appendChild(li); return li; };
+    // One row. In Edit a tap hides or shows it; otherwise a tap opens it.
+    const row = (key, label, note, wire) => {
       const li = document.createElement('li'); const b = document.createElement('button');
+      const hid = archHidden.has(key);
+      li.classList.toggle('hid', hid);
       b.innerHTML = '<span></span><small></small>';
-      b.querySelector('span').textContent = g.title || g.id;
-      b.querySelector('small').textContent = g.date ? new Date(g.date + 'T12:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '';
-      b.onclick = () => openGuide(g.id);
+      b.querySelector('span').textContent = label;
+      b.querySelector('small').textContent = editing && hid ? 'Hidden' : note;
+      if (editing) b.onclick = () => {
+        if (archHidden.has(key)) archHidden.delete(key); else archHidden.add(key);
+        store.set('archhide', JSON.stringify([...archHidden])); renderArchive();
+      };
+      else wire(b);
       li.appendChild(b); ul.appendChild(li);
+      return !hid;
+    };
+    const list = guides.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    const gHead = head('Guides'); let shown = 0;
+    list.forEach(g => {
+      if (row('guide|' + g.id, g.title || g.id,
+        g.date ? new Date(g.date + 'T12:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '',
+        b => b.onclick = () => openGuide(g.id))) shown++;
     });
+    if (!list.length) head('None yet');
+    else if (!shown && !editing) gHead.style.display = 'none';
     // Every other page or link used in any week, newest week first, no repeats.
     const seen = new Set(), others = [];
     plans.forEach(p => allItems(p).forEach(it => {
       if (it.type === 'guide' || !(it.url && it.url.trim())) return;
       const k = it.type + '|' + it.url; if (seen.has(k)) return; seen.add(k); others.push(it);
     }));
-    if (others.length) head('Pages and links');
-    others.forEach(it => {
-      const li = document.createElement('li'); const b = document.createElement('button');
-      b.innerHTML = '<span></span><small></small>';
-      b.querySelector('span').textContent = it.label;
-      b.querySelector('small').textContent = it.type === 'link' ? 'Opens tab' : 'Steps';
-      wireItem(b, it, true);
-      b.addEventListener('click', () => $('archive').classList.remove('show'));
-      li.appendChild(b); ul.appendChild(li);
-    });
+    if (others.length) {
+      const oHead = head('Pages and links'); shown = 0;
+      others.forEach(it => {
+        if (row(it.type + '|' + it.url, it.label, it.type === 'link' ? 'Opens tab' : 'Steps', b => {
+          wireItem(b, it, true);
+          b.addEventListener('click', () => $('archive').classList.remove('show'));
+        })) shown++;
+      });
+      if (!shown && !editing) oHead.style.display = 'none';
+    }
   }
+  function archClose() { $('archive').classList.remove('show'); if ($('archive').classList.contains('editing')) archSetEdit(false); }
+  $('archEdit').onclick = () => archSetEdit(!$('archive').classList.contains('editing'));
   $('pastBtn').onclick = () => { renderArchive(); $('archive').classList.add('show'); };
-  $('archClose').onclick = () => $('archive').classList.remove('show');
-  $('archive').onclick = e => { if (e.target === $('archive')) $('archive').classList.remove('show'); };
+  $('archClose').onclick = archClose;
+  $('archive').onclick = e => { if (e.target === $('archive')) archClose(); };
   $('fsBtn').onclick = () => document.fullscreenElement ? document.exitFullscreen() : goFull();
   document.addEventListener('fullscreenchange', () => { $('fsBtn').textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen'; });
 
@@ -820,7 +855,7 @@
     if (e.key === 'Escape') {
       if (document.body.classList.contains('drawing')) setDraw(false);
       else if ($('kbd').classList.contains('show')) setKbd(false);
-      else if ($('archive').classList.contains('show')) $('archive').classList.remove('show');
+      else if ($('archive').classList.contains('show')) archClose();
       else if (viewer.classList.contains('over')) backToSteps();
       else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show')) closeSteps();
     }

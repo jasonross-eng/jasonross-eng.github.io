@@ -19,7 +19,7 @@ Each item:
 - `url` or `guide`: what it opens. Leave `url` as `""` if the link isn't ready.
 - `icon` (optional): `"icons/name.png"`, a real app icon shown in place of the number
 
-"All pages" lists every guide and every page or link used in any week.
+"All pages" lists every guide and every page or link used in any week. Tap Edit there, then tap a row to hide it from the list. Tap it again in Edit to bring it back. Hiding is saved on that device only.
 
 ## Step guides
 New guides go in `guides.js`, pictures in `guides/<guide id>/`. Old guides stay in the list and show under "All pages" on the board.
