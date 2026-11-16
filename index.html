@@ -25,7 +25,7 @@
   .topbar { grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
   .grades, .tools { display:flex; gap:clamp(5px, .6vw, 10px); flex-wrap:wrap; align-items:center; }
   .tools { margin-left:auto; }
-  .tools .tool { font-size:clamp(11px, 1vw, 18px); padding:8px clamp(6px, .7vw, 18px); }
+  .tools .tool { font-size:clamp(11px, .95vw, 18px); padding:8px clamp(5px, .6vw, 18px); }
   .card { background:var(--card); border-radius:28px; box-shadow:0 8px 30px rgba(20,40,70,.15); }
   .left { display:grid; grid-template-rows: auto 1fr; gap:2.2vh; min-height:0; }
 
@@ -33,7 +33,7 @@
           padding:8px 18px; cursor:pointer; box-shadow:0 3px 12px rgba(20,40,70,.12); }
   .tool.on { background:var(--accent); color:var(--onaccent); }
   /* grade tabs and the Teacher Clarity tab */
-  .gtab { font-size:clamp(13px, 1.35vw, 30px); padding:8px clamp(7px, .95vw, 26px); }
+  .gtab { font-size:clamp(12px, 1.25vw, 30px); padding:8px clamp(6px, .8vw, 26px); }
   .tool.clar { background:var(--yellow); color:#1d2433; }
   .tool.todo { background:#7be0a2; color:#1d2433; }
   /* ---------- small / big cards, and hiding the top row ---------- */
@@ -745,7 +745,10 @@
   }
   // Grades: each week can hold grades: { "1": { clarity:{...}, items:[...] }, ... }.
   // A grade with no items of its own shows the week's shared items.
-  const GRADES = [['1', '1st'], ['2', '2nd'], ['3', '3rd'], ['4', '4th']];
+  const GRADES = [['1', '1st'], ['2', '2nd'], ['3', '3rd'], ['4', '4th'], ['sp', 'Specials']];
+  // Names for titles and hints: "2nd Grade" / "2nd grade", but just "Specials" for the Specials class.
+  const gradeTitle = () => { const n = GRADES.find(g => g[0] === grade)[1]; return /^\d/.test(n) ? n + ' Grade' : n; };
+  const gradeWord = () => { const n = GRADES.find(g => g[0] === grade)[1]; return /^\d/.test(n) ? n + ' grade' : n; };
   let grade = store.get('grade', '1'); if (!GRADES.some(g => g[0] === grade)) grade = '1';
   let shownIdx = curIdx;
   function gradeData(p) { return (p && p.grades && p.grades[grade]) || {}; }
@@ -764,7 +767,7 @@
   }
   GRADES.forEach(([id, name]) => {
     const b = document.createElement('button');
-    b.className = 'tool gtab'; b.dataset.grade = id; b.textContent = name; b.setAttribute('role', 'tab'); b.setAttribute('aria-label', name + ' grade');
+    b.className = 'tool gtab'; b.dataset.grade = id; b.textContent = name; b.setAttribute('role', 'tab'); b.setAttribute('aria-label', /^\d/.test(name) ? name + ' grade' : name);
     b.onclick = () => setGrade(id);
     $('grades').insertBefore(b, $('clarBtn'));
   });
@@ -842,7 +845,7 @@
       $(k + 'On').textContent = y.on ? 'On' : 'Off'; $(k + 'On').classList.toggle('on', y.on);
       if (document.activeElement !== $(k + 'Url')) $(k + 'Url').value = y.url;
       if (document.activeElement !== $(k + 'Name')) $(k + 'Name').value = y.label;
-      $(k + 'Hint').textContent = !y.url.trim() ? 'Paste the link, then turn it On. For ' + GRADES.find(g => g[0] === grade)[1] + ' grade, on this board only.'
+      $(k + 'Hint').textContent = !y.url.trim() ? 'Paste the link, then turn it On. For ' + gradeWord() + ', on this board only.'
         : !r ? EMB[k].bad : r.src ? EMB[k].good : 'This link will open in a new tab.';
     });
   }
@@ -1095,7 +1098,7 @@
     const p = plans[shownIdx] || {};
     clearInk();
     $('clarity').classList.remove('editing');
-    $('cTitle').textContent = GRADES.find(g => g[0] === grade)[1] + ' Grade' + (shownIdx === curIdx ? '' : ', ' + weekLabel(p));
+    $('cTitle').textContent = gradeTitle() + (shownIdx === curIdx ? '' : ', ' + weekLabel(p));
     clarPaint();
     $('clarity').classList.add('show'); document.body.classList.add('viewing');
     goFull();
@@ -1223,7 +1226,7 @@
   function scoreTeams(d) { const v = scoreGet(); v.n = Math.max(1, Math.min(10, v.n + d)); while (v.teams.length < v.n) v.teams.push({ name: 'Team ' + (v.teams.length + 1), score: 0 }); scoreSet(v); scorePaint(); }
   function openScore() {
     clearInk();
-    $('sTitle').textContent = GRADES.find(g => g[0] === grade)[1] + ' Grade Scores';
+    $('sTitle').textContent = gradeTitle() + ' Scores';
     scorePaint();
     $('score').classList.add('show'); document.body.classList.add('viewing');
     goFull();
@@ -1284,7 +1287,7 @@
   function todoAdd(k, id) { todoDraft[k].push(''); todoPaint(); const a = $(id).querySelectorAll('input'); a[a.length - 1].focus(); }
   function openTodo() {
     clearInk(); $('todo').classList.remove('editing');
-    $('tTitle').textContent = GRADES.find(g => g[0] === grade)[1] + ' Grade';
+    $('tTitle').textContent = gradeTitle();
     todoPaint();
     $('todo').classList.add('show'); document.body.classList.add('viewing');
     goFull();
@@ -1379,7 +1382,7 @@
   function renderArchive() {
     const ul = $('archList'); ul.innerHTML = '';
     const editing = $('archive').classList.contains('editing');
-    $('archHint').textContent = 'Tap a row to hide it for ' + GRADES.find(g => g[0] === grade)[1] + ' grade. Tap again to bring it back.';
+    $('archHint').textContent = 'Tap a row to hide it for ' + gradeWord() + '. Tap again to bring it back.';
     const head = t => { const li = document.createElement('li'); li.className = 'ahead'; li.textContent = t; ul.appendChild(li); return li; };
     // One row. In Edit a tap hides or shows it; otherwise a tap opens it.
     const row = (key, label, note, wire) => {
@@ -1476,7 +1479,7 @@
       const x = c.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
       URL.revokeObjectURL(url);
       const data = c.toDataURL('image/jpeg', .82);
-      try { localStorage.setItem('cb_bgimg_' + grade, data); note.textContent = 'Picture saved for ' + GRADES.find(g => g[0] === grade)[1] + ' grade, on this board only.'; }
+      try { localStorage.setItem('cb_bgimg_' + grade, data); note.textContent = 'Picture saved for ' + gradeWord() + ', on this board only.'; }
       catch(e) { note.textContent = 'Picture is on, but it was too big to save. It will be gone after a refresh.'; }
       bgImg = data; setPic(true);
     };

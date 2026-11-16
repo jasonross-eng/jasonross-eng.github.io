@@ -2,7 +2,8 @@
 // The board opens to the newest week that has started. Old weeks stay here as a record
 // and can be picked from the week menu. Anything ever used shows under "All pages".
 //
-// Inside each week there is one part per grade: "1", "2", "3", "4".
+// Inside each week there is one part per grade: "1", "2", "3", "4", and "sp" for the Specials tab.
+// A week with no "sp" part shows an empty list on the Specials tab.
 // Each grade has:
 //   clarity = the Teacher Clarity words for that grade
 //       will: "Today I will ..."     so: "So I can ..."     know: "I know I have it when ..."
@@ -152,6 +153,22 @@ const PLANS = [
         },
         items: [
           { label: "Thanksgiving Review", type: "link",  url: "https://sites.google.com/plsd.us/dynamicpixelmaththanksgivingvo/home" },
+          { label: "Typing Club",        type: "link",  url: "https://www.typingclub.com", icon: "icons/typingclub.png" },
+          { label: "Teach Your Monster", type: "guide", guide: "2026-11-11-teach-your-monster", icon: "icons/tym.png" },
+          { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
+          { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
+          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home", icon: "icons/wigglepals.png" }
+        ]
+      },
+      // ---------- Specials ----------
+      "sp": {
+        clarity: {
+          will: "",
+          so:   "",
+          know: ""
+        },
+        items: [
           { label: "Typing Club",        type: "link",  url: "https://www.typingclub.com", icon: "icons/typingclub.png" },
           { label: "Teach Your Monster", type: "guide", guide: "2026-11-11-teach-your-monster", icon: "icons/tym.png" },
           { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },

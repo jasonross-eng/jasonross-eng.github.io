@@ -3,7 +3,7 @@
 Teacher-only display board. Open `index.html` (or https://jasonross-eng.github.io) and project it.
 
 ## Grades
-The 1st, 2nd, 3rd, 4th buttons at the top switch the board to that grade. The clock and timer stay the same. "This week" and Teacher Clarity change with the grade. The board remembers the last grade picked.
+The 1st, 2nd, 3rd, 4th and Specials buttons at the top switch the board to that class. The clock and timer stay the same. "This week" and Teacher Clarity change with the grade. The board remembers the last grade picked.
 
 ## Teacher Clarity
 The yellow Teacher Clarity button shows three big lines for the grade that is picked: Today I will, So I can, I know I have it when.
