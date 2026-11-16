@@ -88,5 +88,78 @@ const PLANS = [
         ]
       }
     }
+  },
+  {
+    week: "2026-11-16",
+    grades: {
+      // ---------- 1st grade ----------
+      "1": {
+        clarity: {
+          will: "review what I learned this quarter with a Thanksgiving pixel picture",
+          so:   "show what I remember",
+          know: "my answers are right and my picture shows up"
+        },
+        items: [
+          { label: "Thanksgiving Review", type: "link",  url: "https://sites.google.com/plsd.us/dynamicpixelmaththanksgivingvo/home" },
+          { label: "Typing Club",        type: "link",  url: "https://www.typingclub.com", icon: "icons/typingclub.png" },
+          { label: "Teach Your Monster", type: "guide", guide: "2026-11-11-teach-your-monster", icon: "icons/tym.png" },
+          { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
+          { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
+          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home", icon: "icons/wigglepals.png" }
+        ]
+      },
+      // ---------- 2nd grade ----------
+      "2": {
+        clarity: {
+          will: "review what I learned this quarter with Thanksgiving pixel art",
+          so:   "show what I remember and practice my computer skills",
+          know: "my answers are right and my hidden picture appears"
+        },
+        items: [
+          { label: "Thanksgiving Review", type: "link",  url: "https://sites.google.com/plsd.us/dynamicpixelmaththanksgivingvo/home" },
+          { label: "Typing Club",        type: "link",  url: "https://www.typingclub.com", icon: "icons/typingclub.png" },
+          { label: "Teach Your Monster", type: "guide", guide: "2026-11-11-teach-your-monster", icon: "icons/tym.png" },
+          { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
+          { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
+          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home", icon: "icons/wigglepals.png" }
+        ]
+      },
+      // ---------- 3rd grade ----------
+      "3": {
+        clarity: {
+          will: "review this quarter's skills by solving Thanksgiving pixel art puzzles",
+          so:   "show what I know and fix my own mistakes",
+          know: "every answer is correct and the whole picture is revealed"
+        },
+        items: [
+          { label: "Thanksgiving Review", type: "link",  url: "https://sites.google.com/plsd.us/dynamicpixelmaththanksgivingvo/home" },
+          { label: "Typing Club",        type: "link",  url: "https://www.typingclub.com", icon: "icons/typingclub.png" },
+          { label: "Teach Your Monster", type: "guide", guide: "2026-11-11-teach-your-monster", icon: "icons/tym.png" },
+          { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
+          { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
+          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home", icon: "icons/wigglepals.png" }
+        ]
+      },
+      // ---------- 4th grade ----------
+      "4": {
+        clarity: {
+          will: "review this quarter's concepts by solving Thanksgiving pixel art puzzles",
+          so:   "show what I have mastered and find what I still need to practice",
+          know: "every answer is correct, the picture is complete, and I can explain how I got my answers"
+        },
+        items: [
+          { label: "Thanksgiving Review", type: "link",  url: "https://sites.google.com/plsd.us/dynamicpixelmaththanksgivingvo/home" },
+          { label: "Typing Club",        type: "link",  url: "https://www.typingclub.com", icon: "icons/typingclub.png" },
+          { label: "Teach Your Monster", type: "guide", guide: "2026-11-11-teach-your-monster", icon: "icons/tym.png" },
+          { label: "Login Practice",     type: "steps", url: "login-practice.html", icon: "icons/practice.png" },
+          { label: "Classroom",          type: "link",  url: "https://classroom.google.com", icon: "icons/classroom.png" },
+          { label: "TapLights",          type: "link",  url: "https://sites.google.com/plsd.us/taplights-pkc/home", icon: "icons/taplights.png" },
+          { label: "Wiggle Pals",        type: "link",  url: "https://sites.google.com/plsd.us/wigglepals/home", icon: "icons/wigglepals.png" }
+        ]
+      }
+    }
   }
 ];

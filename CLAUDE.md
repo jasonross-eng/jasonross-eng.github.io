@@ -45,6 +45,7 @@ All five came with the copied board. Remove or replace as asked.
 
 ## Weekly plan
 - Week of Nov 9, 2026: all four grades have the same list (Typing Club first, link to typingclub.com with the teacher's own icon, then the copied Teach Your Monster, Login Practice, Classroom, TapLights, then Wiggle Pals, a link the teacher added, with the teacher's own icon) and blank Teacher Clarity words.
+- Week of Nov 16, 2026: all four grades review the quarter with Thanksgiving pixel art (link "Thanksgiving Review" to the teacher's Google Site, first in every list, then the Nov 9 buttons carried forward). Teacher Clarity written for all four grades; the teacher may reword them.
 - That list came with the copied board. The teacher will say what goes on each grade.
 
 ## Teacher Clarity each week
