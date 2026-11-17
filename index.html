@@ -211,8 +211,14 @@
   .noise.warn .nzbar i { background:#f6c026; } .noise.loud .nzbar i { background:#d93025; }
   .nzlim { display:flex; gap:8px; align-items:center; font-size:14px; color:var(--soft); }
   .nzlim input { flex:1; }
-  .nzloud { display:none; text-align:center; font-weight:700; font-size:clamp(20px, 4vh, 44px); color:#fff; background:#d93025; border-radius:14px; padding:.1em; }
-  .noise.loud .nzloud { display:block; animation:attnpulse .6s ease-in-out infinite; }
+  .card.noise { overflow:auto; }
+  .nzrow { display:flex; align-items:center; gap:8px; font-size:15px; color:var(--soft); flex-wrap:wrap; }
+  .nzrow select { font-family:var(--font); font-size:15px; padding:3px 6px; border-radius:8px; border:2px solid var(--line); background:#fff; color:#1d2433; }
+  .nzrow .tool { box-shadow:none; border:2px solid var(--line); font-size:14px; padding:3px 12px; }
+  #nzCount { font-weight:700; color:var(--ink); margin-right:auto; }
+  .nzloud { display:none; position:absolute; left:12px; right:12px; top:42px; bottom:auto; height:calc(100% - 54px); max-height:70%; z-index:3; pointer-events:none;
+            align-items:center; justify-content:center; text-align:center; font-weight:700; font-size:clamp(22px, 5vh, 56px); color:#fff; background:rgba(217,48,37,.92); border-radius:14px; }
+  .noise.loud .nzloud { display:flex; animation:attnpulse .6s ease-in-out infinite; }
   /* ---------- sub mode: only what a sub needs ---------- */
   .subexit { display:none; }
   body.sub .subexit { display:block; background:#d93025 !important; color:#fff !important; }
@@ -756,6 +762,10 @@
   <div class="nzhead"><b>Noise</b><span class="nzstat" id="nzStat"></span></div>
   <div class="nzbar"><i id="nzFill"></i><span id="nzMark"></span></div>
   <label class="nzlim">Limit <input type="range" id="nzLim" min="10" max="95" value="60"></label>
+  <div class="nzrow"><label for="nzSound">Sound</label><select id="nzSound">
+    <option value="chime">Chime</option><option value="bell">Bell</option><option value="shh">Shh</option><option value="beep">Beep beep</option><option value="off">No sound</option>
+  </select><button class="tool" id="nzTest">Test</button></div>
+  <div class="nzrow"><span id="nzCount"></span><button class="tool" id="nzReset">Reset</button></div>
   <div class="nzloud" id="nzLoud">Too loud!</div>
 </section>
 
@@ -2306,7 +2316,7 @@
 
   /* ---------- noise meter ---------- */
   // Listens to the board's microphone only while it is on, and only to measure loudness. Nothing is recorded or sent.
-  floatCard($('noiseCard'), 'noiserect', { x: .03, y: .74, w: .3, h: .2 }, .16, .12);
+  floatCard($('noiseCard'), 'noiserect', { x: .03, y: .62, w: .3, h: .32 }, .18, .2);
   let nz = null;
   function noiseStop() {
     if (!nz) return;
@@ -2332,14 +2342,50 @@
         const lim = Number($('nzLim').value), card = $('noiseCard');
         $('nzFill').style.width = nz.level + '%';
         const now = performance.now();
-        if (nz.level > lim) { if (!nz.overSince) nz.overSince = now; } else nz.overSince = 0;
-        card.classList.toggle('loud', !!nz.overSince && now - nz.overSince > 1200);
+        if (nz.level > lim) { if (!nz.overSince) nz.overSince = now; nz.quietSince = 0; }
+        else { nz.overSince = 0; if (!nz.quietSince) nz.quietSince = now; }
+        const loud = !!nz.overSince && now - nz.overSince > 1200;
+        // Each time it goes off: count it once and play the sound. It can go off again after the room has been under the limit for 2 seconds.
+        if (loud && !nz.alarm) { nz.alarm = true; nzBump(); if (!nz.lastSound || now - nz.lastSound > 5000) { nz.lastSound = now; nzPlay(); } }
+        if (nz.alarm && nz.quietSince && now - nz.quietSince > 2000) nz.alarm = false;
+        card.classList.toggle('loud', loud);
         card.classList.toggle('warn', nz.level > lim * .8 && !card.classList.contains('loud'));
         nz.raf = requestAnimationFrame(tick);
       };
       tick();
     } catch(e) { $('nzStat').textContent = 'No microphone, or it is blocked. Check the board\'s settings.'; }
   }
+  // Sounds made by the browser itself (no sound files). Picked in the card; saved on this device.
+  function nzPlay(kind) {
+    kind = kind || store.get('noisesound', 'chime'); if (kind === 'off') return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)(), t0 = ctx.currentTime + .02;
+      const tone = (f, t, len, type, vol) => {
+        const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type || 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0, t0 + t); g.gain.linearRampToValueAtTime(vol || .3, t0 + t + .015); g.gain.exponentialRampToValueAtTime(.001, t0 + t + len);
+        o.connect(g).connect(ctx.destination); o.start(t0 + t); o.stop(t0 + t + len + .05);
+      };
+      if (kind === 'chime') { tone(988, 0, .5); tone(784, .3, .5); tone(659, .6, .9); }
+      else if (kind === 'bell') { tone(880, 0, 1.8, 'sine', .35); tone(1760, 0, 1.2, 'sine', .12); tone(2640, 0, .7, 'sine', .06); }
+      else if (kind === 'beep') { tone(620, 0, .18, 'square', .12); tone(620, .28, .18, 'square', .12); }
+      else if (kind === 'shh') {
+        const len = 1.4, buf = ctx.createBuffer(1, ctx.sampleRate * len, ctx.sampleRate), d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+        src.buffer = buf; f.type = 'bandpass'; f.frequency.value = 3500; f.Q.value = .8;
+        g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(.5, t0 + .25); g.gain.linearRampToValueAtTime(.4, t0 + 1); g.gain.linearRampToValueAtTime(0, t0 + len);
+        src.connect(f).connect(g).connect(ctx.destination); src.start(t0); src.stop(t0 + len);
+      }
+      setTimeout(() => { try { ctx.close(); } catch(e) {} }, 3000);
+    } catch(e) {}
+  }
+  const nzCountPaint = () => { const n = Number(store.get('noisecount', '0')) || 0; $('nzCount').textContent = 'Went off: ' + n + (n === 1 ? ' time' : ' times'); };
+  function nzBump() { store.set('noisecount', (Number(store.get('noisecount', '0')) || 0) + 1); nzCountPaint(); }
+  $('nzSound').value = store.get('noisesound', 'chime');
+  $('nzSound').onchange = () => { store.set('noisesound', $('nzSound').value); nzPlay(); };
+  $('nzTest').onclick = () => nzPlay();
+  $('nzReset').onclick = () => { store.set('noisecount', 0); nzCountPaint(); };
+  nzCountPaint();
   function setNoise(on) {
     document.body.classList.toggle('noiseon', on); store.set('noiseon', on ? 1 : 0); $('noiseBtn').textContent = on ? 'Noise meter: On' : 'Noise meter';
     if (on) noiseStart(); else { noiseStop(); $('noiseCard').classList.remove('loud', 'warn'); }
