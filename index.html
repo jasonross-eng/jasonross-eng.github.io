@@ -104,12 +104,21 @@
   body.nobar.viewing .menubtn { display:none; }
 
   /* ---------- random student picker (the teacher's Google Sheet, embedded) ---------- */
-  .pkwrap { flex:1; min-height:0; display:flex; width:min(98vw, 1700px); margin:0 auto; }
-  .pkwrap iframe { flex:1; border:0; border-radius:20px; background:#fff; }
-  .pkset { margin:auto; width:min(760px, 100%); background:var(--card); border-radius:26px; padding:24px; display:flex; flex-direction:column; gap:12px; }
-  .pkset h2 { margin:0; font-size:clamp(24px, 4vh, 40px); }
-  .pkset p { margin:0; font-size:clamp(16px, 2.4vh, 22px); color:var(--soft); }
-  .pkset input { font-family:var(--font); font-size:20px; padding:10px 12px; border-radius:12px; border:3px solid var(--yellow); background:#fff; color:#1d2433; }
+  .card.pick { position:fixed; z-index:2; display:none; flex-direction:column; gap:8px; padding:10px; min-width:0; min-height:0; }
+  body.pickon .card.pick { display:flex; }
+  .pkhead { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+  .pkhead b { font-size:20px; margin-right:auto; padding-left:6px; white-space:nowrap; }
+  .pkhead .tool { font-size:15px; padding:5px 12px; box-shadow:none; border:2px solid var(--line); white-space:nowrap; }
+  .pick .minbtn { position:static; }
+  .pkwrap { flex:1; min-height:0; display:flex; overflow:auto; }
+  .pkwrap iframe { flex:1; border:0; border-radius:14px; background:#fff; }
+  body.min-pick .card.pick { height:auto !important; width:auto !important; }
+  body.min-pick .pkwrap, body.min-pick #pkTab, body.min-pick #pkChange { display:none; }
+  body.arranging.min-pick .pick .rs { display:none; }
+  .pkset { margin:auto; width:min(760px, 100%); border-radius:20px; padding:12px 14px; display:flex; flex-direction:column; gap:12px; }
+  .pkset h2 { margin:0; font-size:22px; }
+  .pkset p { margin:0; font-size:16px; color:var(--soft); }
+  .pkset input { font-family:var(--font); font-size:17px; padding:10px 12px; border-radius:12px; border:3px solid var(--yellow); background:#fff; color:#1d2433; }
   .pkset .r { display:flex; gap:10px; flex-wrap:wrap; }
   .pkset .tool { box-shadow:none; border:2px solid var(--line); }
   .pkset .bad { color:#ff8a80; }
@@ -435,6 +444,7 @@
     .topbar { order:-2; } .plan { order:-1; }
     .guide, .clarity { overflow:auto; padding-bottom:110px; }
     .srows { flex:none; font-size:22px; } .srow { flex:none; flex-wrap:wrap; padding:8px 12px; } .srow input { flex:1 0 100%; width:auto; } .strack { flex:1 0 40%; }
+    .card.pick { position:static; grid-column:1 / -1; height:70vh; left:auto !important; top:auto !important; width:auto !important; }
     .tcols { grid-template-columns:1fr; flex:none; } .tlist { overflow:visible; }
     .crows { flex:none; } .crow { flex:none; flex-direction:column; } .crow h2 { flex:none; }
     .ctext { align-self:stretch; min-height:2.4em; }
@@ -509,6 +519,11 @@
     <div class="embedit" id="embEdit"></div>
   </section>
 
+  <section class="card pick" id="pickCard" aria-label="Student picker">
+    <div class="pkhead"><b id="pkTitle">Picker</b><button class="tool" id="pkTab">Open in tab</button><button class="tool" id="pkChange">Change link</button><button class="minbtn" data-min="pick"></button></div>
+    <div class="pkwrap" id="pkWrap"></div>
+  </section>
+
   <div class="card ticker" id="ticker" title="Tap to edit the countdown"><div class="track" id="track"></div></div>
 </div>
 
@@ -561,17 +576,6 @@
     <section class="crow"><h2>So I can</h2><div class="ctext" id="cSo"></div></section>
     <section class="crow"><h2>I know I have it when</h2><div class="ctext" id="cKnow"></div></section>
   </main>
-</div>
-
-<div class="clarity" id="picker">
-  <header>
-    <h1 id="pkTitle"></h1>
-    <div class="gctl">
-      <button id="pkTab">Open in tab</button>
-      <button id="pkChange">Change link</button>
-    </div>
-  </header>
-  <main class="pkwrap" id="pkWrap"></main>
 </div>
 
 <div class="clarity" id="score">
@@ -1083,7 +1087,6 @@
     $('clarity').classList.remove('show');
     if ($('todo').classList.contains('editing')) todoEdit(false);
     $('todo').classList.remove('show'); $('score').classList.remove('show');
-    if ($('picker').classList.contains('show')) { $('picker').classList.remove('show'); $('pkWrap').innerHTML = ''; }
     clearInk(); setDraw(false);
   }
   $('closeView').onclick = closeSteps;
@@ -1137,8 +1140,9 @@
   function paintMin() {
     let on = []; try { on = JSON.parse(store.get('min', '[]')) || []; } catch(e) {}
     MINS.forEach(k => document.body.classList.toggle('min-' + k, on.includes(k)));
+    document.body.classList.toggle('min-pick', on.includes('pick'));
     document.querySelectorAll('.minbtn').forEach(b => {
-      const small = on.includes(b.dataset.min), name = b.dataset.min === 'plan' ? 'This week' : b.dataset.min;
+      const small = on.includes(b.dataset.min), name = { plan: 'This week', pick: 'Picker' }[b.dataset.min] || b.dataset.min;
       b.textContent = small ? '+' : '\u2013'; b.title = small ? 'Make big' : 'Make small'; b.setAttribute('aria-label', (small ? 'Make big: ' : 'Make small: ') + name);
     });
     if (on.includes('plan') && planEditing) setPlanEdit(false); else requestAnimationFrame(fitPlan);
@@ -1277,8 +1281,9 @@
     box.innerHTML = '<h2>Add your picker</h2><p>Open your Google Sheet, copy the link from the address bar, and paste it here.</p>' +
       '<input type="text" id="pkUrl" placeholder="https://docs.google.com/spreadsheets/d/..." aria-label="Google Sheet link">' +
       '<p class="bad" id="pkMsg"></p><div class="r"><button class="tool" id="pkSave">Save</button></div>' +
-      '<p>Saved for ' + gradeWord() + ' on this board only. It is never put on your public site.</p>';
+      '<p id="pkFor"></p>';
     w.appendChild(box);
+    $('pkFor').textContent = 'Saved for ' + gradeWord() + ' on this board only. It is never put on your public site.';
     $('pkUrl').value = pkGet(); $('pkMsg').textContent = msg || '';
     const save = () => {
       const v = $('pkUrl').value.trim();
@@ -1288,25 +1293,52 @@
     $('pkSave').onclick = save;
     $('pkUrl').onkeydown = e => { if (e.key === 'Enter') save(); };
     $('pkTab').style.display = 'none'; $('pkChange').style.display = 'none';
-    setTimeout(() => { const u = $('pkUrl'); if (u) u.focus(); }, 50);
   }
   function pkShow() {
+    $('pkWrap').innerHTML = '';
+    if (!document.body.classList.contains('pickon')) return;   // nothing loads while the picker is off
+    $('pkTitle').textContent = gradeTitle() + ' Picker';
     const r = pkParse(pkGet());
     if (!r) { pkSetup(); return; }
-    const w = $('pkWrap'); w.innerHTML = '';
-    const f = document.createElement('iframe'); f.title = 'Random student picker'; f.src = r.src; w.appendChild(f);
+    const f = document.createElement('iframe'); f.title = 'Random student picker'; f.src = r.src; $('pkWrap').appendChild(f);
     $('pkTab').style.display = ''; $('pkChange').style.display = '';
     $('pkTab').onclick = () => window.open(r.tab, '_blank', 'noopener');
   }
-  function openPicker() {
-    clearInk(); setDraw(false);
-    $('pkTitle').textContent = gradeTitle() + ' Picker';
-    pkShow();
-    $('picker').classList.add('show'); document.body.classList.add('viewing');
-    goFull();
+  // The picker is a card on the dashboard: Picker in the top bar turns it on or off, Arrange moves and resizes it.
+  // Its spot is saved on this device as parts of the screen. It sits on top of the other cards.
+  let pkRect = (() => { try { const v = JSON.parse(store.get('pickrect', 'null')); if (v && [v.x, v.y, v.w, v.h].every(n => typeof n === 'number' && isFinite(n))) return v; } catch(e) {} return { x: .56, y: .42, w: .42, h: .5 }; })();
+  function pkPlace() {
+    const st = $('pickCard').style;
+    st.left = pkRect.x * innerWidth + 'px'; st.top = pkRect.y * innerHeight + 'px';
+    st.width = pkRect.w * innerWidth + 'px'; st.height = pkRect.h * innerHeight + 'px';
   }
-  $('pickBtn').onclick = openPicker;
+  function setPick(on) {
+    document.body.classList.toggle('pickon', on); $('pickBtn').classList.toggle('on', on); store.set('pickon', on ? 1 : 0);
+    pkPlace(); pkShow();
+  }
+  $('pickBtn').onclick = () => setPick(!document.body.classList.contains('pickon'));
   $('pkChange').onclick = () => pkSetup();
+  gradeHooks.push(() => { if (document.body.classList.contains('pickon')) pkShow(); });
+  addEventListener('resize', pkPlace);
+  (function () {
+    const el = $('pickCard'), grab = document.createElement('div'), rs = document.createElement('div');
+    grab.className = 'grab'; rs.className = 'rs'; el.appendChild(grab); el.appendChild(rs);
+    const drag = (handle, resize) => {
+      let start = null;
+      handle.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); handle.setPointerCapture(e.pointerId); start = { x: e.clientX, y: e.clientY, r: Object.assign({}, pkRect) }; });
+      handle.addEventListener('pointermove', e => {
+        if (!start) return;
+        const dx = (e.clientX - start.x) / innerWidth, dy = (e.clientY - start.y) / innerHeight, r = pkRect;
+        if (resize) { r.w = Math.max(.18, Math.min(1 - r.x, start.r.w + dx)); r.h = Math.max(.2, Math.min(1 - r.y, start.r.h + dy)); }
+        else { r.x = Math.max(0, Math.min(.95, start.r.x + dx)); r.y = Math.max(0, Math.min(.92, start.r.y + dy)); }
+        pkPlace();
+      });
+      const end = () => { if (!start) return; start = null; store.set('pickrect', JSON.stringify(pkRect)); };
+      handle.addEventListener('pointerup', end); handle.addEventListener('pointercancel', end);
+    };
+    drag(grab, false); drag(rs, true);
+  })();
+  setPick(store.get('pickon', '0') === '1');
   $('sLess').onclick = () => scoreTeams(-1);
   $('sMore').onclick = () => scoreTeams(1);
   $('sZero').onclick = () => { const v = scoreGet(); v.teams.forEach(t => t.score = 0); scoreSet(v); scorePaint(); };
@@ -1675,7 +1707,7 @@
     if (e.target.tagName === 'SELECT') return;
     if (e.target.isContentEditable) { if (e.key === 'Escape') clarEdit(false); return; }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-      if (e.key === 'Escape' && e.target.id === 'pkUrl') { closeSteps(); return; }
+      if (e.key === 'Escape' && e.target.id === 'pkUrl') { e.target.blur(); return; }
       if (e.key === 'Escape') { cdOpen(false); if ($('todo').classList.contains('editing')) todoEdit(false); }
       if (e.key === 'Enter' && e.target.closest('#todo')) { const k = e.target.closest('#tMust') ? ['must', 'tMust'] : ['may', 'tMay']; todoAdd(k[0], k[1]); }
       return;
@@ -1688,7 +1720,7 @@
       else if ($('cdBox').classList.contains('show')) cdOpen(false);
       else if ($('archive').classList.contains('show')) archClose();
       else if (viewer.classList.contains('over')) backToSteps();
-      else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show') || $('todo').classList.contains('show') || $('score').classList.contains('show') || $('picker').classList.contains('show')) closeSteps();
+      else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show') || $('todo').classList.contains('show') || $('score').classList.contains('show')) closeSteps();
     }
     if ($('kbd').classList.contains('show')) return;
     if (guideOpen && gWall.classList.contains('editing')) return;
