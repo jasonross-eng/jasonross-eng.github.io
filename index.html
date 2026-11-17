@@ -125,7 +125,10 @@
   .pkrow { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:center; flex:0 0 auto; }
   .pkrow .chip.main { font-size:min(3.4vh, 26px); padding:4px 26px; }
   .pkleft { font-size:14px; color:var(--soft); }
-  .pksm .chip { font-size:14px; padding:2px 10px; border-width:2px; }
+  .pksm .chip, .pkcls .chip { font-size:14px; padding:2px 10px; border-width:2px; }
+  .pkcls { justify-content:flex-start; }
+  .pkcls .chip.on { background:var(--accent); color:var(--onaccent); }
+  .pkedit input { font-family:var(--font); font-size:18px; padding:8px 10px; border-radius:12px; border:3px solid var(--yellow); background:#fff; color:#1d2433; min-width:0; }
   .pkname { min-height:44px; }
   .pkedit { flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; }
   .pkedit textarea { flex:1; min-height:80px; resize:none; font-family:var(--font); font-size:18px; padding:8px 10px; border-radius:12px; border:3px solid var(--yellow); background:#fff; color:#1d2433; }
@@ -1329,10 +1332,20 @@
   $('pkMode').onclick = () => { store.set('pkmode_' + grade, pkMode() === 'sheet' ? 'list' : 'sheet'); pkShow(); };
 
   /* the board's own random name picker */
-  // Names, who has had a turn, and the last pick are saved per grade on this device only (never in the public site).
+  // Each grade can have several classes, each named by its homeroom teacher, each with its own students and turns.
+  // All of it is saved on this device only (never in the public site): pkclasses_<grade> = [{ id, t, n:[names], used:[i], last }].
   const jget = (k, d) => { try { const v = JSON.parse(store.get(k, 'null')); return v === null ? d : v; } catch(e) { return d; } };
-  const pkNames = () => { const v = jget('pknames_' + grade, []); return Array.isArray(v) ? v.map(String).filter(Boolean) : []; };
-  const pkUsed = () => { const v = jget('pkused_' + grade, []); return Array.isArray(v) ? v : []; };
+  function pkClasses() {
+    let v = jget('pkclasses_' + grade, null);
+    if (!Array.isArray(v)) {   // older single list for the grade becomes its first class
+      const old = jget('pknames_' + grade, []);
+      v = Array.isArray(old) && old.length ? [{ id: 'c' + Date.now(), t: 'My class', n: old.map(String), used: [], last: '' }] : [];
+    }
+    return v.filter(c => c && Array.isArray(c.n)).map(c => ({ id: String(c.id || Math.random()), t: String(c.t || 'Class'), n: c.n.map(String).filter(Boolean),
+      used: Array.isArray(c.used) ? c.used : [], last: String(c.last || '') }));
+  }
+  function pkSaveClasses(list) { store.set('pkclasses_' + grade, JSON.stringify(list)); store.del('pknames_' + grade); }
+  function pkCur(list) { const id = store.get('pkcls_' + grade, ''); return list.find(c => c.id === id) || list[0] || null; }
   const pkNoRep = () => store.get('pkrep', '1') === '1';
   let pkTimer = null;
   // Make the name as big as the box allows.
@@ -1343,38 +1356,50 @@
   }
   function listShow() {
     clearInterval(pkTimer);
-    const names = pkNames();
-    if (!names.length) { listEdit(); return; }
+    const list = pkClasses(), c = pkCur(list);
+    if (!c) { listEdit(null); return; }
     const w = $('pkWrap'); w.innerHTML = '';
     const box = document.createElement('div'); box.className = 'pklist';
-    box.innerHTML = '<div class="pkname" id="pkName" aria-live="polite"></div>' +
+    box.innerHTML = '<div class="pkrow pkcls" id="pkCls"></div>' +
+      '<div class="pkname" id="pkName" aria-live="polite"></div>' +
       '<div class="pkrow"><button class="chip main" id="pkPick">Pick</button></div>' +
       '<div class="pkrow pksm"><span class="pkleft" id="pkLeft"></span><button class="chip" id="pkRep"></button>' +
-      '<button class="chip" id="pkReset">Start over</button><button class="chip" id="pkEdit">Names</button></div>';
+      '<button class="chip" id="pkReset">Start over</button><button class="chip" id="pkEdit">Edit class</button></div>';
     w.appendChild(box);
-    const last = store.get('pklast_' + grade, '');
-    $('pkName').textContent = last && names.includes(last) ? last : 'Tap Pick';
-    $('pkName').classList.toggle('wait', !(last && names.includes(last)));
+    // teacher buttons: tap one to pick from that class
+    list.forEach(k => {
+      const b = document.createElement('button'); b.className = 'chip' + (k.id === c.id ? ' on' : ''); b.textContent = k.t;
+      b.setAttribute('aria-pressed', k.id === c.id);
+      b.onclick = () => { store.set('pkcls_' + grade, k.id); listShow(); };
+      $('pkCls').appendChild(b);
+    });
+    const add = document.createElement('button'); add.className = 'chip'; add.textContent = '+ Add class'; add.onclick = () => listEdit(null);
+    $('pkCls').appendChild(add);
+    const has = c.last && c.n.includes(c.last);
+    $('pkName').textContent = has ? c.last : 'Tap Pick';
+    $('pkName').classList.toggle('wait', !has);
     $('pkPick').onclick = pkPick;
     $('pkRep').onclick = () => { store.set('pkrep', pkNoRep() ? 0 : 1); pkCount(); };
-    $('pkReset').onclick = () => { store.del('pkused_' + grade); store.del('pklast_' + grade); listShow(); };
-    $('pkEdit').onclick = listEdit;
+    $('pkReset').onclick = () => { const l = pkClasses(), k = pkCur(l); k.used = []; k.last = ''; pkSaveClasses(l); listShow(); };
+    $('pkEdit').onclick = () => listEdit(c.id);
     pkCount(); requestAnimationFrame(pkFit);
   }
   function pkCount() {
-    const n = pkNames().length, used = pkUsed().filter(i => i < n).length;
+    const c = pkCur(pkClasses()); if (!c) return;
+    const n = c.n.length, used = c.used.filter(i => i < n).length;
     $('pkRep').textContent = 'No repeats: ' + (pkNoRep() ? 'On' : 'Off');
     $('pkLeft').textContent = !pkNoRep() ? n + ' names' : used >= n ? 'Everyone had a turn' : (n - used) + ' of ' + n + ' left';
     $('pkReset').style.display = pkNoRep() ? '' : 'none';
   }
   function pkPick() {
-    const names = pkNames(); if (!names.length) return;
-    let used = pkUsed().filter(i => i < names.length);
+    const list = pkClasses(), c = pkCur(list); if (!c || !c.n.length) return;
+    const names = c.n;
+    let used = c.used.filter(i => i < names.length);
     if (pkNoRep() && used.length >= names.length) used = [];
     const pool = names.map((_, i) => i).filter(i => !pkNoRep() || !used.includes(i));
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (pkNoRep()) used.push(pick);
-    store.set('pkused_' + grade, JSON.stringify(used)); store.set('pklast_' + grade, names[pick]);
+    c.used = used; c.last = names[pick]; pkSaveClasses(list);
     const el = $('pkName'), btn = $('pkPick'); btn.disabled = true; el.classList.remove('wait', 'land');
     const quick = matchMedia('(prefers-reduced-motion: reduce)').matches || names.length < 2;
     let steps = quick ? 0 : 14;
@@ -1386,26 +1411,39 @@
       if (--steps <= 0) { clearInterval(pkTimer); done(); }
     }, 70);
   }
-  function listEdit() {
+  // Add a class (id null) or edit one: teacher's name first, then the students.
+  function listEdit(id) {
     clearInterval(pkTimer);
+    const list = pkClasses(), c = id ? list.find(k => k.id === id) : null;
     const w = $('pkWrap'); w.innerHTML = '';
     const box = document.createElement('div'); box.className = 'pkedit';
-    box.innerHTML = '<p>One name per line. You can copy a column from your Google Sheet and paste it here.</p>' +
-      '<textarea id="pkText" aria-label="Class list, one name per line"></textarea>' +
-      '<div class="pkrow"><button class="chip main" id="pkSaveNames">Save</button><button class="chip" id="pkCancel">Cancel</button></div>' +
+    box.innerHTML = '<p id="pkHead"></p>' +
+      '<input type="text" id="pkTeacher" maxlength="30" placeholder="Teacher, for example Ms. Lee" aria-label="Teacher">' +
+      '<textarea id="pkText" aria-label="Students, one name per line" placeholder="Students, one name per line"></textarea>' +
+      '<div class="pkrow"><button class="chip main" id="pkSaveNames">Save</button><button class="chip" id="pkCancel">Cancel</button><button class="chip" id="pkDel">Remove class</button></div>' +
       '<p id="pkWhere"></p>';
     w.appendChild(box);
-    $('pkWhere').textContent = 'Saved for ' + gradeWord() + ' on this board only. Names are never put on your public site.';
-    $('pkText').value = pkNames().join('\n');
-    $('pkCancel').style.display = pkNames().length ? '' : 'none';
+    $('pkHead').textContent = c ? 'Edit this class.' : 'Add a ' + gradeWord() + ' class: type the teacher, then the students (one per line, or paste a column from your Google Sheet).';
+    $('pkWhere').textContent = 'Saved on this board only. Names are never put on your public site.';
+    $('pkTeacher').value = c ? c.t : ''; $('pkText').value = c ? c.n.join('\n') : '';
+    $('pkCancel').style.display = list.length ? '' : 'none';
+    $('pkDel').style.display = c ? '' : 'none';
     $('pkSaveNames').onclick = () => {
-      const list = $('pkText').value.split(/\r?\n|\t/).map(t => t.trim()).filter(Boolean).slice(0, 200);
-      if (!list.length) { $('pkText').focus(); return; }
-      store.set('pknames_' + grade, JSON.stringify(list)); store.del('pkused_' + grade); store.del('pklast_' + grade);
-      listShow();
+      const t = $('pkTeacher').value.trim(), names = $('pkText').value.split(/\r?\n|\t/).map(x => x.trim()).filter(Boolean).slice(0, 200);
+      if (!t) { $('pkTeacher').focus(); return; }
+      if (!names.length) { $('pkText').focus(); return; }
+      const l = pkClasses();
+      let k = id ? l.find(x => x.id === id) : null;
+      if (k) { if (k.n.join('\n') !== names.join('\n')) { k.used = []; k.last = ''; } k.t = t; k.n = names; }
+      else { k = { id: 'c' + Date.now(), t, n: names, used: [], last: '' }; l.push(k); }
+      pkSaveClasses(l); store.set('pkcls_' + grade, k.id); listShow();
     };
     $('pkCancel').onclick = listShow;
-    setTimeout(() => { const t = $('pkText'); if (t) t.focus(); }, 50);
+    $('pkDel').onclick = () => {
+      if (!confirm('Remove the class "' + c.t + '" and its names from this board?')) return;
+      pkSaveClasses(pkClasses().filter(x => x.id !== id)); store.del('pkcls_' + grade); listShow();
+    };
+    setTimeout(() => { const t = $(c ? 'pkText' : 'pkTeacher'); if (t) t.focus(); }, 50);
   }
   // The picker is a card on the dashboard: Picker in the top bar turns it on or off, Arrange moves and resizes it.
   // Its spot is saved on this device as parts of the screen. It sits on top of the other cards.
