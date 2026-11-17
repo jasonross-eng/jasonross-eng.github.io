@@ -196,6 +196,18 @@
   @media (prefers-reduced-motion: reduce) { .attnword { animation:none; } }
   .attn .tool { position:absolute; bottom:20px; right:20px; box-shadow:none; }
   /* ---------- timer labels ---------- */
+  /* the timer, shown again on Teacher Clarity and Must Do / May Do */
+  .tmini { display:none; align-items:center; gap:.4em; background:var(--card); border-radius:999px; padding:.1em .7em .1em .8em; position:relative; overflow:hidden;
+           font-size:clamp(26px, 6vh, 64px); font-weight:700; line-height:1.15; box-shadow:0 4px 14px rgba(30,60,90,.15); }
+  .tmini.on { display:flex; }
+  .tmini .tl { font-size:.5em; color:var(--yellow); }
+  .tmini b { font-variant-numeric:tabular-nums; }
+  .tmini i { position:absolute; left:0; right:0; bottom:0; height:.12em; background:var(--line); }
+  .tmini u { display:block; height:100%; background:var(--green); transition:width .3s linear; }
+  .tmini.low u { background:var(--yellow); }
+  .tmini.done { background:#d93025; color:#fff; animation:pulse 1s ease-in-out infinite; }
+  .tmini.done .tl { color:#fff; }
+  @media (prefers-reduced-motion: reduce) { .tmini.done { animation:none; } }
   .tlabel { display:none; font-size:min(5vh, 3vw); font-weight:700; color:var(--yellow); line-height:1; text-align:center; }
   .timer.labeled .tlabel { display:block; }
   #lpresets .chip { border-style:dashed; }
@@ -674,6 +686,7 @@
 <div class="clarity" id="clarity">
   <header>
     <h1 id="cTitle"></h1>
+    <div class="tmini" role="timer"><span class="tl"></span><b></b><i><u></u></i></div>
     <div class="ghint">Type in the white boxes, then tap Done. Saved on this board only.</div>
     <div class="gctl">
       <button id="cReset">Reset</button>
@@ -710,6 +723,7 @@
 <div class="clarity" id="todo">
   <header>
     <h1 id="tTitle"></h1>
+    <div class="tmini" role="timer"><span class="tl"></span><b></b><i><u></u></i></div>
     <div class="ghint">Type each job, then tap Done. Saved on this board only.</div>
     <div class="gctl">
       <button id="tClear">Uncheck all</button>
@@ -834,6 +848,14 @@
     $('tbar').style.width = (total ? Math.max(0, left / total) * 100 : 0) + '%';
     timerEl.classList.toggle('low', running && left <= 30 && left > 0);
     $('startBtn').textContent = running ? 'Pause' : (left < total && left > 0 ? 'Go' : 'Start');
+    // The same countdown on Teacher Clarity and Must Do / May Do, while the timer is running, paused or just finished.
+    const show = running || (left < total) || timerEl.classList.contains('done'), lab = $('tlabel').textContent;
+    document.querySelectorAll('.tmini').forEach(m => {
+      m.classList.toggle('on', show); m.classList.toggle('low', timerEl.classList.contains('low')); m.classList.toggle('done', timerEl.classList.contains('done'));
+      m.querySelector('.tl').textContent = timerEl.classList.contains('done') ? 'Time is up' : lab;
+      m.querySelector('b').textContent = fmt(left);
+      m.querySelector('u').style.width = (total ? Math.max(0, left / total) * 100 : 0) + '%';
+    });
   }
   function setTime(sec, label) {
     stop(); timerEl.classList.remove('done'); total = left = Math.max(0, sec);
