@@ -180,6 +180,12 @@
   .toast { position:fixed; left:50%; bottom:90px; transform:translateX(-50%); z-index:96; display:none; background:#fff; color:#1d2433; font-weight:700; font-size:20px;
            padding:10px 22px; border-radius:999px; box-shadow:0 8px 26px rgba(0,0,0,.4); }
   .toast.show { display:block; }
+  /* ---------- start class, QR code ---------- */
+  .startbtn { background:#22e36b !important; color:#062b12 !important; }
+  .qrwrap { flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2vh; }
+  .qrbox { flex:1; min-height:0; aspect-ratio:1; max-width:92vw; background:#fff; border-radius:24px; padding:2vh; display:flex; }
+  .qrbox svg { width:100%; height:100%; display:block; }
+  .qrurl { font-size:clamp(18px, 3.4vh, 36px); font-weight:700; text-align:center; overflow-wrap:anywhere; max-width:92vw; }
   /* ---------- attention getter ---------- */
   .attnbtn { background:var(--yellow) !important; color:#1d2433 !important; }
   .attn { position:fixed; inset:0; z-index:92; display:none; flex-direction:column; align-items:center; justify-content:center; gap:4vh; cursor:pointer;
@@ -212,7 +218,7 @@
   body.sub .subexit { display:block; background:#d93025 !important; color:#fff !important; }
   body.sub #arrBtn, body.sub #barBtn, body.sub #moreBtn, body.sub #pickBtn, body.sub .minbtn, body.sub #planEdit, body.sub #pastBtn,
   body.sub #planPick, body.sub #cEdit, body.sub #cReset, body.sub #tEdit, body.sub #tReset, body.sub .card.pick, body.sub .grab, body.sub .rs,
-  body.sub #attnEdit, body.sub #lpresets .edit { display:none !important; }
+  body.sub #attnEdit, body.sub #lpresets .edit, body.sub #qrChange { display:none !important; }
   body.sub .ticker { pointer-events:none; }
 
   /* ---------- team scoreboard ---------- */
@@ -559,6 +565,7 @@
       <button class="tool gtab todo" id="todoBtn">Must Do / May Do</button>
     </div>
     <div class="tools">
+      <button class="tool startbtn" id="startClass">Start class</button>
       <button class="tool" id="pickBtn">Picker</button>
       <button class="tool" id="scoreBtn">Scores</button>
       <button class="tool attnbtn" id="attnBtn">Attention</button>
@@ -674,6 +681,14 @@
   </main>
 </div>
 
+<div class="clarity" id="qrPage">
+  <header>
+    <h1 id="qrTitle"></h1>
+    <div class="gctl"><button id="qrChange">Change link</button></div>
+  </header>
+  <main class="qrwrap"><div class="qrbox" id="qrBox"></div><div class="qrurl" id="qrUrl"></div></main>
+</div>
+
 <div class="clarity" id="score">
   <header>
     <h1 id="sTitle"></h1>
@@ -728,6 +743,7 @@
 <div class="moremenu" id="moreMenu" role="menu">
   <button class="tool" id="cdBtn">Countdown</button>
   <button class="tool" id="bgBtn">Background</button>
+  <button class="tool" id="qrBtn">QR code</button>
   <button class="tool" id="noiseBtn">Noise meter</button>
   <button class="tool" id="schedBtn">Schedule</button>
   <button class="tool" id="backupBtn">Backup and restore</button>
@@ -762,6 +778,7 @@
 <script src="guides.js"></script>
 <script src="plans.js"></script>
 <script src="events.js"></script>
+<script src="qrcode.js"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -1238,7 +1255,7 @@
     if ($('clarity').classList.contains('editing')) clarEdit(false);
     $('clarity').classList.remove('show');
     if ($('todo').classList.contains('editing')) todoEdit(false);
-    $('todo').classList.remove('show'); $('score').classList.remove('show');
+    $('todo').classList.remove('show'); $('score').classList.remove('show'); $('qrPage').classList.remove('show');
     clearInk(); setDraw(false);
   }
   $('closeView').onclick = closeSteps;
@@ -2185,6 +2202,58 @@
     store.set('lastbackup', today); backupSave(); toast('Daily backup saved to Downloads');
   }, true);
 
+  /* ---------- start class ---------- */
+  // One tap when a class walks in: timer back to 5:00, voice level 0, Must Do checks cleared, drawings cleared, Teacher Clarity shown.
+  $('startClass').onclick = () => {
+    if (document.body.classList.contains('arranging')) setArrange(false);
+    closeSteps(); attnShow(false); closeDlg(); setDraw(false); clearInk();
+    setTime(300);
+    voice = '0'; store.set('voice', '0'); paintVoice();
+    store.del('todock_' + grade);
+    openClarity();
+    toast('Ready for ' + gradeWord());
+  };
+
+  /* ---------- QR code ---------- */
+  // Paste a link and the board shows a giant QR code for it, one link per grade, saved on this device.
+  function qrGet() { const v = jget('qr_' + grade, null); return v && v.url ? v : null; }
+  function qrSvg(text) {
+    const q = qrcode(0, 'M'); q.addData(text); q.make();
+    const n = q.getModuleCount(), m = 2; let d = '';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += 'M' + (c + m) + ' ' + (r + m) + 'h1v1h-1z';
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + (n + 2 * m) + ' ' + (n + 2 * m) + '" shape-rendering="crispEdges" role="img" aria-label="QR code"><path d="' + d + '" fill="#000"/></svg>';
+  }
+  function qrSetup() {
+    const v = qrGet() || { url: '', label: '' };
+    openDlg('QR code', body => {
+      body.innerHTML = '<p>Paste a link. The board shows it as a giant QR code for students to scan. Saved for ' + gradeWord() + ' on this board only.</p>' +
+        '<div class="r"><input type="text" id="qrIn" placeholder="https://..." aria-label="Link"></div>' +
+        '<div class="r"><input type="text" id="qrLab" maxlength="40" placeholder="Words at the top (optional)" aria-label="Words at the top"></div>' +
+        '<p id="qrMsg"></p><div class="r"><button class="tool" id="qrGo">Show QR code</button></div>';
+      $('qrIn').value = v.url; $('qrLab').value = v.label || '';
+      const go = () => {
+        let u = $('qrIn').value.trim();
+        if (u && !/^[a-z]+:/i.test(u)) u = 'https://' + u;
+        if (!/^https?:\/\/\S+\.\S+/i.test(u)) { $('qrMsg').textContent = 'That does not look like a link.'; return; }
+        if (u.length > 1200) { $('qrMsg').textContent = 'That link is too long for a QR code. Try a shorter link.'; return; }
+        store.set('qr_' + grade, JSON.stringify({ url: u, label: $('qrLab').value.trim() })); closeDlg(); qrOpen();
+      };
+      $('qrGo').onclick = go; $('qrIn').onkeydown = e => { if (e.key === 'Enter') go(); };
+      setTimeout(() => { const i = $('qrIn'); if (i) i.focus(); }, 50);
+    });
+  }
+  function qrOpen() {
+    const v = qrGet(); if (!v) { qrSetup(); return; }
+    clearInk();
+    $('qrTitle').textContent = v.label || 'Scan me';
+    try { $('qrBox').innerHTML = qrSvg(v.url); } catch(e) { $('qrBox').textContent = 'Could not make a QR code for that link.'; }
+    $('qrUrl').textContent = v.url.replace(/^https?:\/\//, '');
+    $('qrPage').classList.add('show'); document.body.classList.add('viewing');
+    goFull();
+  }
+  $('qrBtn').onclick = qrOpen;
+  $('qrChange').onclick = qrSetup;
+
   /* ---------- attention getter ---------- */
   function attnChime() {
     try {
@@ -2391,7 +2460,7 @@
       else if ($('cdBox').classList.contains('show')) cdOpen(false);
       else if ($('archive').classList.contains('show')) archClose();
       else if (viewer.classList.contains('over')) backToSteps();
-      else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show') || $('todo').classList.contains('show') || $('score').classList.contains('show')) closeSteps();
+      else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show') || $('todo').classList.contains('show') || $('score').classList.contains('show') || $('qrPage').classList.contains('show')) closeSteps();
     }
     if ($('kbd').classList.contains('show')) return;
     if (guideOpen && gWall.classList.contains('editing')) return;

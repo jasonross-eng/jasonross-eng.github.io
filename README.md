@@ -60,6 +60,12 @@ Countdown and Background moved into More (top right). More also has:
 - Schedule: add each class start time for each day. Turn it On, and the board switches grade and picker class by itself when each class starts.
 - Sub mode: hides editing and the picker. You pick a code; the red Exit sub mode button asks for it.
 
+## Start class
+The green Start class button (top right): timer back to 5:00, voice level 0, Must Do / May Do checks cleared, and Teacher Clarity for the grade on the screen.
+
+## QR code
+More, then QR code: paste a link and tap Show QR code. The board shows a giant QR code to scan, with the link under it. Change link swaps it. One link per grade.
+
 ## Attention and timer labels
 Attention (yellow, top right) fills the screen with "Eyes on me!" and a chime. Tap to close. Change words is on that screen.
 The dashed buttons in the timer start a timer with words above it, like Clean up. Edit changes them.
