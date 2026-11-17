@@ -1509,7 +1509,23 @@
     if (pkTab() === 'seat') seatBody(c); else callBody(c);
     requestAnimationFrame(pkFit);
   }
-  const smRow = inner => '<div class="pkrow pksm">' + inner + '</div>';
+  const smRow = inner => '<div class="pkrow pksm">' + inner + '<button class="chip pkspk" id="pkSpeak"></button></div>';
+  // Read the picked name out loud with the browser's own voice. On by default; one setting for the whole board.
+  const pkSpeakOn = () => store.get('pkspeak', '1') === '1';
+  function pkSay(text) {
+    if (!pkSpeakOn() || !('speechSynthesis' in window)) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text); u.rate = .9; u.lang = 'en-US';
+      speechSynthesis.speak(u);
+    } catch(e) {}
+  }
+  function pkSpeakBtn() {
+    const b = $('pkSpeak'); if (!b) return;
+    if (!('speechSynthesis' in window)) { b.style.display = 'none'; return; }
+    b.textContent = 'Read aloud: ' + (pkSpeakOn() ? 'On' : 'Off'); b.setAttribute('aria-pressed', pkSpeakOn());
+    b.onclick = () => { store.set('pkspeak', pkSpeakOn() ? 0 : 1); if (!pkSpeakOn()) try { speechSynthesis.cancel(); } catch(e) {} pkSpeakBtn(); };
+  }
   function callBody(c) {
     $('pkBody').innerHTML = '<div class="pkname" id="pkName" aria-live="polite"></div>' +
       '<div class="pkrow"><button class="chip main" id="pkPick">Pick</button></div>' +
@@ -1518,6 +1534,7 @@
     $('pkName').textContent = has ? c.last : 'Tap Pick';
     $('pkName').classList.toggle('wait', !has);
     $('pkPick').onclick = pkPick;
+    pkSpeakBtn();
     $('pkRep').onclick = () => { store.set('pkrep', pkNoRep() ? 0 : 1); pkCount(); };
     $('pkReset').onclick = () => { const l = pkClasses(), k = pkCur(l); k.used = []; k.last = ''; pkSaveClasses(l); listShow(); };
     $('pkEdit').onclick = () => listEdit(c.id);
@@ -1555,7 +1572,7 @@
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (pkNoRep()) used.push(pick);
     c.used = used; c.last = names[pick]; pkSaveClasses(list);
-    pkSpin([$('pkName')], [names[pick]], names, pkCount);
+    pkSpin([$('pkName')], [names[pick]], names, () => { pkCount(); pkSay(names[pick]); });
   }
   // Special seats: picks come from students who have not sat yet. The teacher checks Sat once they really sit there.
   function seatBody(c) {
@@ -1570,6 +1587,7 @@
         $('pkGrid').appendChild(b);
       });
       $('pkBack').onclick = () => { pkChecklist = false; listShow(); };
+      pkSpeakBtn();
       return;
     }
     const k = pkSeats(), shown = c.seat.filter(i => i < n).slice(0, k);
@@ -1592,6 +1610,7 @@
     $('pkReset').onclick = () => { if (!confirm('Uncheck everyone so the seats start a new round?')) return; const l = pkClasses(), x = pkCur(l); x.sat = []; x.seat = []; pkSaveClasses(l); listShow(); };
     $('pkEdit').onclick = () => listEdit(c.id);
     $('pkPick').onclick = seatPick;
+    pkSpeakBtn();
     requestAnimationFrame(pkFit);
   }
   function seatToggle(i) {
@@ -1608,7 +1627,10 @@
     c.seat = picks; pkSaveClasses(list);
     const els = Array.from(document.querySelectorAll('#pkBody .pkslot .pkname'));
     document.querySelectorAll('#pkBody .pkchk').forEach(b => b.style.visibility = 'hidden');
-    pkSpin(els.slice(0, k), picks.map(i => names[i]), names, () => seatBody(pkCur(pkClasses())));
+    pkSpin(els.slice(0, k), picks.map(i => names[i]), names, () => {
+      seatBody(pkCur(pkClasses()));
+      pkSay(picks.length > 1 ? picks.map((i, s) => 'Seat ' + (s + 1) + ', ' + names[i] + '.').join(' ') : names[picks[0]]);
+    });
   }
   // Add a class (id null) or edit one: teacher's name first, then the students.
   function listEdit(id) {

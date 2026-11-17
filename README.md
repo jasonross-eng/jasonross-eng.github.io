@@ -33,6 +33,8 @@ The Picker button (top right) turns the picker card on or off. Each grade can ho
 - Cold call: tap Pick for a random name. With No repeats on, everyone in that class gets called before anyone is called again; Start over resets that.
 - Special seats: tap Pick to fill the seats (1 or 2) from students who have not sat yet. Tap Mark sat when the student sits there. Checklist shows everyone; tap a name to check or uncheck it. Start over unchecks everyone.
 
+Read aloud says the picked name out loud. Tap it to turn it off.
+
 Edit class changes the names or removes the class. The names are saved on that device only, never on the public site.
 
 Use Sheet on the card shows your Google Sheet instead. Script buttons in the sheet do not work inside the board; use Open in tab for those.
