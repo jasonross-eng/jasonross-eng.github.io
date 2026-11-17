@@ -61,7 +61,7 @@ Countdown and Background moved into More (top right). More also has:
 - Sub mode: hides editing and the picker. You pick a code; the red Exit sub mode button asks for it.
 
 ## Start class
-The green Start class button (top right): timer back to 5:00, voice level 0, Must Do / May Do checks cleared, and Teacher Clarity for the grade on the screen.
+The green Start class button (top right): starts a 10 minute Typing Club timer (change it under Edit in the timer), voice level 0, Must Do / May Do checks cleared, and Teacher Clarity for the grade on the screen.
 
 ## QR code
 More, then QR code: paste a link and tap Show QR code. The board shows a giant QR code to scan, with the link under it. Change link swaps it. One link per grade.

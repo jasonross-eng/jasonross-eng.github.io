@@ -888,7 +888,12 @@
     let list = tpGet().map(p => ({ l: p.l, m: p.m }));
     openDlg('Timer labels', body => {
       const draw = () => {
-        body.innerHTML = '<p>Each one shows its words above the timer.</p>';
+        body.innerHTML = '<p><b>Start class timer</b>: when you tap Start class (or the Schedule starts a class), this timer starts by itself. Set minutes to 0 to turn it off.</p>' +
+          '<div class="r"><input type="text" id="scLab" maxlength="24" aria-label="Start class timer words"><input type="number" id="scMin" min="0" max="99" aria-label="Start class timer minutes"><span>min</span></div>' +
+          '<p>Timer buttons. Each one shows its words above the timer.</p>';
+        $('scLab').value = store.get('startlabel', 'Typing Club'); $('scMin').value = store.get('startmin', '10');
+        $('scLab').oninput = () => store.set('startlabel', $('scLab').value.trim());
+        $('scMin').oninput = () => store.set('startmin', Math.max(0, Math.min(99, Math.round(Number($('scMin').value) || 0))));
         list.forEach((p, i) => {
           const r = document.createElement('div'); r.className = 'r';
           r.innerHTML = '<input type="text" maxlength="24" aria-label="Words"><input type="number" min="1" max="99" aria-label="Minutes"><span>min</span><button class="tool">Remove</button>';
@@ -2214,15 +2219,19 @@
 
   /* ---------- start class ---------- */
   // One tap when a class walks in: timer back to 5:00, voice level 0, Must Do checks cleared, drawings cleared, Teacher Clarity shown.
-  $('startClass').onclick = () => {
+  // The class timer (default Typing Club, 10 minutes) starts running right away. Changed in the timer's Edit dialog.
+  const scGet = () => ({ l: store.get('startlabel', 'Typing Club'), m: Math.max(0, Math.min(99, Number(store.get('startmin', '10')) || 0)) });
+  function startClass() {
     if (document.body.classList.contains('arranging')) setArrange(false);
     closeSteps(); attnShow(false); closeDlg(); setDraw(false); clearInk();
-    setTime(300);
+    const sc = scGet();
+    if (sc.m > 0) { setTime(sc.m * 60, sc.l); start(); } else setTime(300);
     voice = '0'; store.set('voice', '0'); paintVoice();
     store.del('todock_' + grade);
     openClarity();
-    toast('Ready for ' + gradeWord());
-  };
+    toast('Ready for ' + gradeWord() + (sc.m > 0 ? '. ' + (sc.l ? sc.l + ' ' : 'Timer ') + sc.m + ' min started' : ''));
+  }
+  $('startClass').onclick = startClass;
 
   /* ---------- QR code ---------- */
   // Paste a link and the board shows a giant QR code for it, one link per grade, saved on this device.
@@ -2415,6 +2424,7 @@
     if (!GRADES.some(g => g[0] === cur.g)) return;
     if (cur.c && pkClasses(cur.g).some(k => k.id === cur.c)) store.set('pkcls_' + cur.g, cur.c);
     setGrade(cur.g);
+    if (!force && !document.body.classList.contains('sub')) { startClass(); return; }
     const cls = cur.c ? pkClasses(cur.g).find(k => k.id === cur.c) : null;
     toast('Now: ' + (/^\d/.test(GRADES.find(g => g[0] === cur.g)[1]) ? GRADES.find(g => g[0] === cur.g)[1] + ' grade' : GRADES.find(g => g[0] === cur.g)[1]) + (cls ? ', ' + cls.t : ''));
   }
