@@ -127,9 +127,18 @@
   .pkleft { font-size:14px; color:var(--soft); }
   .pksm .chip, .pkcls .chip { font-size:14px; padding:2px 10px; border-width:2px; }
   .pkcls { justify-content:flex-start; }
+  .pkbody { flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; }
+  .pkseats { flex:1; min-height:0; display:flex; gap:8px; }
+  .pkslot { flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; align-items:stretch; }
+  .pkslot .pkname:not(.wait) { color:var(--yellow); }
+  .pkslot .lab { font-size:14px; color:var(--soft); text-align:center; }
+  .pkslot .pkchk { align-self:center; font-size:15px; padding:2px 14px; }
+  .pkslot .pkchk.on { background:#1e8e3e; border-color:#1e8e3e; color:#fff; }
+  .pkgrid { flex:1; min-height:0; overflow:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px; align-content:start; }
+  .pkgrid .titem { font-size:17px; padding:.25em .4em; }
   .pkcls .chip.on { background:var(--accent); color:var(--onaccent); }
   .pkedit input { font-family:var(--font); font-size:18px; padding:8px 10px; border-radius:12px; border:3px solid var(--yellow); background:#fff; color:#1d2433; min-width:0; }
-  .pkname { min-height:44px; }
+  .pkname { min-height:44px; white-space:nowrap; }
   .pkedit { flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; }
   .pkedit textarea { flex:1; min-height:80px; resize:none; font-family:var(--font); font-size:18px; padding:8px 10px; border-radius:12px; border:3px solid var(--yellow); background:#fff; color:#1d2433; }
   .pkedit p { margin:0; font-size:15px; color:var(--soft); }
@@ -1342,39 +1351,57 @@
       v = Array.isArray(old) && old.length ? [{ id: 'c' + Date.now(), t: 'My class', n: old.map(String), used: [], last: '' }] : [];
     }
     return v.filter(c => c && Array.isArray(c.n)).map(c => ({ id: String(c.id || Math.random()), t: String(c.t || 'Class'), n: c.n.map(String).filter(Boolean),
-      used: Array.isArray(c.used) ? c.used : [], last: String(c.last || '') }));
+      used: Array.isArray(c.used) ? c.used : [], last: String(c.last || ''),
+      sat: Array.isArray(c.sat) ? c.sat : [], seat: Array.isArray(c.seat) ? c.seat : [] }));
   }
   function pkSaveClasses(list) { store.set('pkclasses_' + grade, JSON.stringify(list)); store.del('pknames_' + grade); }
   function pkCur(list) { const id = store.get('pkcls_' + grade, ''); return list.find(c => c.id === id) || list[0] || null; }
   const pkNoRep = () => store.get('pkrep', '1') === '1';
   let pkTimer = null;
   // Make the name as big as the box allows.
+  // Make each name as big as its box allows.
   function pkFit() {
-    const el = document.querySelector('#pkWrap .pkname'); if (!el || !el.clientWidth) return;
-    let size = Math.min(el.clientHeight * .8, 260); el.style.fontSize = size + 'px';
-    while (size > 14 && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1)) { size -= 2; el.style.fontSize = size + 'px'; }
+    document.querySelectorAll('#pkWrap .pkname').forEach(el => {
+      if (!el.clientWidth) return;
+      let size = Math.min(el.clientHeight * .8, 260); el.style.fontSize = size + 'px';
+      while (size > 12 && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1)) { size -= 2; el.style.fontSize = size + 'px'; }
+    });
   }
+  // Two tabs per class: Cold call (who has been called) and Special seats (who has sat in a special seat).
+  const pkTab = () => store.get('pktab_' + grade, 'call');
+  const pkSeats = () => store.get('pkseats', '2') === '1' ? 1 : 2;
+  let pkChecklist = false;
   function listShow() {
     clearInterval(pkTimer);
     const list = pkClasses(), c = pkCur(list);
     if (!c) { listEdit(null); return; }
     const w = $('pkWrap'); w.innerHTML = '';
     const box = document.createElement('div'); box.className = 'pklist';
-    box.innerHTML = '<div class="pkrow pkcls" id="pkCls"></div>' +
-      '<div class="pkname" id="pkName" aria-live="polite"></div>' +
-      '<div class="pkrow"><button class="chip main" id="pkPick">Pick</button></div>' +
-      '<div class="pkrow pksm"><span class="pkleft" id="pkLeft"></span><button class="chip" id="pkRep"></button>' +
-      '<button class="chip" id="pkReset">Start over</button><button class="chip" id="pkEdit">Edit class</button></div>';
+    box.innerHTML = '<div class="pkrow pkcls" id="pkCls"></div><div class="pkrow pkcls pktabs" id="pkTabs"></div><div class="pkbody" id="pkBody"></div>';
     w.appendChild(box);
     // teacher buttons: tap one to pick from that class
     list.forEach(k => {
       const b = document.createElement('button'); b.className = 'chip' + (k.id === c.id ? ' on' : ''); b.textContent = k.t;
       b.setAttribute('aria-pressed', k.id === c.id);
-      b.onclick = () => { store.set('pkcls_' + grade, k.id); listShow(); };
+      b.onclick = () => { store.set('pkcls_' + grade, k.id); pkChecklist = false; listShow(); };
       $('pkCls').appendChild(b);
     });
     const add = document.createElement('button'); add.className = 'chip'; add.textContent = '+ Add class'; add.onclick = () => listEdit(null);
     $('pkCls').appendChild(add);
+    [['call', 'Cold call'], ['seat', 'Special seats']].forEach(([k, label]) => {
+      const b = document.createElement('button'); b.className = 'chip' + (pkTab() === k ? ' on' : ''); b.textContent = label;
+      b.setAttribute('aria-pressed', pkTab() === k);
+      b.onclick = () => { store.set('pktab_' + grade, k); pkChecklist = false; listShow(); };
+      $('pkTabs').appendChild(b);
+    });
+    if (pkTab() === 'seat') seatBody(c); else callBody(c);
+    requestAnimationFrame(pkFit);
+  }
+  const smRow = inner => '<div class="pkrow pksm">' + inner + '</div>';
+  function callBody(c) {
+    $('pkBody').innerHTML = '<div class="pkname" id="pkName" aria-live="polite"></div>' +
+      '<div class="pkrow"><button class="chip main" id="pkPick">Pick</button></div>' +
+      smRow('<span class="pkleft" id="pkLeft"></span><button class="chip" id="pkRep"></button><button class="chip" id="pkReset">Start over</button><button class="chip" id="pkEdit">Edit class</button>');
     const has = c.last && c.n.includes(c.last);
     $('pkName').textContent = has ? c.last : 'Tap Pick';
     $('pkName').classList.toggle('wait', !has);
@@ -1382,14 +1409,30 @@
     $('pkRep').onclick = () => { store.set('pkrep', pkNoRep() ? 0 : 1); pkCount(); };
     $('pkReset').onclick = () => { const l = pkClasses(), k = pkCur(l); k.used = []; k.last = ''; pkSaveClasses(l); listShow(); };
     $('pkEdit').onclick = () => listEdit(c.id);
-    pkCount(); requestAnimationFrame(pkFit);
+    pkCount();
   }
   function pkCount() {
-    const c = pkCur(pkClasses()); if (!c) return;
+    const c = pkCur(pkClasses()); if (!c || !$('pkRep')) return;
     const n = c.n.length, used = c.used.filter(i => i < n).length;
     $('pkRep').textContent = 'No repeats: ' + (pkNoRep() ? 'On' : 'Off');
-    $('pkLeft').textContent = !pkNoRep() ? n + ' names' : used >= n ? 'Everyone had a turn' : (n - used) + ' of ' + n + ' left';
+    $('pkLeft').textContent = !pkNoRep() ? n + ' names' : used >= n ? 'Everyone has been called' : (n - used) + ' of ' + n + ' not called yet';
     $('pkReset').style.display = pkNoRep() ? '' : 'none';
+  }
+  // Flash random names in the given boxes for about a second, then land on the picks.
+  function pkSpin(els, finals, names, after) {
+    const btn = $('pkPick'); if (btn) btn.disabled = true;
+    els.forEach(el => el.classList.remove('wait', 'land'));
+    let steps = matchMedia('(prefers-reduced-motion: reduce)').matches || names.length < 2 ? 0 : 14;
+    clearInterval(pkTimer);
+    const done = () => {
+      els.forEach((el, i) => { el.textContent = finals[i]; void el.offsetWidth; el.classList.add('land'); });
+      pkFit(); if (btn) btn.disabled = false; after();
+    };
+    if (!steps) { done(); return; }
+    pkTimer = setInterval(() => {
+      els.forEach(el => el.textContent = names[Math.floor(Math.random() * names.length)]); pkFit();
+      if (--steps <= 0) { clearInterval(pkTimer); done(); }
+    }, 70);
   }
   function pkPick() {
     const list = pkClasses(), c = pkCur(list); if (!c || !c.n.length) return;
@@ -1400,16 +1443,60 @@
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (pkNoRep()) used.push(pick);
     c.used = used; c.last = names[pick]; pkSaveClasses(list);
-    const el = $('pkName'), btn = $('pkPick'); btn.disabled = true; el.classList.remove('wait', 'land');
-    const quick = matchMedia('(prefers-reduced-motion: reduce)').matches || names.length < 2;
-    let steps = quick ? 0 : 14;
-    clearInterval(pkTimer);
-    const done = () => { el.textContent = names[pick]; pkFit(); void el.offsetWidth; el.classList.add('land'); btn.disabled = false; pkCount(); };
-    if (!steps) { done(); return; }
-    pkTimer = setInterval(() => {   // flash through names for about a second, then land
-      el.textContent = names[Math.floor(Math.random() * names.length)]; pkFit();
-      if (--steps <= 0) { clearInterval(pkTimer); done(); }
-    }, 70);
+    pkSpin([$('pkName')], [names[pick]], names, pkCount);
+  }
+  // Special seats: picks come from students who have not sat yet. The teacher checks Sat once they really sit there.
+  function seatBody(c) {
+    const n = c.n.length, sat = c.sat.filter(i => i < n);
+    if (pkChecklist) {
+      $('pkBody').innerHTML = '<div class="pkgrid" id="pkGrid"></div>' + smRow('<span class="pkleft">Tap a name to check or uncheck it.</span><button class="chip" id="pkBack">Done</button>');
+      c.n.forEach((name, i) => {
+        const b = document.createElement('button'); b.className = 'titem' + (sat.includes(i) ? ' done' : '');
+        b.innerHTML = '<span class="box"></span><span class="txt"></span>'; b.querySelector('.txt').textContent = name;
+        b.setAttribute('aria-pressed', sat.includes(i));
+        b.onclick = () => { seatToggle(i); seatBody(pkCur(pkClasses())); };
+        $('pkGrid').appendChild(b);
+      });
+      $('pkBack').onclick = () => { pkChecklist = false; listShow(); };
+      return;
+    }
+    const k = pkSeats(), shown = c.seat.filter(i => i < n).slice(0, k);
+    let html = '<div class="pkseats">';
+    for (let s = 0; s < k; s++) html += '<div class="pkslot"><div class="lab">Seat ' + (s + 1) + '</div><div class="pkname"></div><button class="chip pkchk"></button></div>';
+    $('pkBody').innerHTML = html + '</div><div class="pkrow"><button class="chip main" id="pkPick">Pick</button></div>' +
+      smRow('<span class="pkleft" id="pkLeft"></span><button class="chip" id="pkNSeats"></button><button class="chip" id="pkList">Checklist</button><button class="chip" id="pkReset">Start over</button><button class="chip" id="pkEdit">Edit class</button>');
+    document.querySelectorAll('#pkBody .pkslot').forEach((slot, s) => {
+      const i = shown[s], nm = slot.querySelector('.pkname'), chk = slot.querySelector('.pkchk');
+      nm.textContent = i === undefined ? 'Tap Pick' : c.n[i]; nm.classList.toggle('wait', i === undefined);
+      chk.style.visibility = i === undefined ? 'hidden' : '';
+      const on = i !== undefined && sat.includes(i);
+      chk.textContent = on ? '✓ Sat' : 'Mark sat'; chk.classList.toggle('on', on); chk.setAttribute('aria-pressed', on);
+      chk.onclick = () => { seatToggle(i); seatBody(pkCur(pkClasses())); requestAnimationFrame(pkFit); };
+    });
+    $('pkLeft').textContent = sat.length >= n ? 'Everyone has sat' : sat.length + ' of ' + n + ' have sat';
+    $('pkNSeats').textContent = k === 1 ? '1 seat' : '2 seats';
+    $('pkNSeats').onclick = () => { store.set('pkseats', k === 1 ? 2 : 1); listShow(); };
+    $('pkList').onclick = () => { pkChecklist = true; seatBody(pkCur(pkClasses())); };
+    $('pkReset').onclick = () => { if (!confirm('Uncheck everyone so the seats start a new round?')) return; const l = pkClasses(), x = pkCur(l); x.sat = []; x.seat = []; pkSaveClasses(l); listShow(); };
+    $('pkEdit').onclick = () => listEdit(c.id);
+    $('pkPick').onclick = seatPick;
+    requestAnimationFrame(pkFit);
+  }
+  function seatToggle(i) {
+    const l = pkClasses(), c = pkCur(l); if (!c) return;
+    c.sat = c.sat.includes(i) ? c.sat.filter(x => x !== i) : c.sat.concat(i); pkSaveClasses(l);
+  }
+  function seatPick() {
+    const list = pkClasses(), c = pkCur(list); if (!c || !c.n.length) return;
+    const names = c.n, k = Math.min(pkSeats(), names.length), sat = c.sat.filter(i => i < names.length);
+    // students who have not sat yet go first; if there are not enough, fill from everyone else
+    const fresh = names.map((_, i) => i).filter(i => !sat.includes(i)), rest = names.map((_, i) => i).filter(i => sat.includes(i));
+    const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const picks = shuffle(fresh).concat(shuffle(rest)).slice(0, k);
+    c.seat = picks; pkSaveClasses(list);
+    const els = Array.from(document.querySelectorAll('#pkBody .pkslot .pkname'));
+    document.querySelectorAll('#pkBody .pkchk').forEach(b => b.style.visibility = 'hidden');
+    pkSpin(els.slice(0, k), picks.map(i => names[i]), names, () => seatBody(pkCur(pkClasses())));
   }
   // Add a class (id null) or edit one: teacher's name first, then the students.
   function listEdit(id) {
@@ -1434,8 +1521,8 @@
       if (!names.length) { $('pkText').focus(); return; }
       const l = pkClasses();
       let k = id ? l.find(x => x.id === id) : null;
-      if (k) { if (k.n.join('\n') !== names.join('\n')) { k.used = []; k.last = ''; } k.t = t; k.n = names; }
-      else { k = { id: 'c' + Date.now(), t, n: names, used: [], last: '' }; l.push(k); }
+      if (k) { if (k.n.join('\n') !== names.join('\n')) { k.used = []; k.last = ''; k.sat = []; k.seat = []; } k.t = t; k.n = names; }
+      else { k = { id: 'c' + Date.now(), t, n: names, used: [], last: '', sat: [], seat: [] }; l.push(k); }
       pkSaveClasses(l); store.set('pkcls_' + grade, k.id); listShow();
     };
     $('pkCancel').onclick = listShow;

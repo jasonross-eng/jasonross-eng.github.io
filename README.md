@@ -29,7 +29,11 @@ The green Must Do / May Do button opens two checklists for the grade that is pic
 The Scores button (top right) opens a team scoreboard for the grade that is picked. Teams - / + sets how many teams. Tap a team name to rename it. Tap + or - to change points. Reset scores sets everyone to 0. Saved on that device only.
 
 ## Picker
-The Picker button (top right) turns the picker card on or off. Each grade can hold several classes. Tap + Add class, type the teacher's name, then the students (one per line, or copy the names column from your Google Sheet), and tap Save. Tap a teacher's name at the top of the card to choose that class, then tap Pick for a random name. With No repeats on, everyone in that class gets a turn before anyone is picked again; Start over resets that. Edit class changes the names or removes the class. The names are saved on that device only, never on the public site.
+The Picker button (top right) turns the picker card on or off. Each grade can hold several classes. Tap + Add class, type the teacher's name, then the students (one per line, or copy the names column from your Google Sheet), and tap Save. Tap a teacher's name at the top of the card to choose that class. Then pick a tab:
+- Cold call: tap Pick for a random name. With No repeats on, everyone in that class gets called before anyone is called again; Start over resets that.
+- Special seats: tap Pick to fill the seats (1 or 2) from students who have not sat yet. Tap Mark sat when the student sits there. Checklist shows everyone; tap a name to check or uncheck it. Start over unchecks everyone.
+
+Edit class changes the names or removes the class. The names are saved on that device only, never on the public site.
 
 Use Sheet on the card shows your Google Sheet instead. Script buttons in the sheet do not work inside the board; use Open in tab for those.
 
