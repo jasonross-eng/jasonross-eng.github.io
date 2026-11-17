@@ -26,12 +26,15 @@ A strip across the bottom shows how many school days are left until each event. 
 The green Must Do / May Do button opens two checklists for the grade that is picked. Tap Edit to type the jobs, then Done. Tap a job to check it off. Uncheck all clears the checks for the next class. Saved on that device only, one pair of lists per grade.
 
 ## Scores
-The Scores button (top right) opens a team scoreboard for the grade that is picked. Teams - / + sets how many teams. Tap a team name to rename it. Tap + or - to change points. Reset scores sets everyone to 0. Saved on that device only.
+The Scores button (top right) opens a team scoreboard for the grade that is picked. Teams - / + sets how many teams. Tap a team name to rename it. Tap + or - to change points. Reset scores sets everyone to 0. Saved on that device only. Class race turns the scoreboard into a race between your homerooms for that grade (the classes from the Picker); points stay until you tap New round.
 
 ## Picker
 The Picker button (top right) turns the picker card on or off. Each grade can hold several classes. Tap + Add class, type the teacher's name, then the students (one per line, or copy the names column from your Google Sheet), and tap Save. Tap a teacher's name at the top of the card to choose that class. Then pick a tab:
 - Cold call: tap Pick for a random name. With No repeats on, everyone in that class gets called before anyone is called again; Start over resets that.
 - Special seats: tap Pick to fill the seats (1 or 2) from students who have not sat yet. Tap Mark sat when the student sits there. Checklist shows everyone; tap a name to check or uncheck it. Start over unchecks everyone.
+
+- Notes: where this class left off. Saved as you type. Students can see it on the board.
+- Exit check: tap 👍 👌 or 👎 once for each student's answer. Today's tally is saved for that class, and the last few days are listed under it.
 
 Read aloud says the picked name out loud. Tap it to turn it off.
 

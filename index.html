@@ -134,6 +134,17 @@
   .pkslot .lab { font-size:14px; color:var(--soft); text-align:center; }
   .pkslot .pkchk { align-self:center; font-size:15px; padding:2px 14px; }
   .pkslot .pkchk.on { background:#1e8e3e; border-color:#1e8e3e; color:#fff; }
+  .pknotes { flex:1; min-height:60px; resize:none; font-family:var(--font); font-size:clamp(16px, 2.6vh, 24px); padding:10px 12px; border-radius:14px;
+             border:2px solid var(--line); background:var(--accent2); color:var(--ink); }
+  .pknotes:focus { outline:3px solid var(--yellow); }
+  .pkfaces { flex:1; min-height:0; display:flex; gap:8px; }
+  .pkface { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border:none; border-radius:18px; cursor:pointer;
+            background:var(--accent2); color:var(--ink); font-family:var(--font); }
+  .pkface:active { transform:scale(.97); }
+  .pkface .em { font-size:clamp(28px, 7vh, 80px); line-height:1; }
+  .pkface .w { font-size:clamp(13px, 2vh, 20px); color:var(--soft); }
+  .pkface b { font-size:clamp(22px, 5vh, 56px); line-height:1; }
+  .pkpast { font-size:14px; color:var(--soft); display:flex; flex-direction:column; gap:2px; }
   .pkgrid { flex:1; min-height:0; overflow:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px; align-content:start; }
   .pkgrid .titem { font-size:17px; padding:.25em .4em; }
   .pkcls .chip.on { background:var(--accent); color:var(--onaccent); }
@@ -210,6 +221,7 @@
   .srow { flex:1 1 0; min-height:0; display:flex; align-items:center; gap:.5em; background:var(--card); border-radius:.6em; padding:0 .6em; box-shadow:0 4px 14px rgba(30,60,90,.12); }
   .srow input { flex:0 0 7.5em; min-width:0; width:7.5em; font-family:var(--font); font-size:.8em; font-weight:700; color:var(--ink); background:transparent;
                 border:2px solid transparent; border-radius:.3em; padding:.1em .25em; }
+  .srow input[readonly] { cursor:default; }
   .srow input:focus { background:#fff; color:#1d2433; border-color:var(--yellow); outline:none; }
   .srow .pm { flex:0 0 auto; width:1.7em; height:1.7em; border-radius:50%; cursor:pointer; padding:0; font-family:var(--font); font-size:.8em; font-weight:700; line-height:1;
               border:3px solid var(--accent); background:var(--btn); color:var(--accent); }
@@ -666,7 +678,8 @@
   <header>
     <h1 id="sTitle"></h1>
     <div class="gctl">
-      <span class="scount">Teams <button id="sLess" aria-label="Fewer teams">-</button><span id="sN">4</span><button id="sMore" aria-label="More teams">+</button></span>
+      <button id="sMode"></button>
+      <span class="scount" id="sCount">Teams <button id="sLess" aria-label="Fewer teams">-</button><span id="sN">4</span><button id="sMore" aria-label="More teams">+</button></span>
       <button id="sZero">Reset scores</button>
     </div>
   </header>
@@ -1372,17 +1385,32 @@
     return { n, teams };
   }
   function scoreSet(v) { store.set('score_' + grade, JSON.stringify(v)); }
+  // Two kinds of scoreboard per grade: Teams (made up for a game) or Class race (the homerooms from the picker, all quarter).
+  const scMode = () => store.get('scmode_' + grade, 'teams');
   function scorePaint() {
-    const v = scoreGet(), box = $('sRows'), shown = v.teams.slice(0, v.n);
-    const top = Math.max(...shown.map(t => t.score)), goal = Math.max(10, Math.ceil(top / 5) * 5);
-    $('sN').textContent = v.n; box.style.setProperty('--n', v.n); box.innerHTML = '';
-    shown.forEach((t, i) => {
+    const race = scMode() === 'race', box = $('sRows');
+    $('sMode').textContent = race ? 'Use teams' : 'Class race'; $('sCount').style.display = race ? 'none' : '';
+    $('sZero').textContent = race ? 'New round' : 'Reset scores';
+    $('sTitle').textContent = gradeTitle() + (race ? ' Class Race' : ' Scores');
+    let rows;
+    if (race) {
+      rows = pkClasses().map(c => ({ name: c.t, score: c.pts, id: c.id }));
+      if (!rows.length) { box.style.setProperty('--n', 2); box.innerHTML = '<div class="srow"><span style="font-size:.7em">Add your ' + gradeWord() + ' classes in the Picker first (+ Add class). Each class becomes a racer here.</span></div>'; return; }
+    } else { const v = scoreGet(); rows = v.teams.slice(0, v.n); $('sN').textContent = v.n; }
+    const top = Math.max(...rows.map(t => t.score)), goal = Math.max(10, Math.ceil(top / 5) * 5);
+    box.style.setProperty('--n', Math.max(2, rows.length)); box.innerHTML = '';
+    rows.forEach((t, i) => {
       const r = document.createElement('div'); r.className = 'srow' + (top > 0 && t.score === top ? ' lead' : '');
       r.innerHTML = '<input type="text" maxlength="18"><button class="pm" aria-label="Take 1 away">-</button><button class="pm plus" aria-label="Add 1">+</button>' +
-        '<div class="strack"><i></i><span>\ud83d\ude80</span></div><div class="pts"></div>';
-      const inp = r.querySelector('input'); inp.value = t.name; inp.setAttribute('aria-label', 'Team ' + (i + 1) + ' name');
-      inp.oninput = () => { const w = scoreGet(); w.teams[i].name = inp.value; scoreSet(w); };
-      const bump = d => () => { const w = scoreGet(); w.teams[i].score = Math.max(0, w.teams[i].score + d); scoreSet(w); scorePaint(); };
+        '<div class="strack"><i></i><span>🚀</span></div><div class="pts"></div>';
+      const inp = r.querySelector('input'); inp.value = t.name; inp.setAttribute('aria-label', (race ? 'Class ' : 'Team ') + (i + 1) + ' name');
+      if (race) inp.readOnly = true;
+      else inp.oninput = () => { const w = scoreGet(); w.teams[i].name = inp.value; scoreSet(w); };
+      const bump = d => () => {
+        if (race) { const l = pkClasses(), k = l.find(x => x.id === t.id); if (k) { k.pts = Math.max(0, k.pts + d); pkSaveClasses(l); } }
+        else { const w = scoreGet(); w.teams[i].score = Math.max(0, w.teams[i].score + d); scoreSet(w); }
+        scorePaint();
+      };
       const pm = r.querySelectorAll('.pm'); pm[0].onclick = bump(-1); pm[1].onclick = bump(1);
       const pct = Math.min(100, t.score / goal * 100) + '%';
       r.querySelector('.strack i').style.width = pct; r.querySelector('.strack span').style.left = pct;
@@ -1390,10 +1418,10 @@
       box.appendChild(r);
     });
   }
+  $('sMode').onclick = () => { store.set('scmode_' + grade, scMode() === 'race' ? 'teams' : 'race'); scorePaint(); };
   function scoreTeams(d) { const v = scoreGet(); v.n = Math.max(1, Math.min(10, v.n + d)); while (v.teams.length < v.n) v.teams.push({ name: 'Team ' + (v.teams.length + 1), score: 0 }); scoreSet(v); scorePaint(); }
   function openScore() {
     clearInk();
-    $('sTitle').textContent = gradeTitle() + ' Scores';
     scorePaint();
     $('score').classList.add('show'); document.body.classList.add('viewing');
     goFull();
@@ -1464,7 +1492,9 @@
     }
     return v.filter(c => c && Array.isArray(c.n)).map(c => ({ id: String(c.id || Math.random()), t: String(c.t || 'Class'), n: c.n.map(String).filter(Boolean),
       used: Array.isArray(c.used) ? c.used : [], last: String(c.last || ''),
-      sat: Array.isArray(c.sat) ? c.sat : [], seat: Array.isArray(c.seat) ? c.seat : [] }));
+      sat: Array.isArray(c.sat) ? c.sat : [], seat: Array.isArray(c.seat) ? c.seat : [],
+      notes: String(c.notes || ''), nd: String(c.nd || ''), pts: Math.max(0, Number(c.pts) || 0),
+      checks: c.checks && typeof c.checks === 'object' ? c.checks : {} }));
   }
   function pkSaveClasses(list) { store.set('pkclasses_' + grade, JSON.stringify(list)); store.del('pknames_' + grade); }
   function pkCur(list) { const id = store.get('pkcls_' + grade, ''); return list.find(c => c.id === id) || list[0] || null; }
@@ -1500,13 +1530,13 @@
     });
     const add = document.createElement('button'); add.className = 'chip'; add.textContent = '+ Add class'; add.onclick = () => listEdit(null);
     $('pkCls').appendChild(add);
-    [['call', 'Cold call'], ['seat', 'Special seats']].forEach(([k, label]) => {
+    [['call', 'Cold call'], ['seat', 'Special seats'], ['notes', 'Notes'], ['check', 'Exit check']].forEach(([k, label]) => {
       const b = document.createElement('button'); b.className = 'chip' + (pkTab() === k ? ' on' : ''); b.textContent = label;
       b.setAttribute('aria-pressed', pkTab() === k);
       b.onclick = () => { store.set('pktab_' + grade, k); pkChecklist = false; listShow(); };
       $('pkTabs').appendChild(b);
     });
-    if (pkTab() === 'seat') seatBody(c); else callBody(c);
+    ({ seat: seatBody, notes: notesBody, check: checkBody }[pkTab()] || callBody)(c);
     requestAnimationFrame(pkFit);
   }
   const smRow = inner => '<div class="pkrow pksm">' + inner + '<button class="chip pkspk" id="pkSpeak"></button></div>';
@@ -1613,6 +1643,47 @@
     pkSpeakBtn();
     requestAnimationFrame(pkFit);
   }
+  // Notes: where this class left off. Saved as you type, with the date of the last change.
+  const shortDay = k => new Date(k + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  function notesBody(c) {
+    $('pkBody').innerHTML = '<textarea class="pknotes" id="pkNotes" aria-label="Notes for this class" placeholder="Where this class left off, what to start with next time..."></textarea>' +
+      '<div class="pkrow pksm"><span class="pkleft" id="pkNd"></span><button class="chip" id="pkEdit">Edit class</button></div>';
+    $('pkNotes').value = c.notes;
+    const paintNd = d => $('pkNd').textContent = d ? 'Last changed ' + shortDay(d) + '. Students can see this.' : 'Students can see this, so keep it to lesson notes.';
+    paintNd(c.nd);
+    $('pkNotes').oninput = () => { const l = pkClasses(), k = pkCur(l); k.notes = $('pkNotes').value; k.nd = dayKey(new Date()); pkSaveClasses(l); paintNd(k.nd); };
+    $('pkEdit').onclick = () => listEdit(c.id);
+  }
+  // Exit check: tap a face for each student's answer. One tally per class per day; past days are listed.
+  const FACES = [['👍', 'Got it'], ['👌', 'Almost'], ['👎', 'Not yet']];
+  let checkUndo = [];
+  function checkBody(c) {
+    const today = dayKey(new Date()), t = (c.checks[today] || [0, 0, 0]).slice(0, 3);
+    let html = '<div class="pkfaces">';
+    FACES.forEach(([f, w], i) => html += '<button class="pkface" data-i="' + i + '" aria-label="' + w + '"><span class="em">' + f + '</span><span class="w">' + w + '</span><b>' + (t[i] || 0) + '</b></button>');
+    $('pkBody').innerHTML = html + '</div><div class="pkpast" id="pkPast"></div>' +
+      '<div class="pkrow pksm"><span class="pkleft" id="pkTot"></span><button class="chip" id="pkUndo">Undo</button><button class="chip" id="pkClr">Clear today</button></div>';
+    const total = t.reduce((a, b) => a + (b || 0), 0);
+    $('pkTot').textContent = 'Today, ' + shortDay(today) + ': ' + total + (total === 1 ? ' answer' : ' answers');
+    document.querySelectorAll('#pkBody .pkface').forEach(b => b.onclick = () => {
+      const l = pkClasses(), k = pkCur(l), arr = (k.checks[today] || [0, 0, 0]).slice(0, 3);
+      arr[b.dataset.i] = (arr[b.dataset.i] || 0) + 1; k.checks[today] = arr; pkSaveClasses(l);
+      checkUndo.push([k.id, today, Number(b.dataset.i)]); checkBody(k);
+    });
+    $('pkUndo').style.display = checkUndo.some(u => u[0] === c.id && u[1] === today) ? '' : 'none';
+    $('pkUndo').onclick = () => {
+      const l = pkClasses(), k = pkCur(l), i = checkUndo.map(u => u[0] === k.id && u[1] === today).lastIndexOf(true); if (i < 0) return;
+      const [, , f] = checkUndo.splice(i, 1)[0], arr = (k.checks[today] || [0, 0, 0]).slice(0, 3); arr[f] = Math.max(0, (arr[f] || 0) - 1); k.checks[today] = arr; pkSaveClasses(l); checkBody(k);
+    };
+    $('pkClr').style.display = total ? '' : 'none';
+    $('pkClr').onclick = () => { if (!confirm('Clear today\'s answers for this class?')) return; const l = pkClasses(), k = pkCur(l); delete k.checks[today]; pkSaveClasses(l); checkUndo = []; checkBody(k); };
+    const past = Object.keys(c.checks).filter(d => d !== today).sort().reverse().slice(0, 4);
+    $('pkPast').innerHTML = '';
+    past.forEach(d => {
+      const v = c.checks[d] || [], line = document.createElement('div');
+      line.textContent = shortDay(d) + ':  ' + FACES.map(([f], i) => f + ' ' + (v[i] || 0)).join('   '); $('pkPast').appendChild(line);
+    });
+  }
   function seatToggle(i) {
     const l = pkClasses(), c = pkCur(l); if (!c) return;
     c.sat = c.sat.includes(i) ? c.sat.filter(x => x !== i) : c.sat.concat(i); pkSaveClasses(l);
@@ -1656,7 +1727,7 @@
       const l = pkClasses();
       let k = id ? l.find(x => x.id === id) : null;
       if (k) { if (k.n.join('\n') !== names.join('\n')) { k.used = []; k.last = ''; k.sat = []; k.seat = []; } k.t = t; k.n = names; }
-      else { k = { id: 'c' + Date.now(), t, n: names, used: [], last: '', sat: [], seat: [] }; l.push(k); }
+      else { k = { id: 'c' + Date.now(), t, n: names, used: [], last: '', sat: [], seat: [], notes: '', nd: '', pts: 0, checks: {} }; l.push(k); }
       pkSaveClasses(l); store.set('pkcls_' + grade, k.id); listShow();
     };
     $('pkCancel').onclick = listShow;
@@ -1681,7 +1752,11 @@
   setPick(store.get('pickon', '0') === '1');
   $('sLess').onclick = () => scoreTeams(-1);
   $('sMore').onclick = () => scoreTeams(1);
-  $('sZero').onclick = () => { const v = scoreGet(); v.teams.forEach(t => t.score = 0); scoreSet(v); scorePaint(); };
+  $('sZero').onclick = () => {
+    if (scMode() === 'race') { if (!confirm('Start a new round? Every class goes back to 0.')) return; const l = pkClasses(); l.forEach(k => k.pts = 0); pkSaveClasses(l); }
+    else { const v = scoreGet(); v.teams.forEach(t => t.score = 0); scoreSet(v); }
+    scorePaint();
+  };
 
   /* ---------- must do / may do ---------- */
   // One pair of checklists per grade. Lists typed on the board are saved on this device (Reset drops them and goes back to
