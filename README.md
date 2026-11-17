@@ -29,7 +29,11 @@ The green Must Do / May Do button opens two checklists for the grade that is pic
 The Scores button (top right) opens a team scoreboard for the grade that is picked. Teams - / + sets how many teams. Tap a team name to rename it. Tap + or - to change points. Reset scores sets everyone to 0. Saved on that device only.
 
 ## Picker
-The Picker button (top right) turns the picker card on or off. It shows your Google Sheet random student picker for the grade that is picked. The first time, paste the sheet's link and tap Save. Use Arrange to move it or make it bigger or smaller. The link is saved on that device only, never on the public site. Open in tab is the backup if the sheet will not show inside the board.
+The Picker button (top right) turns the picker card on or off. The first time for each grade, paste the class list (one name per line, or copy the names column from your Google Sheet) and tap Save. Tap Pick for a random name. With No repeats on, everyone gets a turn before anyone is picked again; Start over resets that. Names edits the list. The names are saved on that device only, never on the public site.
+
+Use Sheet on the card shows your Google Sheet instead. Script buttons in the sheet do not work inside the board; use Open in tab for those.
+
+Use Arrange to move the card or make it bigger or smaller.
 
 ## Small and big cards
 The clock, timer and "This week" each have a small round button. Tap - to make that card small, tap + to make it big again. Hide (top right) hides the top row of buttons. Tap the faint Menu button at the top right to bring it back.

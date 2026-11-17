@@ -113,7 +113,23 @@
   .pkwrap { flex:1; min-height:0; display:flex; overflow:auto; }
   .pkwrap iframe { flex:1; border:0; border-radius:14px; background:#fff; }
   body.min-pick .card.pick { height:auto !important; width:auto !important; }
-  body.min-pick .pkwrap, body.min-pick #pkTab, body.min-pick #pkChange { display:none; }
+  body.min-pick .pkwrap, body.min-pick #pkTab, body.min-pick #pkChange, body.min-pick #pkMode { display:none; }
+  /* built-in name picker: the class list lives on this device only */
+  .pklist { flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; gap:8px; }
+  .pkname { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden;
+            font-weight:700; line-height:1.05; border-radius:14px; background:var(--accent2); padding:0 .3em; }
+  .pkname.wait { color:var(--soft); font-weight:400; }
+  .pkname.land { animation:pkland .5s cubic-bezier(.2,1.5,.4,1); color:var(--yellow); }
+  @keyframes pkland { 0% { transform:scale(.6); } 100% { transform:scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .pkname.land { animation:none; } }
+  .pkrow { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:center; flex:0 0 auto; }
+  .pkrow .chip.main { font-size:min(3.4vh, 26px); padding:4px 26px; }
+  .pkleft { font-size:14px; color:var(--soft); }
+  .pksm .chip { font-size:14px; padding:2px 10px; border-width:2px; }
+  .pkname { min-height:44px; }
+  .pkedit { flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; }
+  .pkedit textarea { flex:1; min-height:80px; resize:none; font-family:var(--font); font-size:18px; padding:8px 10px; border-radius:12px; border:3px solid var(--yellow); background:#fff; color:#1d2433; }
+  .pkedit p { margin:0; font-size:15px; color:var(--soft); }
   body.arranging.min-pick .pick .rs { display:none; }
   .pkset { margin:auto; width:min(760px, 100%); border-radius:20px; padding:12px 14px; display:flex; flex-direction:column; gap:12px; }
   .pkset h2 { margin:0; font-size:22px; }
@@ -520,7 +536,7 @@
   </section>
 
   <section class="card pick" id="pickCard" aria-label="Student picker">
-    <div class="pkhead"><b id="pkTitle">Picker</b><button class="tool" id="pkTab">Open in tab</button><button class="tool" id="pkChange">Change link</button><button class="minbtn" data-min="pick"></button></div>
+    <div class="pkhead"><b id="pkTitle">Picker</b><button class="tool" id="pkMode">Use Sheet</button><button class="tool" id="pkTab">Open in tab</button><button class="tool" id="pkChange">Change link</button><button class="minbtn" data-min="pick"></button></div>
     <div class="pkwrap" id="pkWrap"></div>
   </section>
 
@@ -1294,15 +1310,102 @@
     $('pkUrl').onkeydown = e => { if (e.key === 'Enter') save(); };
     $('pkTab').style.display = 'none'; $('pkChange').style.display = 'none';
   }
+  // Two ways to pick, chosen per grade: the board's own name list (default) or the teacher's Google Sheet.
+  const pkMode = () => store.get('pkmode_' + grade, 'list');
   function pkShow() {
     $('pkWrap').innerHTML = '';
     if (!document.body.classList.contains('pickon')) return;   // nothing loads while the picker is off
     $('pkTitle').textContent = gradeTitle() + ' Picker';
+    const sheet = pkMode() === 'sheet';
+    $('pkMode').textContent = sheet ? 'Use list' : 'Use Sheet';
+    $('pkTab').style.display = 'none'; $('pkChange').style.display = 'none';
+    if (!sheet) { listShow(); return; }
     const r = pkParse(pkGet());
     if (!r) { pkSetup(); return; }
     const f = document.createElement('iframe'); f.title = 'Random student picker'; f.src = r.src; $('pkWrap').appendChild(f);
     $('pkTab').style.display = ''; $('pkChange').style.display = '';
     $('pkTab').onclick = () => window.open(r.tab, '_blank', 'noopener');
+  }
+  $('pkMode').onclick = () => { store.set('pkmode_' + grade, pkMode() === 'sheet' ? 'list' : 'sheet'); pkShow(); };
+
+  /* the board's own random name picker */
+  // Names, who has had a turn, and the last pick are saved per grade on this device only (never in the public site).
+  const jget = (k, d) => { try { const v = JSON.parse(store.get(k, 'null')); return v === null ? d : v; } catch(e) { return d; } };
+  const pkNames = () => { const v = jget('pknames_' + grade, []); return Array.isArray(v) ? v.map(String).filter(Boolean) : []; };
+  const pkUsed = () => { const v = jget('pkused_' + grade, []); return Array.isArray(v) ? v : []; };
+  const pkNoRep = () => store.get('pkrep', '1') === '1';
+  let pkTimer = null;
+  // Make the name as big as the box allows.
+  function pkFit() {
+    const el = document.querySelector('#pkWrap .pkname'); if (!el || !el.clientWidth) return;
+    let size = Math.min(el.clientHeight * .8, 260); el.style.fontSize = size + 'px';
+    while (size > 14 && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1)) { size -= 2; el.style.fontSize = size + 'px'; }
+  }
+  function listShow() {
+    clearInterval(pkTimer);
+    const names = pkNames();
+    if (!names.length) { listEdit(); return; }
+    const w = $('pkWrap'); w.innerHTML = '';
+    const box = document.createElement('div'); box.className = 'pklist';
+    box.innerHTML = '<div class="pkname" id="pkName" aria-live="polite"></div>' +
+      '<div class="pkrow"><button class="chip main" id="pkPick">Pick</button></div>' +
+      '<div class="pkrow pksm"><span class="pkleft" id="pkLeft"></span><button class="chip" id="pkRep"></button>' +
+      '<button class="chip" id="pkReset">Start over</button><button class="chip" id="pkEdit">Names</button></div>';
+    w.appendChild(box);
+    const last = store.get('pklast_' + grade, '');
+    $('pkName').textContent = last && names.includes(last) ? last : 'Tap Pick';
+    $('pkName').classList.toggle('wait', !(last && names.includes(last)));
+    $('pkPick').onclick = pkPick;
+    $('pkRep').onclick = () => { store.set('pkrep', pkNoRep() ? 0 : 1); pkCount(); };
+    $('pkReset').onclick = () => { store.del('pkused_' + grade); store.del('pklast_' + grade); listShow(); };
+    $('pkEdit').onclick = listEdit;
+    pkCount(); requestAnimationFrame(pkFit);
+  }
+  function pkCount() {
+    const n = pkNames().length, used = pkUsed().filter(i => i < n).length;
+    $('pkRep').textContent = 'No repeats: ' + (pkNoRep() ? 'On' : 'Off');
+    $('pkLeft').textContent = !pkNoRep() ? n + ' names' : used >= n ? 'Everyone had a turn' : (n - used) + ' of ' + n + ' left';
+    $('pkReset').style.display = pkNoRep() ? '' : 'none';
+  }
+  function pkPick() {
+    const names = pkNames(); if (!names.length) return;
+    let used = pkUsed().filter(i => i < names.length);
+    if (pkNoRep() && used.length >= names.length) used = [];
+    const pool = names.map((_, i) => i).filter(i => !pkNoRep() || !used.includes(i));
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    if (pkNoRep()) used.push(pick);
+    store.set('pkused_' + grade, JSON.stringify(used)); store.set('pklast_' + grade, names[pick]);
+    const el = $('pkName'), btn = $('pkPick'); btn.disabled = true; el.classList.remove('wait', 'land');
+    const quick = matchMedia('(prefers-reduced-motion: reduce)').matches || names.length < 2;
+    let steps = quick ? 0 : 14;
+    clearInterval(pkTimer);
+    const done = () => { el.textContent = names[pick]; pkFit(); void el.offsetWidth; el.classList.add('land'); btn.disabled = false; pkCount(); };
+    if (!steps) { done(); return; }
+    pkTimer = setInterval(() => {   // flash through names for about a second, then land
+      el.textContent = names[Math.floor(Math.random() * names.length)]; pkFit();
+      if (--steps <= 0) { clearInterval(pkTimer); done(); }
+    }, 70);
+  }
+  function listEdit() {
+    clearInterval(pkTimer);
+    const w = $('pkWrap'); w.innerHTML = '';
+    const box = document.createElement('div'); box.className = 'pkedit';
+    box.innerHTML = '<p>One name per line. You can copy a column from your Google Sheet and paste it here.</p>' +
+      '<textarea id="pkText" aria-label="Class list, one name per line"></textarea>' +
+      '<div class="pkrow"><button class="chip main" id="pkSaveNames">Save</button><button class="chip" id="pkCancel">Cancel</button></div>' +
+      '<p id="pkWhere"></p>';
+    w.appendChild(box);
+    $('pkWhere').textContent = 'Saved for ' + gradeWord() + ' on this board only. Names are never put on your public site.';
+    $('pkText').value = pkNames().join('\n');
+    $('pkCancel').style.display = pkNames().length ? '' : 'none';
+    $('pkSaveNames').onclick = () => {
+      const list = $('pkText').value.split(/\r?\n|\t/).map(t => t.trim()).filter(Boolean).slice(0, 200);
+      if (!list.length) { $('pkText').focus(); return; }
+      store.set('pknames_' + grade, JSON.stringify(list)); store.del('pkused_' + grade); store.del('pklast_' + grade);
+      listShow();
+    };
+    $('pkCancel').onclick = listShow;
+    setTimeout(() => { const t = $('pkText'); if (t) t.focus(); }, 50);
   }
   // The picker is a card on the dashboard: Picker in the top bar turns it on or off, Arrange moves and resizes it.
   // Its spot is saved on this device as parts of the screen. It sits on top of the other cards.
@@ -1316,6 +1419,7 @@
     document.body.classList.toggle('pickon', on); $('pickBtn').classList.toggle('on', on); store.set('pickon', on ? 1 : 0);
     pkPlace(); pkShow();
   }
+  addEventListener('resize', () => requestAnimationFrame(pkFit));
   $('pickBtn').onclick = () => setPick(!document.body.classList.contains('pickon'));
   $('pkChange').onclick = () => pkSetup();
   gradeHooks.push(() => { if (document.body.classList.contains('pickon')) pkShow(); });
@@ -1329,9 +1433,9 @@
       handle.addEventListener('pointermove', e => {
         if (!start) return;
         const dx = (e.clientX - start.x) / innerWidth, dy = (e.clientY - start.y) / innerHeight, r = pkRect;
-        if (resize) { r.w = Math.max(.18, Math.min(1 - r.x, start.r.w + dx)); r.h = Math.max(.2, Math.min(1 - r.y, start.r.h + dy)); }
+        if (resize) { r.w = Math.max(.26, Math.min(1 - r.x, start.r.w + dx)); r.h = Math.max(.3, Math.min(1 - r.y, start.r.h + dy)); }
         else { r.x = Math.max(0, Math.min(.95, start.r.x + dx)); r.y = Math.max(0, Math.min(.92, start.r.y + dy)); }
-        pkPlace();
+        pkPlace(); pkFit();
       });
       const end = () => { if (!start) return; start = null; store.set('pickrect', JSON.stringify(pkRect)); };
       handle.addEventListener('pointerup', end); handle.addEventListener('pointercancel', end);
@@ -1707,7 +1811,7 @@
     if (e.target.tagName === 'SELECT') return;
     if (e.target.isContentEditable) { if (e.key === 'Escape') clarEdit(false); return; }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-      if (e.key === 'Escape' && e.target.id === 'pkUrl') { e.target.blur(); return; }
+      if (e.key === 'Escape' && e.target.closest('#pickCard')) { e.target.blur(); return; }
       if (e.key === 'Escape') { cdOpen(false); if ($('todo').classList.contains('editing')) todoEdit(false); }
       if (e.key === 'Enter' && e.target.closest('#todo')) { const k = e.target.closest('#tMust') ? ['must', 'tMust'] : ['may', 'tMay']; todoAdd(k[0], k[1]); }
       return;
