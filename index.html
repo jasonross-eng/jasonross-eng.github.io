@@ -23,9 +23,9 @@
   .board { height:100%; display:grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-rows:auto 1fr auto;
            gap:2.2vh 1.8vw; padding:2.2vh 2vw; }
   .topbar { grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
-  .grades, .tools { display:flex; gap:clamp(5px, .6vw, 10px); flex-wrap:wrap; align-items:center; }
+  .grades, .tools { display:flex; gap:clamp(4px, .45vw, 10px); flex-wrap:wrap; align-items:center; }
   .tools { margin-left:auto; }
-  .tools .tool { font-size:clamp(11px, .95vw, 18px); padding:8px clamp(5px, .6vw, 18px); }
+  .tools .tool { font-size:clamp(11px, .86vw, 18px); padding:8px clamp(5px, .5vw, 18px); }
   .card { background:var(--card); border-radius:28px; box-shadow:0 8px 30px rgba(20,40,70,.15); }
   .left { display:grid; grid-template-rows: auto 1fr; gap:2.2vh; min-height:0; }
 
@@ -33,7 +33,7 @@
           padding:8px 18px; cursor:pointer; box-shadow:0 3px 12px rgba(20,40,70,.12); }
   .tool.on { background:var(--accent); color:var(--onaccent); }
   /* grade tabs and the Teacher Clarity tab */
-  .gtab { font-size:clamp(12px, 1.25vw, 30px); padding:8px clamp(6px, .8vw, 26px); }
+  .gtab { font-size:clamp(12px, 1.18vw, 30px); padding:8px clamp(6px, .72vw, 26px); }
   .tool.clar { background:var(--yellow); color:#1d2433; }
   .tool.todo { background:#7be0a2; color:#1d2433; }
   /* ---------- small / big cards, and hiding the top row ---------- */
@@ -102,6 +102,17 @@
   .menubtn:hover { opacity:1; }
   body.nobar .menubtn { display:block; }
   body.nobar.viewing .menubtn { display:none; }
+
+  /* ---------- random student picker (the teacher's Google Sheet, embedded) ---------- */
+  .pkwrap { flex:1; min-height:0; display:flex; width:min(98vw, 1700px); margin:0 auto; }
+  .pkwrap iframe { flex:1; border:0; border-radius:20px; background:#fff; }
+  .pkset { margin:auto; width:min(760px, 100%); background:var(--card); border-radius:26px; padding:24px; display:flex; flex-direction:column; gap:12px; }
+  .pkset h2 { margin:0; font-size:clamp(24px, 4vh, 40px); }
+  .pkset p { margin:0; font-size:clamp(16px, 2.4vh, 22px); color:var(--soft); }
+  .pkset input { font-family:var(--font); font-size:20px; padding:10px 12px; border-radius:12px; border:3px solid var(--yellow); background:#fff; color:#1d2433; }
+  .pkset .r { display:flex; gap:10px; flex-wrap:wrap; }
+  .pkset .tool { box-shadow:none; border:2px solid var(--line); }
+  .pkset .bad { color:#ff8a80; }
 
   /* ---------- team scoreboard ---------- */
   .srows { flex:1; min-height:0; display:flex; flex-direction:column; gap:1vh; width:min(96vw, 1600px); margin:0 auto; --n:4;
@@ -445,6 +456,7 @@
       <button class="tool gtab todo" id="todoBtn">Must Do / May Do</button>
     </div>
     <div class="tools">
+      <button class="tool" id="pickBtn">Picker</button>
       <button class="tool" id="scoreBtn">Scores</button>
       <button class="tool" id="cdBtn">Countdown</button>
       <button class="tool" id="bgBtn">Background</button>
@@ -549,6 +561,17 @@
     <section class="crow"><h2>So I can</h2><div class="ctext" id="cSo"></div></section>
     <section class="crow"><h2>I know I have it when</h2><div class="ctext" id="cKnow"></div></section>
   </main>
+</div>
+
+<div class="clarity" id="picker">
+  <header>
+    <h1 id="pkTitle"></h1>
+    <div class="gctl">
+      <button id="pkTab">Open in tab</button>
+      <button id="pkChange">Change link</button>
+    </div>
+  </header>
+  <main class="pkwrap" id="pkWrap"></main>
 </div>
 
 <div class="clarity" id="score">
@@ -1060,6 +1083,7 @@
     $('clarity').classList.remove('show');
     if ($('todo').classList.contains('editing')) todoEdit(false);
     $('todo').classList.remove('show'); $('score').classList.remove('show');
+    if ($('picker').classList.contains('show')) { $('picker').classList.remove('show'); $('pkWrap').innerHTML = ''; }
     clearInk(); setDraw(false);
   }
   $('closeView').onclick = closeSteps;
@@ -1232,6 +1256,57 @@
     goFull();
   }
   $('scoreBtn').onclick = openScore;
+
+  /* ---------- random student picker ---------- */
+  // The teacher's own Google Sheet, shown inside the board. One link per grade, saved on this device only:
+  // student names must never go into this public site, so the link is not in plans.js.
+  function pkGet() { return store.get('picker_' + grade, ''); }
+  function pkParse(url) {
+    url = String(url).trim();
+    const pub = url.match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/e\/([\w-]+)/);
+    const g = url.match(/[#&?]gid=(\d+)/), gid = g ? g[1] : '';
+    if (pub) return { src: 'https://docs.google.com/spreadsheets/d/e/' + pub[1] + '/pubhtml?widget=true&headers=false' + (gid ? '&gid=' + gid : ''), tab: url };
+    const m = url.match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/([\w-]+)/);
+    if (m) return { src: 'https://docs.google.com/spreadsheets/d/' + m[1] + '/edit?rm=minimal' + (gid ? '#gid=' + gid : ''),
+                    tab: 'https://docs.google.com/spreadsheets/d/' + m[1] + '/edit' + (gid ? '#gid=' + gid : '') };
+    return null;
+  }
+  function pkSetup(msg) {
+    const w = $('pkWrap'); w.innerHTML = '';
+    const box = document.createElement('div'); box.className = 'pkset';
+    box.innerHTML = '<h2>Add your picker</h2><p>Open your Google Sheet, copy the link from the address bar, and paste it here.</p>' +
+      '<input type="text" id="pkUrl" placeholder="https://docs.google.com/spreadsheets/d/..." aria-label="Google Sheet link">' +
+      '<p class="bad" id="pkMsg"></p><div class="r"><button class="tool" id="pkSave">Save</button></div>' +
+      '<p>Saved for ' + gradeWord() + ' on this board only. It is never put on your public site.</p>';
+    w.appendChild(box);
+    $('pkUrl').value = pkGet(); $('pkMsg').textContent = msg || '';
+    const save = () => {
+      const v = $('pkUrl').value.trim();
+      if (!pkParse(v)) { $('pkMsg').textContent = 'That does not look like a Google Sheet link.'; return; }
+      store.set('picker_' + grade, v); pkShow();
+    };
+    $('pkSave').onclick = save;
+    $('pkUrl').onkeydown = e => { if (e.key === 'Enter') save(); };
+    $('pkTab').style.display = 'none'; $('pkChange').style.display = 'none';
+    setTimeout(() => { const u = $('pkUrl'); if (u) u.focus(); }, 50);
+  }
+  function pkShow() {
+    const r = pkParse(pkGet());
+    if (!r) { pkSetup(); return; }
+    const w = $('pkWrap'); w.innerHTML = '';
+    const f = document.createElement('iframe'); f.title = 'Random student picker'; f.src = r.src; w.appendChild(f);
+    $('pkTab').style.display = ''; $('pkChange').style.display = '';
+    $('pkTab').onclick = () => window.open(r.tab, '_blank', 'noopener');
+  }
+  function openPicker() {
+    clearInk(); setDraw(false);
+    $('pkTitle').textContent = gradeTitle() + ' Picker';
+    pkShow();
+    $('picker').classList.add('show'); document.body.classList.add('viewing');
+    goFull();
+  }
+  $('pickBtn').onclick = openPicker;
+  $('pkChange').onclick = () => pkSetup();
   $('sLess').onclick = () => scoreTeams(-1);
   $('sMore').onclick = () => scoreTeams(1);
   $('sZero').onclick = () => { const v = scoreGet(); v.teams.forEach(t => t.score = 0); scoreSet(v); scorePaint(); };
@@ -1600,6 +1675,7 @@
     if (e.target.tagName === 'SELECT') return;
     if (e.target.isContentEditable) { if (e.key === 'Escape') clarEdit(false); return; }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      if (e.key === 'Escape' && e.target.id === 'pkUrl') { closeSteps(); return; }
       if (e.key === 'Escape') { cdOpen(false); if ($('todo').classList.contains('editing')) todoEdit(false); }
       if (e.key === 'Enter' && e.target.closest('#todo')) { const k = e.target.closest('#tMust') ? ['must', 'tMust'] : ['may', 'tMay']; todoAdd(k[0], k[1]); }
       return;
@@ -1612,7 +1688,7 @@
       else if ($('cdBox').classList.contains('show')) cdOpen(false);
       else if ($('archive').classList.contains('show')) archClose();
       else if (viewer.classList.contains('over')) backToSteps();
-      else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show') || $('todo').classList.contains('show') || $('score').classList.contains('show')) closeSteps();
+      else if (viewer.classList.contains('show') || guideOpen || $('clarity').classList.contains('show') || $('todo').classList.contains('show') || $('score').classList.contains('show') || $('picker').classList.contains('show')) closeSteps();
     }
     if ($('kbd').classList.contains('show')) return;
     if (guideOpen && gWall.classList.contains('editing')) return;
