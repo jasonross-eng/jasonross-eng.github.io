@@ -2065,11 +2065,28 @@
       '<div class="r"><button class="tool" id="bkSave">Save a backup file</button></div>' +
       '<p>To put a backup back, or copy your setup to another computer, open that computer\'s board and pick the file here.</p>' +
       '<div class="r"><button class="tool" id="bkLoad">Restore from a file</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>' +
+      '<p>Back up every day: the first time you tap the board each school day, it saves a backup file to this computer\'s Downloads folder by itself.</p>' +
+      '<div class="r"><button class="tool onoff" id="bkAuto"></button><span id="bkLast"></span></div>' +
       '<p id="bkMsg"></p><p>The file has student names in it. Keep it private, the same way you keep your class lists.</p>';
-    $('bkSave').onclick = () => { const n = backupSave(); $('bkMsg').textContent = 'Saved ' + n + ' settings. Look in your Downloads folder.'; store.set('lastbackup', dayKey(new Date())); };
+    const paintAuto = () => {
+      const on = store.get('autobk', '0') === '1', last = store.get('lastbackup', '');
+      $('bkAuto').textContent = on ? 'Every day: On' : 'Every day: Off'; $('bkAuto').classList.toggle('on', on);
+      $('bkLast').textContent = last ? 'Last backup: ' + new Date(last + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'No backup yet';
+    };
+    $('bkAuto').onclick = () => { store.set('autobk', store.get('autobk', '0') === '1' ? 0 : 1); paintAuto(); };
+    paintAuto();
+    $('bkSave').onclick = () => { store.set('lastbackup', dayKey(new Date())); const n = backupSave(); $('bkMsg').textContent = 'Saved ' + n + ' settings. Look in your Downloads folder.'; paintAuto(); };
     $('bkLoad').onclick = () => $('bkFile').click();
     $('bkFile').onchange = e => { if (e.target.files[0]) backupRestore(e.target.files[0]); e.target.value = ''; };
   });
+
+  // Daily backup: browsers only allow a download right after a tap, so it happens on the first tap of each day.
+  document.addEventListener('pointerdown', () => {
+    if (store.get('autobk', '0') !== '1' || document.body.classList.contains('sub')) return;
+    const today = dayKey(new Date()), wd = new Date().getDay();
+    if (wd === 0 || wd === 6 || store.get('lastbackup', '') === today) return;
+    store.set('lastbackup', today); backupSave(); toast('Daily backup saved to Downloads');
+  }, true);
 
   /* ---------- attention getter ---------- */
   function attnChime() {
