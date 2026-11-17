@@ -48,6 +48,17 @@ Tap Arrange (top right). Drag a card to move it. Drag its yellow corner to make 
 ## Backgrounds
 Each grade has its own background. Tap the grade, tap Background, then pick a color or Upload picture. Saved on that device only.
 
+## More menu
+Countdown and Background moved into More (top right). More also has:
+- Backup and restore: Save a backup file now and then and keep it in Google Drive or on a flash drive. Restore from a file puts it back, or copies your setup to another computer. The file has student names in it, so keep it private.
+- Noise meter: turn it on to show how loud the room is. Move the Limit slider; above it, the card flashes Too loud! It uses the microphone only to measure, and records nothing.
+- Schedule: add each class start time for each day. Turn it On, and the board switches grade and picker class by itself when each class starts.
+- Sub mode: hides editing and the picker. You pick a code; the red Exit sub mode button asks for it.
+
+## Attention and timer labels
+Attention (yellow, top right) fills the screen with "Eyes on me!" and a chime. Tap to close. Change words is on that screen.
+The dashed buttons in the timer start a timer with words above it, like Clean up. Edit changes them.
+
 ## Weekly plan
 `plans.js` has one block per week, keyed by that week's Monday. Inside each week, each grade ("1" to "4") has its own `clarity` words and its own `items` list. The board opens to the newest week that has started, so next week can be added ahead of time and it switches on its own Monday. Old weeks stay in the file and in the week menu.
 

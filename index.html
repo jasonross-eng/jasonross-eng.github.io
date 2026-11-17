@@ -151,6 +151,59 @@
   .pkset .tool { box-shadow:none; border:2px solid var(--line); }
   .pkset .bad { color:#ff8a80; }
 
+  /* ---------- More menu, dialog, toast ---------- */
+  .moremenu { position:fixed; top:56px; right:2vw; z-index:71; display:none; flex-direction:column; gap:8px; background:var(--pop); border-radius:18px; padding:12px;
+              box-shadow:0 10px 30px rgba(20,40,70,.35); }
+  .moremenu.show { display:flex; }
+  .moremenu .tool { box-shadow:none; border:2px solid var(--line); text-align:left; font-size:18px; }
+  .dlg .box { width:min(760px, 100%); }
+  .dlgbody { overflow:auto; display:flex; flex-direction:column; gap:12px; font-size:18px; }
+  .dlgbody p { margin:0; color:var(--soft); font-size:16px; }
+  .dlgbody .r { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .dlgbody .tool { box-shadow:none; border:2px solid var(--line); }
+  .dlgbody input, .dlgbody select { font-family:var(--font); font-size:18px; padding:6px 10px; border-radius:10px; border:2px solid var(--line); background:#fff; color:#1d2433; min-width:0; }
+  .dlgbody input[type=text] { flex:1 1 160px; }
+  .dlgbody input[type=number] { width:5em; }
+  .dlgbody .tabs .tool.on, .tool.onoff.on { background:var(--green); color:#062b12; }
+  body.dark.purple .dlgbody .tabs .tool.on { background:#22e36b; }
+  .toast { position:fixed; left:50%; bottom:90px; transform:translateX(-50%); z-index:96; display:none; background:#fff; color:#1d2433; font-weight:700; font-size:20px;
+           padding:10px 22px; border-radius:999px; box-shadow:0 8px 26px rgba(0,0,0,.4); }
+  .toast.show { display:block; }
+  /* ---------- attention getter ---------- */
+  .attnbtn { background:var(--yellow) !important; color:#1d2433 !important; }
+  .attn { position:fixed; inset:0; z-index:92; display:none; flex-direction:column; align-items:center; justify-content:center; gap:4vh; cursor:pointer;
+          background:radial-gradient(circle, #ffd94a 0%, #f6a700 70%); color:#1d2433; }
+  .attn.show { display:flex; }
+  .attnword { font-size:min(22vh, 13vw); font-weight:700; text-align:center; line-height:1; padding:0 4vw; animation:attnpulse 1s ease-in-out infinite; }
+  @keyframes attnpulse { 50% { transform:scale(1.06); } }
+  @media (prefers-reduced-motion: reduce) { .attnword { animation:none; } }
+  .attn .tool { position:absolute; bottom:20px; right:20px; box-shadow:none; }
+  /* ---------- timer labels ---------- */
+  .tlabel { display:none; font-size:min(5vh, 3vw); font-weight:700; color:var(--yellow); line-height:1; text-align:center; }
+  .timer.labeled .tlabel { display:block; }
+  #lpresets .chip { border-style:dashed; }
+  body.min-timer .tlabel, body.min-timer #lpresets { display:none !important; }
+  /* ---------- noise meter (floats like the picker; Arrange moves it) ---------- */
+  .card.noise { position:fixed; z-index:2; display:none; flex-direction:column; gap:8px; padding:12px 16px; }
+  body.noiseon .card.noise { display:flex; }
+  .nzhead { display:flex; align-items:baseline; gap:10px; font-size:20px; }
+  .nzstat { font-size:14px; color:var(--soft); }
+  .nzbar { position:relative; flex:1; min-height:24px; border-radius:999px; background:var(--line); overflow:hidden; }
+  .nzbar i { position:absolute; left:0; top:0; bottom:0; width:0; background:#1e8e3e; transition:width .1s linear, background .2s; }
+  .nzbar span { position:absolute; top:0; bottom:0; width:4px; background:#fff; }
+  .noise.warn .nzbar i { background:#f6c026; } .noise.loud .nzbar i { background:#d93025; }
+  .nzlim { display:flex; gap:8px; align-items:center; font-size:14px; color:var(--soft); }
+  .nzlim input { flex:1; }
+  .nzloud { display:none; text-align:center; font-weight:700; font-size:clamp(20px, 4vh, 44px); color:#fff; background:#d93025; border-radius:14px; padding:.1em; }
+  .noise.loud .nzloud { display:block; animation:attnpulse .6s ease-in-out infinite; }
+  /* ---------- sub mode: only what a sub needs ---------- */
+  .subexit { display:none; }
+  body.sub .subexit { display:block; background:#d93025 !important; color:#fff !important; }
+  body.sub #arrBtn, body.sub #barBtn, body.sub #moreBtn, body.sub #pickBtn, body.sub .minbtn, body.sub #planEdit, body.sub #pastBtn,
+  body.sub #planPick, body.sub #cEdit, body.sub #cReset, body.sub #tEdit, body.sub #tReset, body.sub .card.pick, body.sub .grab, body.sub .rs,
+  body.sub #attnEdit, body.sub #lpresets .edit { display:none !important; }
+  body.sub .ticker { pointer-events:none; }
+
   /* ---------- team scoreboard ---------- */
   .srows { flex:1; min-height:0; display:flex; flex-direction:column; gap:1vh; width:min(96vw, 1600px); margin:0 auto; --n:4;
            font-size:clamp(18px, calc(58vh / var(--n) * .42), 64px); }
@@ -496,13 +549,14 @@
     <div class="tools">
       <button class="tool" id="pickBtn">Picker</button>
       <button class="tool" id="scoreBtn">Scores</button>
-      <button class="tool" id="cdBtn">Countdown</button>
-      <button class="tool" id="bgBtn">Background</button>
+      <button class="tool attnbtn" id="attnBtn">Attention</button>
       <button class="tool" id="drawBtn">Draw</button>
       <button class="tool" id="kbdBtn">Keyboard</button>
       <button class="tool" id="fsBtn">Full screen</button>
       <button class="tool" id="arrBtn" title="Move and resize the cards">Arrange</button>
       <button class="tool" id="barBtn" title="Hide this top row">Hide</button>
+      <button class="tool" id="moreBtn" aria-haspopup="true">More</button>
+      <button class="tool subexit" id="subExit">Exit sub mode</button>
     </div>
   </div>
 
@@ -521,9 +575,11 @@
 
     <section class="card timer" id="timer" aria-label="Timer">
       <button class="minbtn" data-min="timer"></button>
+      <div class="tlabel" id="tlabel"></div>
       <div class="tdisplay" id="tdisplay">5:00</div>
       <div class="bar"><i id="tbar"></i></div>
       <div class="row" id="presets"></div>
+      <div class="row" id="lpresets"></div>
       <div class="row">
         <button class="chip" id="minus">- 1</button>
         <button class="chip main" id="startBtn">Start</button>
@@ -656,6 +712,23 @@
 <button class="tool kbdclose" id="kbdClose">Close keyboard</button>
 
 <div class="bgpick" id="bgpick" role="dialog" aria-label="Pick background"></div>
+<div class="moremenu" id="moreMenu" role="menu">
+  <button class="tool" id="cdBtn">Countdown</button>
+  <button class="tool" id="bgBtn">Background</button>
+  <button class="tool" id="noiseBtn">Noise meter</button>
+  <button class="tool" id="schedBtn">Schedule</button>
+  <button class="tool" id="backupBtn">Backup and restore</button>
+  <button class="tool" id="subBtn">Sub mode</button>
+</div>
+<div class="archive dlg" id="dlg" role="dialog"><div class="box"><h2><span id="dlgTitle"></span> <button class="tool" id="dlgClose">Close</button></h2><div class="dlgbody" id="dlgBody"></div></div></div>
+<div class="attn" id="attn" role="alert"><div class="attnword" id="attnWord"></div><button class="tool" id="attnEdit">Change words</button></div>
+<div class="toast" id="toast" role="status"></div>
+<section class="card noise" id="noiseCard" aria-label="Noise meter">
+  <div class="nzhead"><b>Noise</b><span class="nzstat" id="nzStat"></span></div>
+  <div class="nzbar"><i id="nzFill"></i><span id="nzMark"></span></div>
+  <label class="nzlim">Limit <input type="range" id="nzLim" min="10" max="95" value="60"></label>
+  <div class="nzloud" id="nzLoud">Too loud!</div>
+</section>
 
 <div id="blank"></div>
 <canvas id="ink"></canvas>
@@ -722,7 +795,10 @@
     timerEl.classList.toggle('low', running && left <= 30 && left > 0);
     $('startBtn').textContent = running ? 'Pause' : (left < total && left > 0 ? 'Go' : 'Start');
   }
-  function setTime(sec) { stop(); timerEl.classList.remove('done'); total = left = Math.max(0, sec); paint(); }
+  function setTime(sec, label) {
+    stop(); timerEl.classList.remove('done'); total = left = Math.max(0, sec);
+    $('tlabel').textContent = label || ''; timerEl.classList.toggle('labeled', !!label); paint();
+  }
   function stop() { running = false; clearInterval(iv); }
   function start() {
     if (left <= 0) return;
@@ -756,7 +832,42 @@
     $('presets').appendChild(b);
   });
   $('startBtn').onclick = () => running ? (stop(), paint()) : start();
-  $('resetBtn').onclick = () => setTime(total);
+  $('resetBtn').onclick = () => setTime(total, $('tlabel').textContent);
+  // Labeled timers ("Clean up 2 min"), editable, saved on this device.
+  const TP_DEFAULT = [{ l: 'Clean up', m: 2 }, { l: 'Brain break', m: 3 }, { l: 'Partner work', m: 5 }];
+  function tpGet() { try { const v = JSON.parse(store.get('tpresets', 'null')); if (Array.isArray(v)) return v.filter(x => x && x.l && x.m > 0); } catch(e) {} return TP_DEFAULT; }
+  function tpPaint() {
+    const row = $('lpresets'); row.innerHTML = '';
+    tpGet().forEach(p => {
+      const b = document.createElement('button'); b.className = 'chip'; b.textContent = p.l + ' ' + p.m;
+      b.title = p.l + ', ' + p.m + ' min'; b.onclick = () => setTime(p.m * 60, p.l); row.appendChild(b);
+    });
+    const e = document.createElement('button'); e.className = 'chip edit'; e.textContent = 'Edit'; e.onclick = tpEdit; row.appendChild(e);
+  }
+  function tpEdit() {
+    let list = tpGet().map(p => ({ l: p.l, m: p.m }));
+    openDlg('Timer labels', body => {
+      const draw = () => {
+        body.innerHTML = '<p>Each one shows its words above the timer.</p>';
+        list.forEach((p, i) => {
+          const r = document.createElement('div'); r.className = 'r';
+          r.innerHTML = '<input type="text" maxlength="24" aria-label="Words"><input type="number" min="1" max="99" aria-label="Minutes"><span>min</span><button class="tool">Remove</button>';
+          const [t, n] = r.querySelectorAll('input'); t.value = p.l; n.value = p.m;
+          t.oninput = () => p.l = t.value; n.oninput = () => p.m = Number(n.value);
+          r.querySelector('button').onclick = () => { list.splice(i, 1); draw(); };
+          body.appendChild(r);
+        });
+        const r = document.createElement('div'); r.className = 'r';
+        r.innerHTML = '<button class="tool" id="tpAdd">Add one</button><button class="tool" id="tpSave">Save</button><button class="tool" id="tpDef">Back to the starting three</button>';
+        body.appendChild(r);
+        $('tpAdd').onclick = () => { list.push({ l: '', m: 2 }); draw(); const a = body.querySelectorAll('input[type=text]'); a[a.length - 1].focus(); };
+        $('tpSave').onclick = () => { store.set('tpresets', JSON.stringify(list.map(p => ({ l: String(p.l).trim(), m: Math.min(99, Math.round(p.m)) })).filter(p => p.l && p.m > 0))); tpPaint(); closeDlg(); };
+        $('tpDef').onclick = () => { list = TP_DEFAULT.map(p => Object.assign({}, p)); draw(); };
+      };
+      draw();
+    });
+  }
+  tpPaint();
   function bump(sec) {
     const nl = Math.max(0, left + sec);
     if (nl === 0) { setTime(0); return; }
@@ -1344,10 +1455,11 @@
   // Each grade can have several classes, each named by its homeroom teacher, each with its own students and turns.
   // All of it is saved on this device only (never in the public site): pkclasses_<grade> = [{ id, t, n:[names], used:[i], last }].
   const jget = (k, d) => { try { const v = JSON.parse(store.get(k, 'null')); return v === null ? d : v; } catch(e) { return d; } };
-  function pkClasses() {
-    let v = jget('pkclasses_' + grade, null);
+  function pkClasses(g) {
+    g = g || grade;
+    let v = jget('pkclasses_' + g, null);
     if (!Array.isArray(v)) {   // older single list for the grade becomes its first class
-      const old = jget('pknames_' + grade, []);
+      const old = jget('pknames_' + g, []);
       v = Array.isArray(old) && old.length ? [{ id: 'c' + Date.now(), t: 'My class', n: old.map(String), used: [], last: '' }] : [];
     }
     return v.filter(c => c && Array.isArray(c.n)).map(c => ({ id: String(c.id || Math.random()), t: String(c.t || 'Class'), n: c.n.map(String).filter(Boolean),
@@ -1534,12 +1646,7 @@
   }
   // The picker is a card on the dashboard: Picker in the top bar turns it on or off, Arrange moves and resizes it.
   // Its spot is saved on this device as parts of the screen. It sits on top of the other cards.
-  let pkRect = (() => { try { const v = JSON.parse(store.get('pickrect', 'null')); if (v && [v.x, v.y, v.w, v.h].every(n => typeof n === 'number' && isFinite(n))) return v; } catch(e) {} return { x: .56, y: .42, w: .42, h: .5 }; })();
-  function pkPlace() {
-    const st = $('pickCard').style;
-    st.left = pkRect.x * innerWidth + 'px'; st.top = pkRect.y * innerHeight + 'px';
-    st.width = pkRect.w * innerWidth + 'px'; st.height = pkRect.h * innerHeight + 'px';
-  }
+  let pkPlace = () => {};
   function setPick(on) {
     document.body.classList.toggle('pickon', on); $('pickBtn').classList.toggle('on', on); store.set('pickon', on ? 1 : 0);
     pkPlace(); pkShow();
@@ -1548,25 +1655,7 @@
   $('pickBtn').onclick = () => setPick(!document.body.classList.contains('pickon'));
   $('pkChange').onclick = () => pkSetup();
   gradeHooks.push(() => { if (document.body.classList.contains('pickon')) pkShow(); });
-  addEventListener('resize', pkPlace);
-  (function () {
-    const el = $('pickCard'), grab = document.createElement('div'), rs = document.createElement('div');
-    grab.className = 'grab'; rs.className = 'rs'; el.appendChild(grab); el.appendChild(rs);
-    const drag = (handle, resize) => {
-      let start = null;
-      handle.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); handle.setPointerCapture(e.pointerId); start = { x: e.clientX, y: e.clientY, r: Object.assign({}, pkRect) }; });
-      handle.addEventListener('pointermove', e => {
-        if (!start) return;
-        const dx = (e.clientX - start.x) / innerWidth, dy = (e.clientY - start.y) / innerHeight, r = pkRect;
-        if (resize) { r.w = Math.max(.26, Math.min(1 - r.x, start.r.w + dx)); r.h = Math.max(.3, Math.min(1 - r.y, start.r.h + dy)); }
-        else { r.x = Math.max(0, Math.min(.95, start.r.x + dx)); r.y = Math.max(0, Math.min(.92, start.r.y + dy)); }
-        pkPlace(); pkFit();
-      });
-      const end = () => { if (!start) return; start = null; store.set('pickrect', JSON.stringify(pkRect)); };
-      handle.addEventListener('pointerup', end); handle.addEventListener('pointercancel', end);
-    };
-    drag(grab, false); drag(rs, true);
-  })();
+  pkPlace = floatCard($('pickCard'), 'pickrect', { x: .56, y: .42, w: .42, h: .5 }, .26, .3, () => pkFit());
   setPick(store.get('pickon', '0') === '1');
   $('sLess').onclick = () => scoreTeams(-1);
   $('sMore').onclick = () => scoreTeams(1);
@@ -1931,10 +2020,249 @@
   $('kbdBtn2').onclick = () => setKbd(true);
   $('kbdClose').onclick = () => setKbd(false);
 
+  /* ---------- More menu, dialog, toast ---------- */
+  $('moreBtn').onclick = e => { e.stopPropagation(); $('moreMenu').classList.toggle('show'); $('moreBtn').classList.toggle('on'); };
+  document.addEventListener('click', e => {
+    if (!$('moreMenu').contains(e.target) && e.target !== $('moreBtn')) { $('moreMenu').classList.remove('show'); $('moreBtn').classList.remove('on'); }
+  });
+  $('moreMenu').addEventListener('click', e => { if (e.target.tagName === 'BUTTON' && e.target.id !== 'bgBtn') { $('moreMenu').classList.remove('show'); $('moreBtn').classList.remove('on'); } });
+  $('bgBtn').addEventListener('click', () => { $('moreMenu').classList.remove('show'); $('moreBtn').classList.remove('on'); });
+  function openDlg(title, fill) { $('dlgTitle').textContent = title; $('dlgBody').innerHTML = ''; fill($('dlgBody')); $('dlg').classList.add('show'); }
+  function closeDlg() { $('dlg').classList.remove('show'); $('dlgBody').innerHTML = ''; }
+  $('dlgClose').onclick = closeDlg;
+  $('dlg').onclick = e => { if (e.target === $('dlg')) closeDlg(); };
+  let toastT = null;
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 4000); }
+
+  /* ---------- backup and restore ---------- */
+  // Everything the board saves lives in this browser (keys starting with cb_). Backup puts it all in one file the teacher keeps;
+  // Restore loads a file back, on this device or another one. The file is never sent anywhere.
+  function backupSave() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('cb_') === 0) data[k] = localStorage.getItem(k); }
+    const blob = new Blob([JSON.stringify({ app: 'techboard', version: 1, saved: new Date().toISOString(), data }, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'tech-board-backup-' + dayKey(new Date()) + '.json';
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    return Object.keys(data).length;
+  }
+  function backupRestore(file) {
+    const rd = new FileReader();
+    rd.onload = () => {
+      let v = null; try { v = JSON.parse(rd.result); } catch(e) {}
+      if (!v || v.app !== 'techboard' || !v.data || typeof v.data !== 'object') { $('bkMsg').textContent = 'That file is not a board backup.'; return; }
+      const when = v.saved ? new Date(v.saved).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'an unknown date';
+      if (!confirm('Replace everything saved on this board with the backup from ' + when + '?')) return;
+      try {
+        Object.keys(localStorage).filter(k => k.indexOf('cb_') === 0).forEach(k => localStorage.removeItem(k));
+        Object.keys(v.data).filter(k => k.indexOf('cb_') === 0).forEach(k => localStorage.setItem(k, String(v.data[k])));
+      } catch(e) { $('bkMsg').textContent = 'This board ran out of room while restoring. Try removing a background picture first.'; return; }
+      location.reload();
+    };
+    rd.readAsText(file);
+  }
+  $('backupBtn').onclick = () => openDlg('Backup and restore', body => {
+    body.innerHTML = '<p>Your class lists, seats, layouts, backgrounds, links and settings are saved only on this device. Save a backup file now and then, and keep it in your Google Drive or on a flash drive.</p>' +
+      '<div class="r"><button class="tool" id="bkSave">Save a backup file</button></div>' +
+      '<p>To put a backup back, or copy your setup to another computer, open that computer\'s board and pick the file here.</p>' +
+      '<div class="r"><button class="tool" id="bkLoad">Restore from a file</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>' +
+      '<p id="bkMsg"></p><p>The file has student names in it. Keep it private, the same way you keep your class lists.</p>';
+    $('bkSave').onclick = () => { const n = backupSave(); $('bkMsg').textContent = 'Saved ' + n + ' settings. Look in your Downloads folder.'; store.set('lastbackup', dayKey(new Date())); };
+    $('bkLoad').onclick = () => $('bkFile').click();
+    $('bkFile').onchange = e => { if (e.target.files[0]) backupRestore(e.target.files[0]); e.target.value = ''; };
+  });
+
+  /* ---------- attention getter ---------- */
+  function attnChime() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [[784, 0], [988, .18], [1175, .36], [1568, .6]].forEach(([f, t]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = f;
+        g.gain.setValueAtTime(0, ctx.currentTime + t); g.gain.linearRampToValueAtTime(.3, ctx.currentTime + t + .02);
+        g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + t + .5);
+        o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + .55);
+      });
+    } catch(e) {}
+  }
+  let attnT = null;
+  function attnShow(on) {
+    clearTimeout(attnT);
+    $('attn').classList.toggle('show', on);
+    if (on) { $('attnWord').textContent = store.get('attnwords', 'Eyes on me!'); attnChime(); attnT = setTimeout(() => attnShow(false), 15000); }
+  }
+  $('attnBtn').onclick = () => attnShow(true);
+  $('attn').onclick = e => { if (e.target !== $('attnEdit')) attnShow(false); };
+  $('attnEdit').onclick = e => {
+    e.stopPropagation();
+    const v = prompt('Words to show:', store.get('attnwords', 'Eyes on me!'));
+    if (v !== null && v.trim()) { store.set('attnwords', v.trim().slice(0, 40)); $('attnWord').textContent = v.trim().slice(0, 40); }
+  };
+
+  /* ---------- floating cards (picker, noise meter): spot saved on this device, Arrange moves and resizes them ---------- */
+  function floatCard(el, key, def, minW, minH, after) {
+    let r = (() => { try { const v = JSON.parse(store.get(key, 'null')); if (v && [v.x, v.y, v.w, v.h].every(n => typeof n === 'number' && isFinite(n))) return v; } catch(e) {} return Object.assign({}, def); })();
+    const place = () => { const st = el.style; st.left = r.x * innerWidth + 'px'; st.top = r.y * innerHeight + 'px'; st.width = r.w * innerWidth + 'px'; st.height = r.h * innerHeight + 'px'; };
+    const grab = document.createElement('div'), rs = document.createElement('div');
+    grab.className = 'grab'; rs.className = 'rs'; el.appendChild(grab); el.appendChild(rs);
+    const drag = (handle, resize) => {
+      let start = null;
+      handle.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); handle.setPointerCapture(e.pointerId); start = { x: e.clientX, y: e.clientY, r: Object.assign({}, r) }; });
+      handle.addEventListener('pointermove', e => {
+        if (!start) return;
+        const dx = (e.clientX - start.x) / innerWidth, dy = (e.clientY - start.y) / innerHeight;
+        if (resize) { r.w = Math.max(minW, Math.min(1 - r.x, start.r.w + dx)); r.h = Math.max(minH, Math.min(1 - r.y, start.r.h + dy)); }
+        else { r.x = Math.max(0, Math.min(.95, start.r.x + dx)); r.y = Math.max(0, Math.min(.92, start.r.y + dy)); }
+        place(); if (after) after();
+      });
+      const end = () => { if (!start) return; start = null; store.set(key, JSON.stringify(r)); };
+      handle.addEventListener('pointerup', end); handle.addEventListener('pointercancel', end);
+    };
+    drag(grab, false); drag(rs, true);
+    addEventListener('resize', place); place();
+    return place;
+  }
+
+  /* ---------- noise meter ---------- */
+  // Listens to the board's microphone only while it is on, and only to measure loudness. Nothing is recorded or sent.
+  floatCard($('noiseCard'), 'noiserect', { x: .03, y: .74, w: .3, h: .2 }, .16, .12);
+  let nz = null;
+  function noiseStop() {
+    if (!nz) return;
+    cancelAnimationFrame(nz.raf); try { nz.stream.getTracks().forEach(t => t.stop()); nz.ctx.close(); } catch(e) {}
+    nz = null;
+  }
+  async function noiseStart() {
+    $('nzStat').textContent = 'Starting the microphone...';
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      if (!document.body.classList.contains('noiseon')) { stream.getTracks().forEach(t => t.stop()); return; }
+      const ctx = new (window.AudioContext || window.webkitAudioContext)(), an = ctx.createAnalyser(); an.fftSize = 1024;
+      ctx.createMediaStreamSource(stream).connect(an);
+      const buf = new Float32Array(an.fftSize);
+      nz = { stream, ctx, raf: 0, level: 0, overSince: 0 };
+      $('nzStat').textContent = 'Listening';
+      const tick = () => {
+        an.getFloatTimeDomainData(buf);
+        let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+        const db = 20 * Math.log10(Math.sqrt(sum / buf.length) + 1e-8);   // about -60 quiet room to 0 very loud
+        const lvl = Math.max(0, Math.min(100, (db + 60) * 100 / 55));
+        nz.level = nz.level * .8 + lvl * .2;
+        const lim = Number($('nzLim').value), card = $('noiseCard');
+        $('nzFill').style.width = nz.level + '%';
+        const now = performance.now();
+        if (nz.level > lim) { if (!nz.overSince) nz.overSince = now; } else nz.overSince = 0;
+        card.classList.toggle('loud', !!nz.overSince && now - nz.overSince > 1200);
+        card.classList.toggle('warn', nz.level > lim * .8 && !card.classList.contains('loud'));
+        nz.raf = requestAnimationFrame(tick);
+      };
+      tick();
+    } catch(e) { $('nzStat').textContent = 'No microphone, or it is blocked. Check the board\'s settings.'; }
+  }
+  function setNoise(on) {
+    document.body.classList.toggle('noiseon', on); store.set('noiseon', on ? 1 : 0); $('noiseBtn').textContent = on ? 'Noise meter: On' : 'Noise meter';
+    if (on) noiseStart(); else { noiseStop(); $('noiseCard').classList.remove('loud', 'warn'); }
+  }
+  const nzMark = () => { $('nzMark').style.left = $('nzLim').value + '%'; };
+  $('nzLim').value = store.get('noiselim', '60'); nzMark();
+  $('nzLim').oninput = () => { store.set('noiselim', $('nzLim').value); nzMark(); };
+  $('noiseBtn').onclick = () => setNoise(!document.body.classList.contains('noiseon'));
+  if (store.get('noiseon', '0') === '1') setNoise(true);
+
+  /* ---------- schedule: switch the grade and class when each class starts ---------- */
+  // Saved on this device: sched = { on, days: { "1": [{ t: "09:10", g: "2", c: "<picker class id>" }], ... "5": [...] } }
+  const DAYS = [['1', 'Mon'], ['2', 'Tue'], ['3', 'Wed'], ['4', 'Thu'], ['5', 'Fri']];
+  function schedGet() { const v = jget('sched', null); return v && typeof v === 'object' && v.days ? v : { on: false, days: {} }; }
+  function schedSet(v) { store.set('sched', JSON.stringify(v)); }
+  const hhmm = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  const niceTime = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' am' : ' pm'); };
+  let schedApplied = '';
+  function schedTick(force) {
+    const v = schedGet(); if (!v.on) return;
+    const d = new Date(), slots = (v.days[String(d.getDay())] || []).filter(x => x.t && x.g).slice().sort((a, b) => a.t.localeCompare(b.t));
+    const now = hhmm(d), cur = slots.filter(x => x.t <= now).pop();
+    if (!cur) return;
+    const key = dayKey(d) + '|' + cur.t + '|' + cur.g + '|' + (cur.c || '');
+    if (key === schedApplied && !force) return;
+    schedApplied = key;
+    if (!GRADES.some(g => g[0] === cur.g)) return;
+    if (cur.c && pkClasses(cur.g).some(k => k.id === cur.c)) store.set('pkcls_' + cur.g, cur.c);
+    setGrade(cur.g);
+    const cls = cur.c ? pkClasses(cur.g).find(k => k.id === cur.c) : null;
+    toast('Now: ' + (/^\d/.test(GRADES.find(g => g[0] === cur.g)[1]) ? GRADES.find(g => g[0] === cur.g)[1] + ' grade' : GRADES.find(g => g[0] === cur.g)[1]) + (cls ? ', ' + cls.t : ''));
+  }
+  setInterval(schedTick, 20000);
+  function schedEdit() {
+    let day = String(new Date().getDay()); if (!DAYS.some(x => x[0] === day)) day = '1';
+    openDlg('Schedule', body => {
+      const draw = () => {
+        const v = schedGet(), slots = v.days[day] || (v.days[day] = []);
+        body.innerHTML = '<p>Add each class start time. When a class starts, the board switches to that grade, and to that teacher in the picker. It is off until you turn it on. Saved on this board only.</p>' +
+          '<div class="r"><button class="tool onoff" id="scOn"></button></div><div class="r tabs" id="scDays"></div><div id="scRows" class="dlgbody"></div>' +
+          '<div class="r"><button class="tool" id="scAdd">Add a class time</button><button class="tool" id="scCopy">Copy this day to...</button><select id="scTo" aria-label="Copy to which day"></select></div>';
+        $('scOn').textContent = v.on ? 'On' : 'Off'; $('scOn').classList.toggle('on', v.on);
+        $('scOn').onclick = () => { const w = schedGet(); w.on = !w.on; schedSet(w); schedApplied = ''; draw(); if (w.on) schedTick(true); };
+        DAYS.forEach(([k, n]) => {
+          const b = document.createElement('button'); b.className = 'tool' + (k === day ? ' on' : ''); b.textContent = n + ((v.days[k] || []).length ? ' (' + v.days[k].length + ')' : '');
+          b.onclick = () => { day = k; draw(); }; $('scDays').appendChild(b);
+        });
+        DAYS.filter(x => x[0] !== day).concat([['all', 'every other day']]).forEach(([k, n]) => { const o = document.createElement('option'); o.value = k; o.textContent = n; $('scTo').appendChild(o); });
+        slots.sort((a, b) => (a.t || '99').localeCompare(b.t || '99')).forEach((x, i) => {
+          const r = document.createElement('div'); r.className = 'r';
+          r.innerHTML = '<input type="time" aria-label="Start time"><select aria-label="Grade"></select><select aria-label="Class"></select><button class="tool">Remove</button>';
+          const [tm] = r.querySelectorAll('input'), [gs, cs] = r.querySelectorAll('select');
+          tm.value = x.t || '';
+          GRADES.forEach(([k, n]) => { const o = document.createElement('option'); o.value = k; o.textContent = /^\d/.test(n) ? n + ' grade' : n; gs.appendChild(o); });
+          gs.value = x.g || '1';
+          const fillCls = () => {
+            cs.innerHTML = '<option value="">Any class</option>';
+            pkClasses(gs.value).forEach(k => { const o = document.createElement('option'); o.value = k.id; o.textContent = k.t; cs.appendChild(o); });
+            cs.value = pkClasses(gs.value).some(k => k.id === x.c) ? x.c : '';
+          };
+          fillCls();
+          const save = () => { x.t = tm.value; x.g = gs.value; x.c = cs.value; const w = schedGet(); w.days[day] = slots; schedSet(w); schedApplied = ''; };
+          tm.onchange = save; gs.onchange = () => { x.c = ''; fillCls(); save(); }; cs.onchange = save;
+          r.querySelector('button').onclick = () => { slots.splice(i, 1); const w = schedGet(); w.days[day] = slots; schedSet(w); draw(); };
+          $('scRows').appendChild(r);
+        });
+        if (!slots.length) $('scRows').innerHTML = '<p>No classes on this day yet.</p>';
+        $('scAdd').onclick = () => { const w = schedGet(); (w.days[day] = w.days[day] || []).push({ t: '', g: grade, c: '' }); schedSet(w); draw(); };
+        $('scCopy').onclick = () => {
+          const w = schedGet(), src = JSON.stringify(w.days[day] || []), to = $('scTo').value;
+          const targets = to === 'all' ? DAYS.map(x => x[0]).filter(k => k !== day) : [to];
+          if (!confirm('Replace ' + (to === 'all' ? 'every other day' : DAYS.find(x => x[0] === to)[1]) + ' with this day\'s classes?')) return;
+          targets.forEach(k => w.days[k] = JSON.parse(src)); schedSet(w); draw();
+        };
+      };
+      draw();
+    });
+  }
+  $('schedBtn').onclick = schedEdit;
+  schedTick(true);
+
+  /* ---------- sub mode ---------- */
+  // Hides editing, layout, the picker (student names) and the More menu. A code the teacher picks is needed to leave it.
+  function setSub(on) {
+    document.body.classList.toggle('sub', on); store.set('sub', on ? 1 : 0);
+    if (on) { setArrange(false); if (planEditing) setPlanEdit(false); }
+  }
+  $('subBtn').onclick = () => {
+    const code = prompt('Sub mode hides your editing buttons and the picker.\n\nPick a code to leave sub mode later (numbers or a word), or leave it blank:', '');
+    if (code === null) return;
+    store.set('subcode', code.trim()); setSub(true); toast('Sub mode is on');
+  };
+  $('subExit').onclick = () => {
+    const code = store.get('subcode', '');
+    if (code) { const v = prompt('Type the code to leave sub mode:'); if (v === null) return; if (v.trim() !== code) { alert('That code is not right.'); return; } }
+    setSub(false); toast('Sub mode is off');
+  };
+  if (store.get('sub', '0') === '1') setSub(true);
+
   /* ---------- keys ---------- */
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'SELECT') return;
     if (e.target.isContentEditable) { if (e.key === 'Escape') clarEdit(false); return; }
+    if (e.key === 'Escape' && $('attn').classList.contains('show')) { attnShow(false); return; }
+    if (e.key === 'Escape' && $('dlg').classList.contains('show')) { closeDlg(); return; }
+    if (e.key === 'Escape' && $('moreMenu').classList.contains('show')) { $('moreMenu').classList.remove('show'); $('moreBtn').classList.remove('on'); return; }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
       if (e.key === 'Escape' && e.target.closest('#pickCard')) { e.target.blur(); return; }
       if (e.key === 'Escape') { cdOpen(false); if ($('todo').classList.contains('editing')) todoEdit(false); }
