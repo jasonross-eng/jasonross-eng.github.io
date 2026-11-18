@@ -2535,7 +2535,8 @@
   let nz = null;
   function noiseStop() {
     if (!nz) return;
-    cancelAnimationFrame(nz.raf); try { nz.stream.getTracks().forEach(t => t.stop()); nz.ctx.close(); } catch(e) {}
+    clearInterval(nz.iv); if (nz.wake) document.removeEventListener('pointerdown', nz.wake, true);
+    try { nz.stream.getTracks().forEach(t => t.stop()); nz.ctx.close(); } catch(e) {}
     nz = null;
   }
   async function noiseStart() {
@@ -2546,35 +2547,42 @@
       const ctx = new (window.AudioContext || window.webkitAudioContext)(), an = ctx.createAnalyser(); an.fftSize = 1024;
       ctx.createMediaStreamSource(stream).connect(an);
       const buf = new Float32Array(an.fftSize);
-      nz = { stream, ctx, raf: 0, level: 0, overSince: 0 };
+      nz = { stream, ctx, iv: 0, level: 0, hist: [], quietSince: 0, alarm: false, lastSound: 0 };
+      // A browser may hold the sound system until someone taps the page (for example after a refresh). Wake it on the next tap.
+      const wake = () => { if (ctx.state === 'suspended') ctx.resume().catch(() => {}); };
+      wake(); document.addEventListener('pointerdown', wake, true); nz.wake = wake;
       $('nzStat').textContent = '';
+      // Checked 10 times a second with a timer (not animation frames), so it keeps listening when the board is in another tab.
       const tick = () => {
+        if (ctx.state === 'suspended') { $('nzStat').textContent = 'Tap the board to start the meter'; return; }
+        if ($('nzStat').textContent) $('nzStat').textContent = '';
         an.getFloatTimeDomainData(buf);
         let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
         const db = 20 * Math.log10(Math.sqrt(sum / buf.length) + 1e-8);   // about -60 quiet room to 0 very loud
         const lvl = Math.max(0, Math.min(100, (db + 60) * 100 / 55));
-        nz.level = nz.level * .8 + lvl * .2;
-        const lim = Number($('nzLim').value), card = $('noiseCard');
+        nz.level = nz.level * .6 + lvl * .4;
+        const lim = Number($('nzLim').value), card = $('noiseCard'), now = performance.now();
         $('nzFill').style.width = nz.level + '%';
-        const now = performance.now();
-        if (nz.level > lim) { if (!nz.overSince) nz.overSince = now; nz.quietSince = 0; }
-        else { nz.overSince = 0; if (!nz.quietSince) nz.quietSince = now; }
-        const loud = !!nz.overSince && now - nz.overSince > 1200;
-        // Each time it goes off: count it once and play the sound. It can go off again after the room has been under the limit for 2 seconds.
+        // Talking goes up and down, so look at the last 1.5 seconds: too loud when it was over the limit at least half of that time.
+        nz.hist.push([now, nz.level > lim]); while (nz.hist.length && now - nz.hist[0][0] > 1500) nz.hist.shift();
+        const over = nz.hist.filter(h => h[1]).length / nz.hist.length, span = now - nz.hist[0][0];
+        const loud = span >= 900 && over >= .5;
+        if (over < .2) { if (!nz.quietSince) nz.quietSince = now; } else nz.quietSince = 0;
+        // Each time it goes off: count it once and play the sound. It can go off again after about 2 seconds of quieter room.
         if (loud && !nz.alarm) { nz.alarm = true; nzBump(); if (!nz.lastSound || now - nz.lastSound > 5000) { nz.lastSound = now; nzPlay(); } }
-        if (nz.alarm && nz.quietSince && now - nz.quietSince > 2000) nz.alarm = false;
-        card.classList.toggle('loud', loud);
-        card.classList.toggle('warn', nz.level > lim * .8 && !card.classList.contains('loud'));
-        nz.raf = requestAnimationFrame(tick);
+        if (nz.alarm && nz.quietSince && now - nz.quietSince > 1500) nz.alarm = false;
+        card.classList.toggle('loud', nz.alarm);
+        card.classList.toggle('warn', !nz.alarm && nz.level > lim * .8);
       };
-      tick();
+      nz.iv = setInterval(tick, 100); tick();
     } catch(e) { $('nzStat').textContent = 'Microphone blocked or missing'; }
   }
   // Sounds made by the browser itself (no sound files). Picked in the card; saved on this device.
   function nzPlay(kind) {
     kind = kind || store.get('noisesound', 'chime'); if (kind === 'off') return;
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)(), t0 = ctx.currentTime + .02;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      const t0 = ctx.currentTime + .02;
       const tone = (f, t, len, type, vol) => {
         const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type || 'sine'; o.frequency.value = f;
         g.gain.setValueAtTime(0, t0 + t); g.gain.linearRampToValueAtTime(vol || .3, t0 + t + .015); g.gain.exponentialRampToValueAtTime(.001, t0 + t + len);
