@@ -64,7 +64,7 @@ Countdown and Background moved into More (top right). More also has:
 The green Start class button (top right): starts a 10 minute Typing Club timer (change it under Edit in the timer), voice level 0, Must Do / May Do checks cleared, and Teacher Clarity for the grade on the screen.
 
 ## Clean-up warning
-Classes are 45 minutes. 5 minutes before the end (counting from when you tap Start class, or when the Schedule starts the class), a big warning pops up with a sound and a 5 minute Clean up timer starts. Tap to close the popup; the timer keeps going. Change the class length or warning time under Edit in the timer. Set the warning to 0 to turn it off.
+Classes are 45 minutes. 5 minutes before the end (counting from when you tap Start class, or when the Schedule starts the class), a big warning pops up with a sound and a 5 minute Clean up timer starts. Tap to close the popup; the timer keeps going. While a class is running, a "Clean up at 10:40" button shows under the date. Tap it to move this class's warning earlier or later, pick an exact time, warn now, or skip it for this class. More, then Clean-up warning, opens the same box, and also sets the class length and warning time for every class (0 turns it off).
 
 ## QR code
 More, then QR code: paste a link and tap Show QR code. The board shows a giant QR code to scan, with the link under it. Change link swaps it. One link per grade.

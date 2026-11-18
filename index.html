@@ -187,6 +187,14 @@
   .qrbox svg { width:100%; height:100%; display:block; }
   .qrurl { font-size:clamp(18px, 3.4vh, 36px); font-weight:700; text-align:center; overflow-wrap:anywhere; max-width:92vw; }
   /* ---------- clean-up warning near the end of class ---------- */
+  .cwpill { display:none; margin-top:1vh; border:2px solid var(--line); background:var(--accent2); color:var(--ink); font-family:var(--font); font-weight:700;
+            font-size:min(2.6vh, 1.7vw); border-radius:999px; padding:.15em .9em; cursor:pointer; }
+  .cwpill.on { display:inline-block; }
+  .cwpill.off { opacity:.7; font-weight:400; }
+  body.min-clock .cwpill { display:none !important; }
+  .cwbig { font-size:clamp(36px, 8vh, 80px); font-weight:700; text-align:center; line-height:1.1; }
+  .cwrow { justify-content:center; }
+  .cwrow .tool { font-size:20px; min-width:3.6em; }
   .warn { position:fixed; inset:0; z-index:93; display:none; flex-direction:column; align-items:center; justify-content:center; gap:2vh; cursor:pointer;
           background:radial-gradient(circle, #ff8a65 0%, #d93025 75%); color:#fff; text-align:center; }
   .warn.show { display:flex; }
@@ -616,6 +624,7 @@
       <div class="clocktext">
         <div class="time" id="time">12:00</div>
         <div class="date" id="date"></div>
+        <button class="cwpill" id="cwPill" title="Change when the clean-up warning goes off"></button>
       </div>
     </section>
 
@@ -772,6 +781,7 @@
 <div class="moremenu" id="moreMenu" role="menu">
   <button class="tool" id="cdBtn">Countdown</button>
   <button class="tool" id="bgBtn">Background</button>
+  <button class="tool" id="cwBtn">Clean-up warning</button>
   <button class="tool" id="qrBtn">QR code</button>
   <button class="tool" id="noiseBtn">Noise meter</button>
   <button class="tool" id="schedBtn">Schedule</button>
@@ -2263,7 +2273,7 @@
     closeSteps(); attnShow(false); closeDlg(); setDraw(false); clearInk();
     const sc = scGet();
     if (sc.m > 0) { setTime(sc.m * 60, sc.l); start(); } else setTime(300);
-    store.set('classstart', Date.now()); store.del('classwarned'); warnShow(false);
+    store.set('classstart', Date.now()); store.del('classwarned'); store.del('warnat'); warnShow(false); warnCheck();
     voice = '0'; store.set('voice', '0'); paintVoice();
     store.del('todock_' + grade);
     openClarity();
@@ -2295,18 +2305,78 @@
     warnT = setTimeout(() => warnShow(false), 12000);
   }
   $('warn').onclick = () => warnShow(false);
-  function warnCheck() {
+  // When the warning goes off for the class that is running now. The teacher can move it for this class only:
+  // warnat = "<classstart>|<time in ms>" (0 means no warning this class). Otherwise it is class length minus warning minutes.
+  function cwInfo() {
     const startAt = Number(store.get('classstart', '0')) || 0, len = Number(store.get('classlen', '45')) || 45, wm = Number(store.get('warnmin', '5'));
-    if (!startAt || !(wm > 0) || wm >= len) return;
-    if (store.get('classwarned', '') === String(startAt)) return;
-    const now = Date.now(), at = startAt + (len - wm) * 60000, end = startAt + len * 60000;
-    if (now < at || now >= end) return;
-    store.set('classwarned', String(startAt));
-    const leftMs = end - now;   // usually the full warning time; less if the board was off when it was due
-    setTime(Math.round(leftMs / 1000), 'Clean up'); start();
-    $('warnBig').textContent = Math.max(1, Math.round(leftMs / 60000)) + (Math.round(leftMs / 60000) === 1 ? ' minute left' : ' minutes left');
-    warnSound(); warnShow(true);
+    const cleanMin = wm > 0 ? wm : 5, o = String(store.get('warnat', '')).split('|');
+    let at = wm > 0 && wm < len ? startAt + (len - wm) * 60000 : 0, custom = false;
+    if (startAt && o[0] === String(startAt)) { at = Number(o[1]) || 0; custom = true; }
+    return { startAt, len, wm, cleanMin, at, custom, warned: store.get('classwarned', '') === String(startAt), end: startAt + len * 60000 };
   }
+  const clockTime = ms => new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  function warnCheck() {
+    const c = cwInfo(), now = Date.now();
+    cwPaint(c, now);
+    if (!c.startAt || !c.at || c.warned) return;
+    if (now < c.at || now >= c.at + c.cleanMin * 60000) return;
+    store.set('classwarned', String(c.startAt));
+    const leftMs = c.at + c.cleanMin * 60000 - now;   // usually the full clean-up time; less if the board was off when it was due
+    setTime(Math.round(leftMs / 1000), 'Clean up'); start();
+    const m = Math.max(1, Math.round(leftMs / 60000));
+    $('warnBig').textContent = m + (m === 1 ? ' minute left' : ' minutes left');
+    warnSound(); warnShow(true); cwPaint(cwInfo(), now);
+  }
+  // Small button under the date while a class is running: "Clean up at 10:40". Tap it to change the time.
+  function cwPaint(c, now) {
+    const p = $('cwPill'), live = c.startAt && !c.warned && now < Math.max(c.end, c.at + c.cleanMin * 60000) && now >= c.startAt;
+    p.classList.toggle('on', !!live); p.classList.toggle('off', !!live && !c.at);
+    if (live) p.textContent = c.at ? 'Clean up at ' + clockTime(c.at) : 'No clean-up warning';
+  }
+  function cwEdit() {
+    openDlg('Clean-up warning', body => {
+      const draw = () => {
+        const c = cwInfo(), now = Date.now(), live = c.startAt && !c.warned && now < c.end + 3600000 && now >= c.startAt;
+        body.innerHTML = '';
+        if (live) {
+          body.innerHTML = '<p>This class</p><div class="cwbig" id="cwNow"></div>' +
+            '<div class="r cwrow"><button class="tool" data-d="-5">-5 min</button><button class="tool" data-d="-1">-1 min</button><button class="tool" data-d="1">+1 min</button><button class="tool" data-d="5">+5 min</button></div>' +
+            '<div class="r cwrow"><span>Or pick a time:</span><input type="time" id="cwAt" aria-label="Warning time"><button class="tool" id="cwSet">Set</button></div>' +
+            '<div class="r cwrow"><button class="tool" id="cwGo">Warn now</button><button class="tool" id="cwOff">No warning this class</button><button class="tool" id="cwBack">Back to normal</button></div>' +
+            '<p id="cwMsg"></p>';
+          $('cwNow').textContent = c.at ? 'Warning at ' + clockTime(c.at) : 'No warning this class';
+          const setAt = ms => { store.set('warnat', c.startAt + '|' + ms); draw(); warnCheck(); };
+          body.querySelectorAll('[data-d]').forEach(b => b.onclick = () => {
+            const base = cwInfo().at || Math.max(now, c.end - c.cleanMin * 60000);
+            setAt(Math.max(now + 60000, base + Number(b.dataset.d) * 60000));
+          });
+          const at0 = c.at || c.end - c.cleanMin * 60000, d0 = new Date(at0);
+          $('cwAt').value = String(d0.getHours()).padStart(2, '0') + ':' + String(d0.getMinutes()).padStart(2, '0');
+          $('cwSet').onclick = () => {
+            const [h, m] = $('cwAt').value.split(':').map(Number); if (isNaN(h)) return;
+            const d = new Date(); d.setHours(h, m, 0, 0);
+            if (d.getTime() <= now) { $('cwMsg').textContent = 'That time has already passed. Pick a later time, or tap Warn now.'; return; }
+            setAt(d.getTime());
+          };
+          $('cwGo').onclick = () => { store.set('warnat', c.startAt + '|' + now); closeDlg(); warnCheck(); };
+          $('cwOff').onclick = () => setAt(0);
+          $('cwBack').onclick = () => { store.del('warnat'); draw(); };
+          $('cwBack').style.display = c.custom ? '' : 'none';
+        } else {
+          body.innerHTML = '<p>' + (c.startAt && c.warned ? 'This class already had its warning.' : 'No class is running.') + ' Tap Start class when a class begins; then you can change this class\'s warning time here, or tap the "Clean up at" button under the date.</p>';
+        }
+        const r = document.createElement('div');
+        r.innerHTML = '<p><b>Every class</b></p><div class="r"><span>Class is</span><input type="number" id="cwLen" min="5" max="180" aria-label="Class length in minutes"><span>min. Warn</span><input type="number" id="cwWm" min="0" max="30" aria-label="Warning minutes before the end"><span>min before the end (0 = off).</span></div>';
+        body.appendChild(r);
+        $('cwLen').value = store.get('classlen', '45'); $('cwWm').value = store.get('warnmin', '5');
+        $('cwLen').onchange = () => { store.set('classlen', Math.max(5, Math.min(180, Math.round(Number($('cwLen').value) || 45)))); draw(); };
+        $('cwWm').onchange = () => { store.set('warnmin', Math.max(0, Math.min(30, Math.round(Number($('cwWm').value) || 0)))); draw(); };
+      };
+      draw();
+    });
+  }
+  $('cwPill').onclick = cwEdit;
+  $('cwBtn').onclick = cwEdit;
   setInterval(warnCheck, 1000);
 
   /* ---------- QR code ---------- */
