@@ -48,8 +48,7 @@
   .maxbtn:hover { opacity:1; }
   .maxbtn svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; }
   .maxed .maxbtn { opacity:1; background:var(--accent); color:var(--onaccent); }
-  .plan .maxbtn, .pkhead .maxbtn, .nzhead .maxbtn { position:static; flex:0 0 auto; }
-  .nzhead .maxbtn { margin-left:auto; width:28px; height:28px; }
+  .plan .maxbtn, .pkhead .maxbtn { position:static; flex:0 0 auto; }
   body.min-clock .clock .maxbtn, body.min-timer .timer .maxbtn, body.min-plan .plan .maxbtn, body.min-pick .pick .maxbtn, body.arranging .maxbtn { display:none; }
   .maxback { position:fixed; inset:0; z-index:44; display:none; background:var(--bg); background-color:#0b0b0b; }
   body.maxon .maxback { display:block; }
@@ -241,23 +240,35 @@
   .timer.labeled .tlabel { display:block; }
   #lpresets .chip { border-style:dashed; }
   body.min-timer .tlabel, body.min-timer #lpresets { display:none !important; }
-  /* ---------- noise meter (floats like the picker; Arrange moves it) ---------- */
-  .card.noise { position:fixed; z-index:2; display:none; flex-direction:column; gap:8px; padding:12px 16px; }
-  body.noiseon .card.noise { display:flex; }
-  .nzhead { display:flex; align-items:baseline; gap:10px; font-size:20px; }
-  .nzstat { font-size:14px; color:var(--soft); }
-  .nzbar { position:relative; flex:1; min-height:24px; border-radius:999px; background:var(--line); overflow:hidden; }
+  /* ---------- noise meter (lives in the clock card, under the voice level) ---------- */
+  .clock { flex-wrap:wrap; }
+  .nzbtn { display:inline-flex; align-items:center; gap:.3em; margin-top:.4vh; border:2px solid var(--line); background:var(--btn); color:var(--ink); cursor:pointer;
+           font-family:var(--font); font-size:min(2vh, 15px); font-weight:700; border-radius:999px; padding:.15em .8em .15em .55em; opacity:.85; }
+  .nzbtn svg { width:1.2em; height:1.2em; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; }
+  .nzbtn.on { background:var(--accent); color:var(--onaccent); opacity:1; }
+  .nzwrap { display:none; flex:1 0 100%; align-items:center; gap:10px; min-width:0; }
+  body.noiseon .nzwrap { display:flex; }
+  body.min-clock .nzwrap, body.min-clock .nzbtn { display:none !important; }
+  .nzstat { font-size:13px; color:var(--soft); white-space:nowrap; }
+  .nzstat:empty { display:none; }
+  .nzcnt { font-size:min(2.2vh, 16px); font-weight:700; white-space:nowrap; }
+  .nzbar { position:relative; flex:1; min-width:60px; height:min(2.6vh, 20px); border-radius:999px; background:var(--line); overflow:hidden; }
   .nzbar i { position:absolute; left:0; top:0; bottom:0; width:0; background:#1e8e3e; transition:width .1s linear, background .2s; }
   .nzbar span { position:absolute; top:0; bottom:0; width:4px; background:#fff; }
   .noise.warn .nzbar i { background:#f6c026; } .noise.loud .nzbar i { background:#d93025; }
-  .nzlim { display:flex; gap:8px; align-items:center; font-size:14px; color:var(--soft); }
+  .nzgear { flex:0 0 auto; width:30px; height:30px; border-radius:50%; border:2px solid var(--line); background:var(--btn); color:var(--ink); cursor:pointer; padding:0;
+            display:flex; align-items:center; justify-content:center; }
+  .nzgear svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; }
+  .nzset { position:fixed; z-index:72; display:none; flex-direction:column; gap:10px; width:min(340px, 92vw); background:var(--pop); color:var(--ink); border-radius:18px; padding:14px;
+           box-shadow:0 10px 30px rgba(0,0,0,.4); }
+  .nzset.show { display:flex; }
+  .nzlim { display:flex; gap:8px; align-items:center; font-size:15px; color:var(--soft); }
   .nzlim input { flex:1; }
-  .card.noise { overflow:auto; }
   .nzrow { display:flex; align-items:center; gap:8px; font-size:15px; color:var(--soft); flex-wrap:wrap; }
   .nzrow select { font-family:var(--font); font-size:15px; padding:3px 6px; border-radius:8px; border:2px solid var(--line); background:#fff; color:#1d2433; }
   .nzrow .tool { box-shadow:none; border:2px solid var(--line); font-size:14px; padding:3px 12px; }
-  #nzCount { font-weight:700; color:var(--ink); margin-right:auto; }
-  .nzloud { display:none; position:absolute; left:12px; right:12px; top:42px; bottom:auto; height:calc(100% - 54px); max-height:70%; z-index:3; pointer-events:none;
+  body.sub .nzgear { display:none; }
+  .nzloud { display:none; position:absolute; inset:6px; z-index:3; pointer-events:none;
             align-items:center; justify-content:center; text-align:center; font-weight:700; font-size:clamp(22px, 5vh, 56px); color:#fff; background:rgba(217,48,37,.92); border-radius:14px; }
   .noise.loud .nzloud { display:flex; animation:attnpulse .6s ease-in-out infinite; }
   /* ---------- sub mode: only what a sub needs ---------- */
@@ -632,11 +643,18 @@
       <div class="voice" id="voice" aria-label="Voice level">
         <div class="vbig" id="vBig"><b id="vNum"></b><span><small>Voice level</small><span id="vName"></span></span></div>
         <div class="vpick" id="vPick"><span id="vCap">Voice level</span></div>
+        <button class="nzbtn" id="nzOnBtn" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span id="nzOnTxt">Noise meter</span></button>
       </div>
       <div class="clocktext">
         <div class="time" id="time">12:00</div>
         <div class="date" id="date"></div>
         <button class="cwpill" id="cwPill" title="Change when the clean-up warning goes off"></button>
+      </div>
+      <div class="nzwrap noise" id="noiseCard" aria-label="Noise meter">
+        <div class="nzbar"><i id="nzFill"></i><span id="nzMark"></span></div>
+        <span class="nzstat" id="nzStat"></span><span class="nzcnt" id="nzCount"></span>
+        <button class="nzgear" id="nzGear" aria-label="Noise meter settings" title="Noise meter settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+        <div class="nzloud" id="nzLoud">Too loud!</div>
       </div>
     </section>
 
@@ -791,6 +809,15 @@
 
 <div class="bgpick" id="bgpick" role="dialog" aria-label="Pick background"></div>
 <div class="maxback" id="maxBack"></div>
+<div class="nzset" id="nzSet" role="dialog" aria-label="Noise meter settings">
+  <b>Noise meter</b>
+  <label class="nzlim">Limit <input type="range" id="nzLim" min="10" max="95" value="60"></label>
+  <div class="nzrow"><label for="nzSound">Sound</label><select id="nzSound">
+    <option value="chime">Chime</option><option value="bell">Bell</option><option value="shh">Shh</option><option value="beep">Beep beep</option><option value="off">No sound</option>
+  </select><button class="tool" id="nzTest">Test</button></div>
+  <div class="nzrow"><span>Went off count</span><button class="tool" id="nzReset">Reset to 0</button></div>
+  <div class="nzrow"><button class="tool" id="nzOff">Turn off</button><button class="tool" id="nzDone">Done</button></div>
+</div>
 <div class="moremenu" id="moreMenu" role="menu">
   <button class="tool" id="cdBtn">Countdown</button>
   <button class="tool" id="bgBtn">Background</button>
@@ -805,16 +832,6 @@
 <div class="warn" id="warn" role="alert"><div class="wbig" id="warnBig"></div><div class="wsub">Get ready to clean up</div><div class="wtime" id="warnTime"></div><div class="whint">Tap anywhere to close. The timer keeps going.</div></div>
 <div class="attn" id="attn" role="alert"><div class="attnword" id="attnWord"></div><button class="tool" id="attnEdit">Change words</button></div>
 <div class="toast" id="toast" role="status"></div>
-<section class="card noise" id="noiseCard" aria-label="Noise meter">
-  <div class="nzhead"><b>Noise</b><span class="nzstat" id="nzStat"></span><button class="maxbtn" data-max="noise" aria-label="Fill the screen" title="Fill the screen"></button></div>
-  <div class="nzbar"><i id="nzFill"></i><span id="nzMark"></span></div>
-  <label class="nzlim">Limit <input type="range" id="nzLim" min="10" max="95" value="60"></label>
-  <div class="nzrow"><label for="nzSound">Sound</label><select id="nzSound">
-    <option value="chime">Chime</option><option value="bell">Bell</option><option value="shh">Shh</option><option value="beep">Beep beep</option><option value="off">No sound</option>
-  </select><button class="tool" id="nzTest">Test</button></div>
-  <div class="nzrow"><span id="nzCount"></span><button class="tool" id="nzReset">Reset</button></div>
-  <div class="nzloud" id="nzLoud">Too loud!</div>
-</section>
 
 <div id="blank"></div>
 <canvas id="ink"></canvas>
@@ -2515,7 +2532,6 @@
 
   /* ---------- noise meter ---------- */
   // Listens to the board's microphone only while it is on, and only to measure loudness. Nothing is recorded or sent.
-  floatCard($('noiseCard'), 'noiserect', { x: .03, y: .62, w: .3, h: .32 }, .18, .2);
   let nz = null;
   function noiseStop() {
     if (!nz) return;
@@ -2523,7 +2539,7 @@
     nz = null;
   }
   async function noiseStart() {
-    $('nzStat').textContent = 'Starting the microphone...';
+    $('nzStat').textContent = 'Starting...';
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
       if (!document.body.classList.contains('noiseon')) { stream.getTracks().forEach(t => t.stop()); return; }
@@ -2531,7 +2547,7 @@
       ctx.createMediaStreamSource(stream).connect(an);
       const buf = new Float32Array(an.fftSize);
       nz = { stream, ctx, raf: 0, level: 0, overSince: 0 };
-      $('nzStat').textContent = 'Listening';
+      $('nzStat').textContent = '';
       const tick = () => {
         an.getFloatTimeDomainData(buf);
         let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
@@ -2552,7 +2568,7 @@
         nz.raf = requestAnimationFrame(tick);
       };
       tick();
-    } catch(e) { $('nzStat').textContent = 'No microphone, or it is blocked. Check the board\'s settings.'; }
+    } catch(e) { $('nzStat').textContent = 'Microphone blocked or missing'; }
   }
   // Sounds made by the browser itself (no sound files). Picked in the card; saved on this device.
   function nzPlay(kind) {
@@ -2578,7 +2594,7 @@
       setTimeout(() => { try { ctx.close(); } catch(e) {} }, 3000);
     } catch(e) {}
   }
-  const nzCountPaint = () => { const n = Number(store.get('noisecount', '0')) || 0; $('nzCount').textContent = 'Went off: ' + n + (n === 1 ? ' time' : ' times'); };
+  const nzCountPaint = () => { const n = Number(store.get('noisecount', '0')) || 0; $('nzCount').textContent = 'Too loud: ' + n; $('nzCount').title = 'Went off ' + n + (n === 1 ? ' time' : ' times'); };
   function nzBump() { store.set('noisecount', (Number(store.get('noisecount', '0')) || 0) + 1); nzCountPaint(); }
   $('nzSound').value = store.get('noisesound', 'chime');
   $('nzSound').onchange = () => { store.set('noisesound', $('nzSound').value); nzPlay(); };
@@ -2587,12 +2603,26 @@
   nzCountPaint();
   function setNoise(on) {
     document.body.classList.toggle('noiseon', on); store.set('noiseon', on ? 1 : 0); $('noiseBtn').textContent = on ? 'Noise meter: On' : 'Noise meter';
+    $('nzOnBtn').classList.toggle('on', on); $('nzOnBtn').setAttribute('aria-pressed', on); $('nzOnTxt').textContent = on ? 'Noise meter: On' : 'Noise meter';
+    if (!on) $('nzSet').classList.remove('show');
+    requestAnimationFrame(() => { fitPlan(); if (typeof applyLayout === 'function') applyLayout(); });
     if (on) noiseStart(); else { noiseStop(); $('noiseCard').classList.remove('loud', 'warn'); }
   }
   const nzMark = () => { $('nzMark').style.left = $('nzLim').value + '%'; };
   $('nzLim').value = store.get('noiselim', '60'); nzMark();
   $('nzLim').oninput = () => { store.set('noiselim', $('nzLim').value); nzMark(); };
   $('noiseBtn').onclick = () => setNoise(!document.body.classList.contains('noiseon'));
+  $('nzOnBtn').onclick = () => setNoise(!document.body.classList.contains('noiseon'));
+  // settings pop up next to the gear
+  $('nzGear').onclick = e => {
+    e.stopPropagation();
+    const box = $('nzSet'), r = $('nzGear').getBoundingClientRect(), open = !box.classList.contains('show');
+    box.classList.toggle('show', open);
+    if (open) { const w = box.offsetWidth, h = box.offsetHeight; box.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px'; box.style.top = Math.max(8, Math.min(innerHeight - h - 8, r.bottom + 8)) + 'px'; }
+  };
+  $('nzDone').onclick = () => $('nzSet').classList.remove('show');
+  $('nzOff').onclick = () => setNoise(false);
+  document.addEventListener('click', e => { if (!$('nzSet').contains(e.target) && !$('nzGear').contains(e.target)) $('nzSet').classList.remove('show'); });
   if (store.get('noiseon', '0') === '1') setNoise(true);
 
   /* ---------- schedule: switch the grade and class when each class starts ---------- */

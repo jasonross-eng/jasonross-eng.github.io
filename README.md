@@ -45,7 +45,7 @@ Use Sheet on the card shows your Google Sheet instead. Script buttons in the she
 Use Arrange to move the card or make it bigger or smaller.
 
 ## Fill the screen
-Each card (clock, timer, This week, picker, noise meter) has a round button with four corners, next to its - button. Tap it and that card fills the whole screen. Tap it again (or the edge around it) to put it back.
+Each card (clock, timer, This week, picker) has a round button with four corners, next to its - button. Tap it and that card fills the whole screen. Tap it again (or the edge around it) to put it back.
 
 ## Small and big cards
 The clock, timer and "This week" each have a small round button. Tap - to make that card small, tap + to make it big again. Hide (top right) hides the top row of buttons. Tap the faint Menu button at the top right to bring it back.
@@ -59,7 +59,7 @@ Each grade has its own background. Tap the grade, tap Background, then pick a co
 ## More menu
 Countdown and Background moved into More (top right). More also has:
 - Backup and restore: Save a backup file now and then and keep it in Google Drive or on a flash drive. Restore from a file puts it back, or copies your setup to another computer. Every day: On saves a backup by itself on your first tap of each school day. The file has student names in it, so keep it private.
-- Noise meter: turn it on to show how loud the room is. Move the Limit slider; above it, the card flashes Too loud! and plays the sound you pick (Chime, Bell, Shh, Beep beep or No sound; Test plays it). Went off counts how many times; Reset sets it back to 0. It uses the microphone only to measure, and records nothing.
+- Noise meter: also turned on with the Noise meter button under the voice levels in the clock. It shows how loud the room is in a bar at the bottom of the clock. The settings button at the end of the bar has the limit, the sound and Reset. Move the Limit slider; above it, the card flashes Too loud! and plays the sound you pick (Chime, Bell, Shh, Beep beep or No sound; Test plays it). Went off counts how many times; Reset sets it back to 0. It uses the microphone only to measure, and records nothing.
 - Schedule: add each class start time for each day. Turn it On, and the board switches grade and picker class by itself when each class starts.
 - Sub mode: hides editing and the picker. You pick a code; the red Exit sub mode button asks for it.
 
