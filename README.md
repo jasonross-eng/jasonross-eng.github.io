@@ -44,6 +44,9 @@ Use Sheet on the card shows your Google Sheet instead. Script buttons in the she
 
 Use Arrange to move the card or make it bigger or smaller.
 
+## Fill the screen
+Each card (clock, timer, This week, picker, noise meter) has a round button with four corners, next to its - button. Tap it and that card fills the whole screen. Tap it again (or the edge around it) to put it back.
+
 ## Small and big cards
 The clock, timer and "This week" each have a small round button. Tap - to make that card small, tap + to make it big again. Hide (top right) hides the top row of buttons. Tap the faint Menu button at the top right to bring it back.
 

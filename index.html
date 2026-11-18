@@ -42,6 +42,18 @@
             border:2px solid var(--line); background:var(--btn); color:var(--ink); font-family:var(--font); font-size:20px; font-weight:700; line-height:1; opacity:.7; }
   .minbtn:hover { opacity:1; }
   .plan .minbtn { position:static; flex:0 0 auto; }
+  /* fill the screen on the fly: the round button next to - makes a card cover the whole screen; tap again to put it back */
+  .maxbtn { position:absolute; top:8px; right:48px; z-index:2; width:34px; height:34px; border-radius:50%; cursor:pointer; padding:0;
+            border:2px solid var(--line); background:var(--btn); color:var(--ink); opacity:.7; display:flex; align-items:center; justify-content:center; }
+  .maxbtn:hover { opacity:1; }
+  .maxbtn svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; }
+  .maxed .maxbtn { opacity:1; background:var(--accent); color:var(--onaccent); }
+  .plan .maxbtn, .pkhead .maxbtn, .nzhead .maxbtn { position:static; flex:0 0 auto; }
+  .nzhead .maxbtn { margin-left:auto; width:28px; height:28px; }
+  body.min-clock .clock .maxbtn, body.min-timer .timer .maxbtn, body.min-plan .plan .maxbtn, body.min-pick .pick .maxbtn, body.arranging .maxbtn { display:none; }
+  .maxback { position:fixed; inset:0; z-index:44; display:none; background:var(--bg); background-color:#0b0b0b; }
+  body.maxon .maxback { display:block; }
+  .card.maxed { position:fixed !important; z-index:46 !important; margin:0 !important; transform-origin:0 0; }
   body.min-plan .board { grid-template-columns:minmax(0, 1fr) auto; }
   body.min-clock.min-timer .board { grid-template-columns:auto minmax(0, 1fr); }
   body.min-clock.min-timer.min-plan .board { grid-template-columns:auto auto; justify-content:space-between; }
@@ -616,7 +628,7 @@
 
   <div class="left">
     <section class="card clock" aria-label="Clock">
-      <button class="minbtn" data-min="clock"></button>
+      <button class="maxbtn" data-max="clock" aria-label="Fill the screen" title="Fill the screen"></button><button class="minbtn" data-min="clock"></button>
       <div class="voice" id="voice" aria-label="Voice level">
         <div class="vbig" id="vBig"><b id="vNum"></b><span><small>Voice level</small><span id="vName"></span></span></div>
         <div class="vpick" id="vPick"><span id="vCap">Voice level</span></div>
@@ -629,7 +641,7 @@
     </section>
 
     <section class="card timer" id="timer" aria-label="Timer">
-      <button class="minbtn" data-min="timer"></button>
+      <button class="maxbtn" data-max="timer" aria-label="Fill the screen" title="Fill the screen"></button><button class="minbtn" data-min="timer"></button>
       <div class="tlabel" id="tlabel"></div>
       <div class="tdisplay" id="tdisplay">5:00</div>
       <div class="bar"><i id="tbar"></i></div>
@@ -651,7 +663,7 @@
         <select id="planPick" aria-label="Choose plan"></select>
         <button class="tool" id="planEdit">Edit</button>
         <button class="tool" id="pastBtn">All pages</button>
-        <button class="minbtn" data-min="plan"></button>
+        <button class="maxbtn" data-max="plan" aria-label="Fill the screen" title="Fill the screen"></button><button class="minbtn" data-min="plan"></button>
       </div>
     </header>
     <ol class="items" id="items"></ol>
@@ -659,7 +671,7 @@
   </section>
 
   <section class="card pick" id="pickCard" aria-label="Student picker">
-    <div class="pkhead"><b id="pkTitle">Picker</b><button class="tool" id="pkMode">Use Sheet</button><button class="tool" id="pkTab">Open in tab</button><button class="tool" id="pkChange">Change link</button><button class="minbtn" data-min="pick"></button></div>
+    <div class="pkhead"><b id="pkTitle">Picker</b><button class="tool" id="pkMode">Use Sheet</button><button class="tool" id="pkTab">Open in tab</button><button class="tool" id="pkChange">Change link</button><button class="maxbtn" data-max="pick" aria-label="Fill the screen" title="Fill the screen"></button><button class="minbtn" data-min="pick"></button></div>
     <div class="pkwrap" id="pkWrap"></div>
   </section>
 
@@ -778,6 +790,7 @@
 <button class="tool kbdclose" id="kbdClose">Close keyboard</button>
 
 <div class="bgpick" id="bgpick" role="dialog" aria-label="Pick background"></div>
+<div class="maxback" id="maxBack"></div>
 <div class="moremenu" id="moreMenu" role="menu">
   <button class="tool" id="cdBtn">Countdown</button>
   <button class="tool" id="bgBtn">Background</button>
@@ -793,7 +806,7 @@
 <div class="attn" id="attn" role="alert"><div class="attnword" id="attnWord"></div><button class="tool" id="attnEdit">Change words</button></div>
 <div class="toast" id="toast" role="status"></div>
 <section class="card noise" id="noiseCard" aria-label="Noise meter">
-  <div class="nzhead"><b>Noise</b><span class="nzstat" id="nzStat"></span></div>
+  <div class="nzhead"><b>Noise</b><span class="nzstat" id="nzStat"></span><button class="maxbtn" data-max="noise" aria-label="Fill the screen" title="Fill the screen"></button></div>
   <div class="nzbar"><i id="nzFill"></i><span id="nzMark"></span></div>
   <label class="nzlim">Limit <input type="range" id="nzLim" min="10" max="95" value="60"></label>
   <div class="nzrow"><label for="nzSound">Sound</label><select id="nzSound">
@@ -1424,6 +1437,7 @@
   });
   function setArrange(on) {
     if (on && innerWidth <= 820) return;
+    if (on && maxEl) setMax(null);
     if (on) {
       if (planEditing) setPlanEdit(false);
       setDraw(false);
@@ -1445,6 +1459,7 @@
   $('arrReset').onclick = () => { layout = null; store.del('layout'); setArrange(false); };
   addEventListener('resize', applyLayout);
   document.querySelectorAll('.minbtn').forEach(b => b.onclick = () => {
+    if (maxEl) setMax(null);
     let on = []; try { on = JSON.parse(store.get('min', '[]')) || []; } catch(e) {}
     const k = b.dataset.min; on = on.includes(k) ? on.filter(x => x !== k) : on.concat(k);
     store.set('min', JSON.stringify(on)); paintMin();
@@ -2281,6 +2296,35 @@
   }
   $('startClass').onclick = startClass;
 
+  /* ---------- fill the screen on the fly ---------- */
+  // The card keeps its own layout, scaled up to cover the screen. Tap the button again (or Esc) to put it back exactly as it was.
+  let maxEl = null, maxKeep = '';
+  function maxPlace() {
+    if (!maxEl) return;
+    const el = maxEl; el.style.cssText = maxKeep; el.style.transform = ''; el.classList.remove('maxed');
+    const w0 = el.offsetWidth || 300, h0 = el.offsetHeight || 200, m = 12, W = innerWidth - 2 * m, H = innerHeight - 2 * m, sc = Math.min(W / w0, H / h0);
+    el.classList.add('maxed');
+    Object.assign(el.style, { left: m + 'px', top: m + 'px', width: W / sc + 'px', height: H / sc + 'px', transform: 'scale(' + sc + ')' });
+    requestAnimationFrame(() => { fitPlan(); pkFit(); });
+  }
+  function setMax(el) {
+    if (maxEl) { const old = maxEl; old.classList.remove('maxed'); old.style.cssText = maxKeep; maxEl = null; document.body.classList.remove('maxon'); if (old === el) { requestAnimationFrame(() => { fitPlan(); pkFit(); }); return; } }
+    if (!el) { requestAnimationFrame(() => { fitPlan(); pkFit(); }); return; }
+    maxEl = el; maxKeep = el.style.cssText; document.body.classList.add('maxon'); maxPlace();
+  }
+  const MAX_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+        BACK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+  function maxIcons() {
+    document.querySelectorAll('.maxbtn').forEach(b => {
+      const on = !!maxEl && b.closest('.card') === maxEl;
+      b.innerHTML = on ? BACK_ICON : MAX_ICON; b.title = on ? 'Back to normal size' : 'Fill the screen'; b.setAttribute('aria-label', b.title);
+    });
+  }
+  document.querySelectorAll('.maxbtn').forEach(b => b.onclick = e => { e.stopPropagation(); setMax(b.closest('.card')); maxIcons(); });
+  maxIcons();
+  $('maxBack').onclick = () => { setMax(null); maxIcons(); };
+  addEventListener('resize', () => { if (maxEl) maxPlace(); });
+
   /* ---------- clean-up warning ---------- */
   // Class length and warning come from the timer's Edit dialog (45 and 5 to start). The class start time is saved, so a refresh does not lose it.
   function warnSound() {
@@ -2650,6 +2694,7 @@
     if (e.target.isContentEditable) { if (e.key === 'Escape') clarEdit(false); return; }
     if (e.key === 'Escape' && $('attn').classList.contains('show')) { attnShow(false); return; }
     if (e.key === 'Escape' && $('warn').classList.contains('show')) { warnShow(false); return; }
+    if (e.key === 'Escape' && maxEl && !document.body.classList.contains('viewing')) { setMax(null); maxIcons(); return; }
     if (e.key === 'Escape' && $('dlg').classList.contains('show')) { closeDlg(); return; }
     if (e.key === 'Escape' && $('moreMenu').classList.contains('show')) { $('moreMenu').classList.remove('show'); $('moreBtn').classList.remove('on'); return; }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
