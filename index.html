@@ -186,6 +186,15 @@
   .qrbox { flex:1; min-height:0; aspect-ratio:1; max-width:92vw; background:#fff; border-radius:24px; padding:2vh; display:flex; }
   .qrbox svg { width:100%; height:100%; display:block; }
   .qrurl { font-size:clamp(18px, 3.4vh, 36px); font-weight:700; text-align:center; overflow-wrap:anywhere; max-width:92vw; }
+  /* ---------- clean-up warning near the end of class ---------- */
+  .warn { position:fixed; inset:0; z-index:93; display:none; flex-direction:column; align-items:center; justify-content:center; gap:2vh; cursor:pointer;
+          background:radial-gradient(circle, #ff8a65 0%, #d93025 75%); color:#fff; text-align:center; }
+  .warn.show { display:flex; }
+  .wbig { font-size:min(15vh, 9vw); font-weight:700; line-height:1; animation:attnpulse 1s ease-in-out infinite; }
+  .wsub { font-size:min(6vh, 4vw); font-weight:700; }
+  .wtime { font-size:min(26vh, 16vw); font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
+  .whint { font-size:min(2.6vh, 20px); opacity:.85; }
+  @media (prefers-reduced-motion: reduce) { .wbig { animation:none; } }
   /* ---------- attention getter ---------- */
   .attnbtn { background:var(--yellow) !important; color:#1d2433 !important; }
   .attn { position:fixed; inset:0; z-index:92; display:none; flex-direction:column; align-items:center; justify-content:center; gap:4vh; cursor:pointer;
@@ -770,6 +779,7 @@
   <button class="tool" id="subBtn">Sub mode</button>
 </div>
 <div class="archive dlg" id="dlg" role="dialog"><div class="box"><h2><span id="dlgTitle"></span> <button class="tool" id="dlgClose">Close</button></h2><div class="dlgbody" id="dlgBody"></div></div></div>
+<div class="warn" id="warn" role="alert"><div class="wbig" id="warnBig"></div><div class="wsub">Get ready to clean up</div><div class="wtime" id="warnTime"></div><div class="whint">Tap anywhere to close. The timer keeps going.</div></div>
 <div class="attn" id="attn" role="alert"><div class="attnword" id="attnWord"></div><button class="tool" id="attnEdit">Change words</button></div>
 <div class="toast" id="toast" role="status"></div>
 <section class="card noise" id="noiseCard" aria-label="Noise meter">
@@ -912,7 +922,12 @@
       const draw = () => {
         body.innerHTML = '<p><b>Start class timer</b>: when you tap Start class (or the Schedule starts a class), this timer starts by itself. Set minutes to 0 to turn it off.</p>' +
           '<div class="r"><input type="text" id="scLab" maxlength="24" aria-label="Start class timer words"><input type="number" id="scMin" min="0" max="99" aria-label="Start class timer minutes"><span>min</span></div>' +
+          '<p><b>Clean-up warning</b>: this many minutes before the class ends, a big warning pops up with a sound and a clean-up timer starts. It counts from when you tap Start class (or the Schedule starts a class). Set the warning to 0 to turn it off.</p>' +
+          '<div class="r"><span>Class is</span><input type="number" id="clsLen" min="5" max="180" aria-label="Class length in minutes"><span>min. Warn</span><input type="number" id="clsWarn" min="0" max="30" aria-label="Warning minutes before the end"><span>min before the end.</span></div>' +
           '<p>Timer buttons. Each one shows its words above the timer.</p>';
+        $('clsLen').value = store.get('classlen', '45'); $('clsWarn').value = store.get('warnmin', '5');
+        $('clsLen').oninput = () => store.set('classlen', Math.max(5, Math.min(180, Math.round(Number($('clsLen').value) || 45))));
+        $('clsWarn').oninput = () => store.set('warnmin', Math.max(0, Math.min(30, Math.round(Number($('clsWarn').value) || 0))));
         $('scLab').value = store.get('startlabel', 'Typing Club'); $('scMin').value = store.get('startmin', '10');
         $('scLab').oninput = () => store.set('startlabel', $('scLab').value.trim());
         $('scMin').oninput = () => store.set('startmin', Math.max(0, Math.min(99, Math.round(Number($('scMin').value) || 0))));
@@ -2248,12 +2263,51 @@
     closeSteps(); attnShow(false); closeDlg(); setDraw(false); clearInk();
     const sc = scGet();
     if (sc.m > 0) { setTime(sc.m * 60, sc.l); start(); } else setTime(300);
+    store.set('classstart', Date.now()); store.del('classwarned'); warnShow(false);
     voice = '0'; store.set('voice', '0'); paintVoice();
     store.del('todock_' + grade);
     openClarity();
     toast('Ready for ' + gradeWord() + (sc.m > 0 ? '. ' + (sc.l ? sc.l + ' ' : 'Timer ') + sc.m + ' min started' : ''));
   }
   $('startClass').onclick = startClass;
+
+  /* ---------- clean-up warning ---------- */
+  // Class length and warning come from the timer's Edit dialog (45 and 5 to start). The class start time is saved, so a refresh does not lose it.
+  function warnSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, .9].forEach(base => [[659, 0], [880, .18], [1047, .36]].forEach(([f, t]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = f;
+        const at = ctx.currentTime + base + t;
+        g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.35, at + .02); g.gain.exponentialRampToValueAtTime(.001, at + .45);
+        o.connect(g).connect(ctx.destination); o.start(at); o.stop(at + .5);
+      }));
+      setTimeout(() => { try { ctx.close(); } catch(e) {} }, 3000);
+    } catch(e) {}
+  }
+  let warnT = null, warnIv = null;
+  function warnShow(on) {
+    clearTimeout(warnT); clearInterval(warnIv);
+    $('warn').classList.toggle('show', on);
+    if (!on) return;
+    const paintW = () => { $('warnTime').textContent = fmt(left); };
+    paintW(); warnIv = setInterval(paintW, 250);
+    warnT = setTimeout(() => warnShow(false), 12000);
+  }
+  $('warn').onclick = () => warnShow(false);
+  function warnCheck() {
+    const startAt = Number(store.get('classstart', '0')) || 0, len = Number(store.get('classlen', '45')) || 45, wm = Number(store.get('warnmin', '5'));
+    if (!startAt || !(wm > 0) || wm >= len) return;
+    if (store.get('classwarned', '') === String(startAt)) return;
+    const now = Date.now(), at = startAt + (len - wm) * 60000, end = startAt + len * 60000;
+    if (now < at || now >= end) return;
+    store.set('classwarned', String(startAt));
+    const leftMs = end - now;   // usually the full warning time; less if the board was off when it was due
+    setTime(Math.round(leftMs / 1000), 'Clean up'); start();
+    $('warnBig').textContent = Math.max(1, Math.round(leftMs / 60000)) + (Math.round(leftMs / 60000) === 1 ? ' minute left' : ' minutes left');
+    warnSound(); warnShow(true);
+  }
+  setInterval(warnCheck, 1000);
 
   /* ---------- QR code ---------- */
   // Paste a link and the board shows a giant QR code for it, one link per grade, saved on this device.
@@ -2447,6 +2501,9 @@
     if (cur.c && pkClasses(cur.g).some(k => k.id === cur.c)) store.set('pkcls_' + cur.g, cur.c);
     setGrade(cur.g);
     if (!force && !document.body.classList.contains('sub')) { startClass(); return; }
+    // board opened or refreshed mid-class: count the clean-up warning from the slot's start time
+    const [hh, mm] = cur.t.split(':').map(Number), slotAt = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh, mm).getTime();
+    if ((Number(store.get('classstart', '0')) || 0) < slotAt) { store.set('classstart', slotAt); store.del('classwarned'); }
     const cls = cur.c ? pkClasses(cur.g).find(k => k.id === cur.c) : null;
     toast('Now: ' + (/^\d/.test(GRADES.find(g => g[0] === cur.g)[1]) ? GRADES.find(g => g[0] === cur.g)[1] + ' grade' : GRADES.find(g => g[0] === cur.g)[1]) + (cls ? ', ' + cls.t : ''));
   }
@@ -2522,6 +2579,7 @@
     if (e.target.tagName === 'SELECT') return;
     if (e.target.isContentEditable) { if (e.key === 'Escape') clarEdit(false); return; }
     if (e.key === 'Escape' && $('attn').classList.contains('show')) { attnShow(false); return; }
+    if (e.key === 'Escape' && $('warn').classList.contains('show')) { warnShow(false); return; }
     if (e.key === 'Escape' && $('dlg').classList.contains('show')) { closeDlg(); return; }
     if (e.key === 'Escape' && $('moreMenu').classList.contains('show')) { $('moreMenu').classList.remove('show'); $('moreBtn').classList.remove('on'); return; }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
