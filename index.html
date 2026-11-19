@@ -1914,7 +1914,7 @@
       $('pkBody').innerHTML = '<div class="pkname wait" style="font-size:22px">Make groups for this class</div>' + ctl;
     } else {
       $('pkBody').innerHTML = '<div class="pkgroups" id="gList"></div>' + ctl +
-        '<div class="pkrow pksm"><span class="pkleft">Tap a name, then another name to swap them. Or tap a group to move them there.</span></div>';
+        '<div class="pkrow pksm"><span class="pkleft">Tap a name, then another name to swap them. Or tap a group to move them there.</span><button class="chip" id="gSave">Download</button></div>';
       c.groups.forEach((g, gi) => {
         const box = document.createElement('div'); box.className = 'pkgrp' + (grpSel && grpSel[0] !== gi ? ' target' : '');
         const h = document.createElement('h4'); h.textContent = 'Group ' + (gi + 1); box.appendChild(h);
@@ -1939,6 +1939,7 @@
         $('gList').appendChild(box);
       });
     }
+    if ($('gSave')) $('gSave').onclick = () => groupsDownload(c);
     $('gBy').textContent = c.gby === 'count' ? 'Number of groups' : 'People per group';
     $('gNum').textContent = c.gnum;
     $('gMake').textContent = ok ? 'New groups' : 'Make groups';
@@ -1947,6 +1948,18 @@
     $('gLess').onclick = () => save(k => k.gnum = Math.max(2, k.gnum - 1));
     $('gMore').onclick = () => save(k => k.gnum = Math.min(10, k.gnum + 1));
     $('gMake').onclick = () => { if (ok && !confirm('Make new groups? The groups you have now will be replaced.')) return; save(k => k.groups = groupsMake(k)); };
+  }
+  // Download the groups as a spreadsheet file (one column per group). It opens in Google Sheets or Excel.
+  // The file is saved on this computer only; it has student names, so keep it private.
+  function groupsDownload(c) {
+    const cell = v => /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+    const rows = [c.groups.map((_, i) => 'Group ' + (i + 1))], tall = Math.max(...c.groups.map(g => g.length));
+    for (let r = 0; r < tall; r++) rows.push(c.groups.map(g => g[r] === undefined ? '' : c.n[g[r]]));
+    const csv = '﻿' + rows.map(r => r.map(cell).join(',')).join('\r\n') + '\r\n';
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = ('groups ' + gradeWord() + ' ' + c.t + ' ' + dayKey(new Date())).replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '.csv';
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    toast('Groups saved to Downloads');
   }
   function seatToggle(i) {
     const l = pkClasses(), c = pkCur(l); if (!c) return;

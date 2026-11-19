@@ -82,7 +82,7 @@ More, then Add a picture: pick a picture and it becomes its own widget. Remove t
 Move or resize any of them with Arrange.
 
 ## Groups
-In the Picker, tap the Groups tab. Pick People per group or Number of groups, then Make groups. The board remembers the groups for that class. Tap a name, then another name, to swap them. Or tap a name, then a different group, to move them. New groups makes a fresh set.
+In the Picker, tap the Groups tab. Pick People per group or Number of groups, then Make groups. The board remembers the groups for that class. Tap a name, then another name, to swap them. Or tap a name, then a different group, to move them. New groups makes a fresh set. Download saves the groups as a spreadsheet file (one column per group) in your Downloads folder. It has student names, so keep it private.
 
 ## QR code
 More, then QR code: paste a link and tap Show QR code. The board shows a giant QR code to scan, with the link under it. Change link swaps it. One link per grade.
