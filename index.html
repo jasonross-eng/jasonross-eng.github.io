@@ -258,6 +258,7 @@
               box-shadow:0 10px 30px rgba(20,40,70,.35); }
   .moremenu.show { display:flex; }
   .moremenu .tool { box-shadow:none; border:2px solid var(--line); text-align:left; font-size:18px; }
+  .moremenu { max-height:calc(100vh - 70px); overflow:auto; }
   .dlg .box { width:min(760px, 100%); }
   .dlgbody { overflow:auto; display:flex; flex-direction:column; gap:12px; font-size:18px; }
   .dlgbody p { margin:0; color:var(--soft); font-size:16px; }
@@ -917,6 +918,7 @@
   <button class="tool" id="schedBtn">Schedule</button>
   <button class="tool" id="backupBtn">Backup and restore</button>
   <button class="tool" id="subBtn">Sub mode</button>
+  <button class="tool" id="tbBtn">Top bar buttons</button>
 </div>
 <div class="archive dlg" id="dlg" role="dialog"><div class="box"><h2><span id="dlgTitle"></span> <button class="tool" id="dlgClose">Close</button></h2><div class="dlgbody" id="dlgBody"></div></div></div>
 <div class="warn" id="warn" role="alert"><div class="wbig" id="warnBig"></div><div class="wsub">Get ready to clean up</div><div class="wtime" id="warnTime"></div><div class="whint">Tap anywhere to close. The timer keeps going.</div></div>
@@ -2393,6 +2395,54 @@
   $('kbdBtn').onclick = () => setKbd(true);
   $('kbdBtn2').onclick = () => setKbd(true);
   $('kbdClose').onclick = () => setKbd(false);
+
+  /* ---------- top bar buttons: which ones sit in the top bar, which in More, and in what order ---------- */
+  // Saved on this device as tbcfg = { order: [ids], more: [ids in the More menu] }. More, Exit sub mode and this
+  // Top bar buttons item never move.
+  const TB = [['startClass', 'Start class'], ['pickBtn', 'Picker'], ['scoreBtn', 'Scores'], ['attnBtn', 'Attention'], ['drawBtn', 'Draw'],
+    ['kbdBtn', 'Keyboard'], ['fsBtn', 'Full screen'], ['arrBtn', 'Arrange'], ['barBtn', 'Hide'],
+    ['cdBtn', 'Countdown'], ['bgBtn', 'Background'], ['cwBtn', 'Clean-up warning'], ['pollBtn', 'Poll'], ['diceBtn', 'Dice'], ['embedBtn', 'Embed a website'],
+    ['imgBtn', 'Add a picture'], ['qrBtn', 'QR code'], ['noiseBtn', 'Noise meter'], ['schedBtn', 'Schedule'], ['backupBtn', 'Backup and restore'], ['subBtn', 'Sub mode']];
+  // Start out with Start class right next to More, as the teacher asked.
+  const TB_DEFAULT = { order: ['pickBtn', 'scoreBtn', 'attnBtn', 'drawBtn', 'kbdBtn', 'fsBtn', 'arrBtn', 'barBtn', 'startClass',
+    'cdBtn', 'bgBtn', 'cwBtn', 'pollBtn', 'diceBtn', 'embedBtn', 'imgBtn', 'qrBtn', 'noiseBtn', 'schedBtn', 'backupBtn', 'subBtn'],
+    more: ['cdBtn', 'bgBtn', 'cwBtn', 'pollBtn', 'diceBtn', 'embedBtn', 'imgBtn', 'qrBtn', 'noiseBtn', 'schedBtn', 'backupBtn', 'subBtn'] };
+  function tbGet() {
+    const v = jget('tbcfg', null), ids = TB.map(t => t[0]);
+    if (!v || !Array.isArray(v.order) || !Array.isArray(v.more)) return JSON.parse(JSON.stringify(TB_DEFAULT));
+    const order = v.order.filter(id => ids.includes(id)); ids.forEach(id => { if (!order.includes(id)) order.push(id); });
+    return { order, more: v.more.filter(id => ids.includes(id)) };
+  }
+  function tbApply() {
+    const v = tbGet(), tools = document.querySelector('.tools'), menu = $('moreMenu');
+    v.order.forEach(id => { const b = $(id); if (!b) return; if (v.more.includes(id)) menu.insertBefore(b, $('tbBtn')); else tools.appendChild(b); });
+    tools.appendChild($('moreBtn')); tools.appendChild($('subExit'));
+    requestAnimationFrame(fitPlan);
+  }
+  function tbEdit() {
+    openDlg('Top bar buttons', body => {
+      const draw = () => {
+        const v = tbGet(); body.innerHTML = '<p>Pick where each button lives: in the top bar, or inside the More menu. The arrows change the order. Saved on this board only.</p>';
+        v.order.forEach((id, i) => {
+          const r = document.createElement('div'); r.className = 'r';
+          const inMore = v.more.includes(id);
+          r.innerHTML = '<b style="flex:1;min-width:9em"></b><button class="tool"></button><button class="tool" aria-label="Move up">▲</button><button class="tool" aria-label="Move down">▼</button>';
+          r.querySelector('b').textContent = TB.find(t => t[0] === id)[1];
+          const [place, up, dn] = r.querySelectorAll('button');
+          place.textContent = inMore ? 'In More' : 'In top bar'; place.classList.toggle('on', !inMore);
+          place.onclick = () => { const w = tbGet(); w.more = inMore ? w.more.filter(x => x !== id) : w.more.concat(id); store.set('tbcfg', JSON.stringify(w)); tbApply(); draw(); };
+          const move = d => { const w = tbGet(), j = i + d; if (j < 0 || j >= w.order.length) return; [w.order[i], w.order[j]] = [w.order[j], w.order[i]]; store.set('tbcfg', JSON.stringify(w)); tbApply(); draw(); };
+          up.onclick = () => move(-1); dn.onclick = () => move(1); up.disabled = i === 0; dn.disabled = i === v.order.length - 1;
+          body.appendChild(r);
+        });
+        const r = document.createElement('div'); r.className = 'r'; r.innerHTML = '<button class="tool" id="tbReset">Back to how it started</button>'; body.appendChild(r);
+        $('tbReset').onclick = () => { store.del('tbcfg'); tbApply(); draw(); };
+      };
+      draw();
+    });
+  }
+  $('tbBtn').onclick = tbEdit;
+  tbApply();
 
   /* ---------- More menu, dialog, toast ---------- */
   $('moreBtn').onclick = e => { e.stopPropagation(); $('moreMenu').classList.toggle('show'); $('moreBtn').classList.toggle('on'); };

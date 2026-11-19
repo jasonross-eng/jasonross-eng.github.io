@@ -59,6 +59,9 @@ Tap Arrange (top right). Drag a card to move it. Drag its yellow corner to make 
 ## Backgrounds
 Each grade has its own background. Tap the grade, tap Background, then pick a color or Upload picture. Saved on that device only.
 
+## Top bar buttons
+More, then Top bar buttons. For each button, tap In top bar / In More to choose where it lives, and use the arrows to change the order. Start class now sits right next to More. Back to how it started undoes your changes.
+
 ## More menu
 Countdown and Background moved into More (top right). More also has:
 - Backup and restore: Save a backup file now and then and keep it in Google Drive or on a flash drive. Restore from a file puts it back, or copies your setup to another computer. Every day: On saves a backup by itself on your first tap of each school day. The file has student names in it, so keep it private.
