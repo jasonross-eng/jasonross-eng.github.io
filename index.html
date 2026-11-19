@@ -115,6 +115,37 @@
   body.nobar.viewing .menubtn { display:none; }
 
   /* ---------- random student picker (the teacher's Google Sheet, embedded) ---------- */
+  /* ---------- extra widgets: dice, embed, pictures (made by makeFloat) ---------- */
+  .card.flt { position:fixed; z-index:3; display:flex; flex-direction:column; gap:8px; padding:10px; min-width:0; min-height:0; }
+  .card.flt[hidden] { display:none; }
+  .flthead { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+  .flthead b { font-size:20px; margin-right:auto; padding-left:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .flthead .tool { font-size:15px; padding:5px 12px; box-shadow:none; border:2px solid var(--line); white-space:nowrap; }
+  .flthead .maxbtn { position:static; flex:0 0 auto; }
+  .fltbody { flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; }
+  .fltbody iframe { flex:1; border:0; border-radius:12px; background:#fff; }
+  .fltbody img { flex:1; min-height:0; width:100%; object-fit:contain; border-radius:10px; }
+  .fltbody .set { margin:auto; width:100%; display:flex; flex-direction:column; gap:8px; font-size:16px; color:var(--soft); }
+  .fltbody .set input { font-family:var(--font); font-size:17px; padding:8px 10px; border-radius:10px; border:3px solid var(--yellow); background:#fff; color:#1d2433; }
+  .dice { flex:1; min-height:0; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; align-content:center; gap:4%; container-type:size; }
+  .die { width:min(70cqh, calc(88cqw / var(--n, 1))); aspect-ratio:1; background:#fff; border-radius:16%; box-shadow:0 .4em 1em rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center;
+         color:#1d2433; font-weight:700; }
+  .die svg { width:100%; height:100%; display:block; }
+  .die.roll { animation:dieroll .12s linear infinite; }
+  @keyframes dieroll { 0% { transform:rotate(-12deg) scale(.96); } 50% { transform:rotate(12deg) scale(1.03); } 100% { transform:rotate(-12deg) scale(.96); } }
+  @media (prefers-reduced-motion: reduce) { .die.roll { animation:none; } }
+  .dtotal { text-align:center; font-size:clamp(18px, 3.4vh, 34px); font-weight:700; min-height:1.2em; }
+  @media (max-width:820px) { .card.flt { position:static; grid-column:1 / -1; height:60vh; left:auto !important; top:auto !important; width:auto !important; } }
+  /* groups (picker) */
+  .pkgroups { flex:1; min-height:0; overflow:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px; align-content:start; }
+  .pkgrp { background:var(--accent2); border-radius:14px; padding:6px 8px; display:flex; flex-direction:column; gap:4px; cursor:pointer; border:3px solid transparent; }
+  .pkgrp h4 { margin:0; font-size:15px; color:var(--yellow); }
+  .pkgrp button { font-family:var(--font); font-size:clamp(15px, 2.4vh, 22px); font-weight:700; text-align:left; border:none; border-radius:10px; padding:2px 8px; cursor:pointer;
+                  background:transparent; color:var(--ink); }
+  .pkgrp button.sel { background:var(--yellow); color:#1d2433; }
+  .pkgrp.target { border-color:var(--yellow); }
+  .pkgset { display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap; font-size:16px; }
+  .pkgset .chip.on { background:var(--accent); color:var(--onaccent); }
   /* ---------- poll ---------- */
   .card.poll { position:fixed; z-index:3; display:none; flex-direction:column; gap:8px; padding:10px; min-width:0; min-height:0; }
   body.pollon .card.poll { display:flex; }
@@ -865,6 +896,9 @@
   <button class="tool" id="bgBtn">Background</button>
   <button class="tool" id="cwBtn">Clean-up warning</button>
   <button class="tool" id="pollBtn">Poll</button>
+  <button class="tool" id="diceBtn">Dice</button>
+  <button class="tool" id="embedBtn">Embed a website</button>
+  <button class="tool" id="imgBtn">Add a picture</button><input type="file" id="imgFile" accept="image/*" hidden>
   <button class="tool" id="qrBtn">QR code</button>
   <button class="tool" id="noiseBtn">Noise meter</button>
   <button class="tool" id="schedBtn">Schedule</button>
@@ -1648,6 +1682,7 @@
       used: Array.isArray(c.used) ? c.used : [], last: String(c.last || ''),
       sat: Array.isArray(c.sat) ? c.sat : [], seat: Array.isArray(c.seat) ? c.seat : [],
       notes: String(c.notes || ''), nd: String(c.nd || ''), pts: Math.max(0, Number(c.pts) || 0),
+      groups: Array.isArray(c.groups) ? c.groups.filter(Array.isArray) : [], gby: c.gby === 'count' ? 'count' : 'size', gnum: Math.max(2, Math.min(10, Number(c.gnum) || 3)),
       checks: c.checks && typeof c.checks === 'object' ? c.checks : {} }));
   }
   function pkSaveClasses(list) { store.set('pkclasses_' + grade, JSON.stringify(list)); store.del('pknames_' + grade); }
@@ -1684,13 +1719,13 @@
     });
     const add = document.createElement('button'); add.className = 'chip'; add.textContent = '+ Add class'; add.onclick = () => listEdit(null);
     $('pkCls').appendChild(add);
-    [['call', 'Cold call'], ['seat', 'Special seats'], ['notes', 'Notes'], ['check', 'Exit check']].forEach(([k, label]) => {
+    [['call', 'Cold call'], ['seat', 'Special seats'], ['groups', 'Groups'], ['notes', 'Notes'], ['check', 'Exit check']].forEach(([k, label]) => {
       const b = document.createElement('button'); b.className = 'chip' + (pkTab() === k ? ' on' : ''); b.textContent = label;
       b.setAttribute('aria-pressed', pkTab() === k);
       b.onclick = () => { store.set('pktab_' + grade, k); pkChecklist = false; listShow(); };
       $('pkTabs').appendChild(b);
     });
-    ({ seat: seatBody, notes: notesBody, check: checkBody }[pkTab()] || callBody)(c);
+    ({ seat: seatBody, groups: groupsBody, notes: notesBody, check: checkBody }[pkTab()] || callBody)(c);
     requestAnimationFrame(pkFit);
   }
   const smRow = inner => '<div class="pkrow pksm">' + inner + '<button class="chip pkspk" id="pkSpeak"></button></div>';
@@ -1838,6 +1873,59 @@
       line.textContent = shortDay(d) + ':  ' + FACES.map(([f], i) => f + ' ' + (v[i] || 0)).join('   '); $('pkPast').appendChild(line);
     });
   }
+  // Groups: random groups for this class, saved until new ones are made. Tap a name, then another name to swap them,
+  // or tap a group to move the picked name into it.
+  let grpSel = null;   // [group, position]
+  function groupsMake(c) {
+    const idx = c.n.map((_, i) => i);
+    for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+    const count = c.gby === 'count' ? Math.min(c.gnum, idx.length) : Math.max(1, Math.round(idx.length / c.gnum));
+    const out = Array.from({ length: count }, () => []);
+    idx.forEach((v, i) => out[i % count].push(v));
+    return out;
+  }
+  function groupsBody(c) {
+    const ok = c.groups.length && c.groups.flat().every(i => i < c.n.length) && c.groups.flat().length === c.n.length;
+    const ctl = '<div class="pkgset"><button class="chip" id="gBy"></button><button class="chip" id="gLess">-</button><b id="gNum"></b><button class="chip" id="gMore">+</button>' +
+      '<button class="chip main" id="gMake"></button></div>';
+    if (!ok) {
+      $('pkBody').innerHTML = '<div class="pkname wait" style="font-size:22px">Make groups for this class</div>' + ctl;
+    } else {
+      $('pkBody').innerHTML = '<div class="pkgroups" id="gList"></div>' + ctl +
+        '<div class="pkrow pksm"><span class="pkleft">Tap a name, then another name to swap them. Or tap a group to move them there.</span></div>';
+      c.groups.forEach((g, gi) => {
+        const box = document.createElement('div'); box.className = 'pkgrp' + (grpSel && grpSel[0] !== gi ? ' target' : '');
+        const h = document.createElement('h4'); h.textContent = 'Group ' + (gi + 1); box.appendChild(h);
+        g.forEach((ni, pi) => {
+          const b = document.createElement('button'); b.textContent = c.n[ni];
+          if (grpSel && grpSel[0] === gi && grpSel[1] === pi) b.className = 'sel';
+          b.onclick = e => {
+            e.stopPropagation();
+            if (!grpSel) { grpSel = [gi, pi]; groupsBody(c); return; }
+            if (grpSel[0] === gi && grpSel[1] === pi) { grpSel = null; groupsBody(c); return; }
+            const l = pkClasses(), k = pkCur(l), [a, b2] = grpSel;
+            [k.groups[a][b2], k.groups[gi][pi]] = [k.groups[gi][pi], k.groups[a][b2]];
+            pkSaveClasses(l); grpSel = null; groupsBody(k);
+          };
+          box.appendChild(b);
+        });
+        box.onclick = () => {   // move the picked name into this group
+          if (!grpSel || grpSel[0] === gi) return;
+          const l = pkClasses(), k = pkCur(l), [a, b2] = grpSel, moved = k.groups[a].splice(b2, 1)[0];
+          k.groups[gi].push(moved); k.groups = k.groups.filter(x => x.length); pkSaveClasses(l); grpSel = null; groupsBody(k);
+        };
+        $('gList').appendChild(box);
+      });
+    }
+    $('gBy').textContent = c.gby === 'count' ? 'Number of groups' : 'People per group';
+    $('gNum').textContent = c.gnum;
+    $('gMake').textContent = ok ? 'New groups' : 'Make groups';
+    const save = f => { const l = pkClasses(), k = pkCur(l); f(k); pkSaveClasses(l); grpSel = null; groupsBody(k); };
+    $('gBy').onclick = () => save(k => k.gby = k.gby === 'count' ? 'size' : 'count');
+    $('gLess').onclick = () => save(k => k.gnum = Math.max(2, k.gnum - 1));
+    $('gMore').onclick = () => save(k => k.gnum = Math.min(10, k.gnum + 1));
+    $('gMake').onclick = () => { if (ok && !confirm('Make new groups? The groups you have now will be replaced.')) return; save(k => k.groups = groupsMake(k)); };
+  }
   function seatToggle(i) {
     const l = pkClasses(), c = pkCur(l); if (!c) return;
     c.sat = c.sat.includes(i) ? c.sat.filter(x => x !== i) : c.sat.concat(i); pkSaveClasses(l);
@@ -1880,7 +1968,7 @@
       if (!names.length) { $('pkText').focus(); return; }
       const l = pkClasses();
       let k = id ? l.find(x => x.id === id) : null;
-      if (k) { if (k.n.join('\n') !== names.join('\n')) { k.used = []; k.last = ''; k.sat = []; k.seat = []; } k.t = t; k.n = names; }
+      if (k) { if (k.n.join('\n') !== names.join('\n')) { k.used = []; k.last = ''; k.sat = []; k.seat = []; k.groups = []; } k.t = t; k.n = names; }
       else { k = { id: 'c' + Date.now(), t, n: names, used: [], last: '', sat: [], seat: [], notes: '', nd: '', pts: 0, checks: {} }; l.push(k); }
       pkSaveClasses(l); store.set('pkcls_' + grade, k.id); listShow();
     };
@@ -2535,6 +2623,124 @@
   $('plClose').onclick = () => { if (maxEl === $('pollCard')) { setMax(null); maxIcons(); } setPoll(false); };
   setPoll(store.get('pollon', '0') === '1');
 
+  /* ---------- extra widgets: dice, embed, pictures ---------- */
+  // Each one is a floating card like the picker: Arrange moves and resizes it, the four-corners button fills the screen.
+  function makeFloat(id, title, rectKey, def, onClose) {
+    const el = document.createElement('section'); el.className = 'card flt'; el.id = id; el.hidden = true; el.setAttribute('aria-label', title);
+    el.innerHTML = '<div class="flthead"><b></b><button class="maxbtn" aria-label="Fill the screen" title="Fill the screen"></button><button class="tool fltx">Close</button></div><div class="fltbody"></div>';
+    el.querySelector('b').textContent = title;
+    document.querySelector('.board').appendChild(el);
+    const mb = el.querySelector('.maxbtn'); mb.onclick = e => { e.stopPropagation(); setMax(el); maxIcons(); };
+    el.querySelector('.fltx').onclick = () => { if (maxEl === el) { setMax(null); } onClose(); maxIcons(); };
+    const place = floatCard(el, rectKey, def, .16, .18);
+    maxIcons();
+    return { el, body: el.querySelector('.fltbody'), head: el.querySelector('.flthead'), place, show(on) { el.hidden = !on; if (on) place(); } };
+  }
+
+  /* dice */
+  const PIPS = { 1: [[50, 50]], 2: [[28, 28], [72, 72]], 3: [[28, 28], [50, 50], [72, 72]], 4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+                 5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]], 6: [[28, 26], [72, 26], [28, 50], [72, 50], [28, 74], [72, 74]] };
+  const dieSvg = v => '<svg viewBox="0 0 100 100" role="img" aria-label="' + v + '">' + (PIPS[v] || []).map(([x, y]) => '<circle cx="' + x + '" cy="' + y + '" r="9" fill="#1d2433"/>').join('') + '</svg>';
+  const diceGet = () => { const v = jget('dice', null); return v && v.n ? v : { n: 2, vals: [] }; };
+  const dice = makeFloat('diceCard', 'Dice', 'dicerect', { x: .3, y: .2, w: .4, h: .5 }, () => setDice(false));
+  dice.body.innerHTML = '<div class="dice" id="diceBox"></div><div class="dtotal" id="diceTot"></div>' +
+    '<div class="plrow"><button class="chip" id="dLess" aria-label="Fewer dice">-</button><span class="plleft" id="dN"></span><button class="chip" id="dMore" aria-label="More dice">+</button><button class="chip main" id="dRoll">Roll</button></div>';
+  function dicePaint(vals, rolling) {
+    const v = diceGet(); $('diceBox').style.setProperty('--n', v.n); $('diceBox').innerHTML = '';
+    for (let i = 0; i < v.n; i++) { const d = document.createElement('div'); d.className = 'die' + (rolling ? ' roll' : ''); d.innerHTML = dieSvg(vals[i] || 1); $('diceBox').appendChild(d); }
+    $('dN').textContent = v.n + (v.n === 1 ? ' die' : ' dice');
+    $('diceTot').textContent = rolling || !vals.length ? '' : (v.n > 1 ? 'Total: ' + vals.slice(0, v.n).reduce((a, b) => a + b, 0) : '');
+  }
+  function diceTick() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)(), o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square'; o.frequency.value = 300 + Math.random() * 500; g.gain.setValueAtTime(.06, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .05);
+      o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime + .06); setTimeout(() => { try { ctx.close(); } catch(e) {} }, 300);
+    } catch(e) {}
+  }
+  let diceT = null;
+  function diceRoll() {
+    const v = diceGet(), r = () => Array.from({ length: v.n }, () => 1 + Math.floor(Math.random() * 6));
+    clearInterval(diceT); $('dRoll').disabled = true;
+    let steps = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 10;
+    const done = () => { const vals = r(); store.set('dice', JSON.stringify({ n: v.n, vals })); dicePaint(vals, false); $('dRoll').disabled = false; };
+    if (!steps) { done(); return; }
+    diceT = setInterval(() => { dicePaint(r(), true); diceTick(); if (--steps <= 0) { clearInterval(diceT); done(); } }, 80);
+  }
+  $('dRoll').onclick = diceRoll;
+  $('dLess').onclick = () => { const v = diceGet(); v.n = Math.max(1, v.n - 1); store.set('dice', JSON.stringify(v)); dicePaint(v.vals, false); };
+  $('dMore').onclick = () => { const v = diceGet(); v.n = Math.min(6, v.n + 1); store.set('dice', JSON.stringify(v)); dicePaint(v.vals, false); };
+  function setDice(on) { dice.show(on); store.set('diceon', on ? 1 : 0); $('diceBtn').textContent = on ? 'Dice: On' : 'Dice'; if (on) dicePaint(diceGet().vals || [], false); }
+  $('diceBtn').onclick = () => setDice(dice.el.hidden);
+  setDice(store.get('diceon', '0') === '1');
+
+  /* embed a website */
+  // Any link. YouTube, Google Slides and Canva links are turned into their embed versions. Some websites refuse to be shown
+  // inside another page; Open in tab is the backup.
+  const emb = makeFloat('embedCard', 'Website', 'embedrect', { x: .52, y: .14, w: .45, h: .62 }, () => setEmbed(false));
+  const embTab = document.createElement('button'); embTab.className = 'tool'; embTab.textContent = 'Open in tab';
+  const embChg = document.createElement('button'); embChg.className = 'tool'; embChg.textContent = 'Change link';
+  emb.head.insertBefore(embChg, emb.head.querySelector('.maxbtn')); emb.head.insertBefore(embTab, embChg);
+  function embResolve(url) {
+    url = String(url || '').trim(); if (url && !/^[a-z]+:/i.test(url)) url = 'https://' + url;
+    if (!/^https:\/\/\S+\.\S+/i.test(url)) return null;
+    const r = EMB.yt.resolve(url) || EMB.sl.resolve(url);
+    return r && r.src ? r : { src: url, tab: url };
+  }
+  function embPaint() {
+    const url = store.get('embedurl', ''), r = embResolve(url);
+    embTab.style.display = embChg.style.display = r ? '' : 'none';
+    if (!r) {
+      emb.body.innerHTML = '<div class="set"><p>Paste a link to show that website here. Some websites do not allow this; then use Open in tab.</p>' +
+        '<input type="text" id="embIn" placeholder="https://..." aria-label="Website link"><button class="chip main" id="embGo">Show it</button><p id="embMsg"></p></div>';
+      $('embIn').value = url;
+      const go = () => { const v = $('embIn').value.trim(); if (!embResolve(v)) { $('embMsg').textContent = 'That does not look like a link.'; return; } store.set('embedurl', v); embPaint(); };
+      $('embGo').onclick = go; $('embIn').onkeydown = e => { if (e.key === 'Enter') go(); };
+      return;
+    }
+    emb.body.innerHTML = ''; const f = document.createElement('iframe'); f.title = 'Website'; f.src = r.src;
+    f.setAttribute('allow', 'autoplay; encrypted-media; fullscreen'); f.allowFullscreen = true; emb.body.appendChild(f);
+    embTab.onclick = () => window.open(r.tab, '_blank', 'noopener');
+  }
+  embChg.onclick = () => { store.del('embedurl'); embPaint(); };
+  function setEmbed(on) { emb.show(on); store.set('embedon', on ? 1 : 0); $('embedBtn').textContent = on ? 'Embed a website: On' : 'Embed a website'; if (on) embPaint(); else emb.body.innerHTML = ''; }
+  $('embedBtn').onclick = () => setEmbed(emb.el.hidden);
+  setEmbed(store.get('embedon', '0') === '1');
+
+  /* pictures */
+  // Each picture is its own card. Pictures are shrunk and saved on this device only (never put on the public site).
+  const imgCards = {};
+  function imgList() { const v = jget('imgs', []); return Array.isArray(v) ? v.map(String) : []; }
+  function imgCard(id) {
+    const data = store.get('imgdata_' + id, ''); if (!data) return;
+    const n = imgList().indexOf(id);
+    const w = makeFloat('img_' + id, 'Picture', 'imgrect_' + id, { x: .05 + (n % 5) * .06, y: .12 + (n % 5) * .06, w: .3, h: .4 }, () => {
+      if (!confirm('Remove this picture from the board?')) return;
+      if (maxEl === w.el) setMax(null);
+      w.el.remove(); delete imgCards[id];
+      store.set('imgs', JSON.stringify(imgList().filter(x => x !== id))); store.del('imgdata_' + id); store.del('imgrect_' + id);
+    });
+    w.el.querySelector('.fltx').textContent = 'Remove';
+    const im = document.createElement('img'); im.src = data; im.alt = 'Picture'; w.body.appendChild(im);
+    w.show(true); imgCards[id] = w;
+  }
+  $('imgBtn').onclick = () => $('imgFile').click();
+  $('imgFile').onchange = e => {
+    const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onerror = () => { URL.revokeObjectURL(url); toast('That file did not open as a picture'); };
+    im.onload = () => {
+      const png = /png|gif|webp/i.test(file.type), max = png ? 1000 : 1600, k = Math.min(1, max / Math.max(im.width, im.height));
+      const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      const x = c.getContext('2d'); if (!png) { x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); } x.drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      const data = png ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', .85), id = Date.now().toString(36);
+      try { localStorage.setItem('cb_imgdata_' + id, data); } catch(err) { toast('This board is out of room for pictures. Remove one first.'); return; }
+      store.set('imgs', JSON.stringify(imgList().concat(id))); imgCard(id); toast('Picture added. Use Arrange to move it or make it bigger.');
+    };
+    im.src = url;
+  };
+  imgList().forEach(imgCard);
+
   /* ---------- clean-up warning ---------- */
   // Class length and warning come from the timer's Edit dialog (45 and 5 to start). The class start time is saved, so a refresh does not lose it.
   function warnSound() {
@@ -2720,6 +2926,14 @@
     };
     drag(grab, false); drag(rs, true);
     addEventListener('resize', place); place();
+    // tap a floating card to bring it in front of the others (list kept on the function: some cards are made before this line runs)
+    const floatOrder = floatCard.order || (floatCard.order = []);
+    floatOrder.push(el);
+    el.addEventListener('pointerdown', () => {
+      const i = floatOrder.indexOf(el); if (i < 0 || i === floatOrder.length - 1) return;
+      floatOrder.splice(i, 1); floatOrder.push(el); floatOrder.forEach((c, k) => c.style.zIndex = 3 + k);
+    }, true);
+    el.style.zIndex = 3 + floatOrder.length - 1;
     return place;
   }
 
