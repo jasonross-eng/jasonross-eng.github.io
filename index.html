@@ -188,6 +188,9 @@
   .pljoin .st { font-size:13px; color:#555; }
   .pljoin .st.bad { color:#d93025; font-weight:700; }
   .plrow .chip.on { background:var(--green); border-color:var(--green); color:#062b12; }
+  .plopts.pltexts { flex-wrap:wrap; align-content:flex-start; overflow:auto; gap:8px; }
+  .pltext { background:#fff; color:#1d2433; border-radius:12px; padding:6px 12px; font-size:clamp(16px, 2.8vh, 26px); font-weight:700; max-width:100%; overflow-wrap:anywhere; }
+  .plhidden { width:100%; text-align:center; color:var(--soft); font-size:clamp(16px, 3vh, 28px); padding:12px; }
   .plset { display:flex; flex-direction:column; gap:8px; font-size:16px; }
   .plset input, .plset select { font-family:var(--font); font-size:17px; padding:6px 10px; border-radius:10px; border:2px solid var(--line); background:#fff; color:#1d2433; min-width:0; }
   .plset .r { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
@@ -2563,7 +2566,8 @@
   const PL_TYPES = {
     smile: { name: 'Smileys', opts: [['😀', 'Good'], ['😐', 'Okay'], ['🙁', 'Not good']] },
     thumbs: { name: 'Thumbs', opts: [['👍', 'Yes'], ['👎', 'No']] },
-    mc: { name: 'Multiple choice' }
+    mc: { name: 'Multiple choice' },
+    text: { name: 'Short answer', opts: [] }
   };
   const PL_COLORS = ['#22d3ee', '#7be0a2', '#f6c026', '#ff8a80', '#b48cff', '#ffb74d'];
   const plGet = () => { const v = jget('poll', null); return v && v.type ? v : null; };
@@ -2574,7 +2578,8 @@
     const card = $('pollCard'), body = $('plBody'), mc = v.type === 'mc';
     card.classList.toggle('hideres', !!v.hide);
     const dc = plDevCounts(v), cnt = v.votes.map((x, i) => x + dc[i]);
-    const total = cnt.reduce((a, b) => a + b, 0), top = Math.max(1, ...cnt);
+    const texts = v.type === 'text' ? Object.keys(plDev).map(k => plDev[k]).filter(x => typeof x === 'string' && x.trim()) : [];
+    const total = v.type === 'text' ? texts.length : cnt.reduce((a, b) => a + b, 0), top = Math.max(1, ...cnt);
     body.innerHTML = '<div class="pljoin" id="plJoin"></div><div class="plq" id="plQ"></div><div class="plopts' + (mc ? ' mc' : '') + '" id="plOpts"></div>' +
       '<div class="plrow"><span class="plleft" id="plTot"></span><button class="chip" id="plLive"></button><button class="chip" id="plHide"></button><button class="chip" id="plUndo">Undo</button>' +
       '<button class="chip" id="plReset">Clear votes</button><button class="chip" id="plNew">New poll</button></div>';
@@ -2593,11 +2598,18 @@
       b.onclick = () => { const w = plGet(); w.votes[i]++; plSet(w); plUndo.push(i); plShow(); };
       $('plOpts').appendChild(b);
     });
-    $('plTot').textContent = total + (total === 1 ? ' vote' : ' votes');
-    $('plHide').textContent = v.hide ? 'Show results' : 'Hide results';
+    if (v.type === 'text') {   // short answers from student devices, each in its own box; hidden until the teacher shows them
+      $('plOpts').className = 'plopts pltexts';
+      if (v.hide) { const m = document.createElement('div'); m.className = 'plhidden'; m.textContent = total + (total === 1 ? ' answer' : ' answers') + ' so far. Tap Show answers to see them.'; $('plOpts').appendChild(m); }
+      else texts.forEach(t => { const d = document.createElement('div'); d.className = 'pltext'; d.textContent = t; $('plOpts').appendChild(d); });
+      if (!v.live) { const m = document.createElement('div'); m.className = 'plhidden'; m.textContent = 'Turn on Student devices so students can type their answers.'; $('plOpts').appendChild(m); }
+    }
+    $('plTot').textContent = total + (v.type === 'text' ? (total === 1 ? ' answer' : ' answers') : (total === 1 ? ' vote' : ' votes'));
+    $('plHide').textContent = v.type === 'text' ? (v.hide ? 'Show answers' : 'Hide answers') : (v.hide ? 'Show results' : 'Hide results');
+    if (v.type === 'text') { $('plUndo').remove(); $('plReset').textContent = 'Clear answers'; }
     $('plHide').onclick = () => { const w = plGet(); w.hide = !w.hide; plSet(w); plShow(); };
-    $('plUndo').style.display = plUndo.length ? '' : 'none';
-    $('plUndo').onclick = () => { const i = plUndo.pop(); const w = plGet(); if (i !== undefined && w.votes[i] > 0) w.votes[i]--; plSet(w); plShow(); };
+    if ($('plUndo')) $('plUndo').style.display = plUndo.length ? '' : 'none';
+    if ($('plUndo')) $('plUndo').onclick = () => { const i = plUndo.pop(); const w = plGet(); if (i !== undefined && w.votes[i] > 0) w.votes[i]--; plSet(w); plShow(); };
     $('plReset').onclick = () => {
       if (!confirm('Clear all the votes?')) return;
       const w = plGet(); w.votes = w.votes.map(() => 0); w.nonce = plNonce(); plSet(w); plUndo = []; plDev = {};
@@ -2618,11 +2630,11 @@
       body.innerHTML = '<div class="plset"><div class="types" id="plTypes"></div>' +
         '<div class="r"><input type="text" id="plQIn" maxlength="120" placeholder="Your question (optional)" aria-label="Your question"></div><div id="plMc"></div>' +
         '<div class="r"><label><input type="checkbox" id="plHideIn"> Hide results while voting</label></div>' +
-        '<div class="plrow"><button class="chip main" id="plGo">Start poll</button>' + (plGet() ? '<button class="chip" id="plCancel">Cancel</button>' : '') + '</div></div>';
+        '<div class="plrow"><button class="chip main" id="plGo">Start poll</button><button class="chip" id="plSlip">Save as exit slip</button>' + (plGet() ? '<button class="chip" id="plCancel">Cancel</button>' : '') + '</div></div>';
       $('plQIn').value = prev && prev.q || ''; $('plHideIn').checked = !!(prev && prev.hide);
       Object.keys(PL_TYPES).forEach(k => {
-        const b = document.createElement('button'); b.className = 'chip' + (k === type ? ' on' : ''); b.textContent = PL_TYPES[k].name + (k === 'smile' ? ' 😀😐🙁' : k === 'thumbs' ? ' 👍👎' : ' A B C');
-        b.onclick = () => { prev = Object.assign({}, prev || {}, { q: $('plQIn').value, hide: $('plHideIn').checked }); type = k; draw(); };
+        const b = document.createElement('button'); b.className = 'chip' + (k === type ? ' on' : ''); b.textContent = PL_TYPES[k].name + (k === 'smile' ? ' 😀😐🙁' : k === 'thumbs' ? ' 👍👎' : k === 'text' ? ' ✏️' : ' A B C');
+        b.onclick = () => { prev = Object.assign({}, prev || {}, { q: $('plQIn').value, hide: $('plHideIn').checked }); type = k; draw(); if (k === 'text') $('plHideIn').checked = true; };
         $('plTypes').appendChild(b);
       });
       if (type === 'mc') {
@@ -2637,8 +2649,14 @@
         });
         if (mcOpts.length < 6) { const a = document.createElement('button'); a.className = 'chip'; a.textContent = '+ Add answer'; a.onclick = () => { mcOpts.push(''); draw(); }; $('plMc').appendChild(a); }
       }
+      const optsNow = () => type === 'mc' ? mcOpts.map((t, i) => ['', t.trim() || ('Answer ' + String.fromCharCode(65 + i))]) : PL_TYPES[type].opts;
+      // Save as exit slip: kept for this grade, shown by itself at the clean-up warning
+      $('plSlip').onclick = () => {
+        store.set('exitslip_' + grade, JSON.stringify({ type, q: $('plQIn').value.trim(), opts: optsNow(), on: true }));
+        toast('Saved as the ' + gradeWord() + ' exit slip. It shows at the clean-up warning.');
+      };
       $('plGo').onclick = () => {
-        const opts = type === 'mc' ? mcOpts.map((t, i) => ['', t.trim() || ('Answer ' + String.fromCharCode(65 + i))]) : PL_TYPES[type].opts;
+        const opts = optsNow();
         const old = plGet() || {};
         const w = { type, q: $('plQIn').value.trim(), opts, votes: opts.map(() => 0), hide: $('plHideIn').checked, code: old.code, live: !!old.live, nonce: plNonce() };
         plSet(w); plUndo = []; plDev = {};
@@ -2671,15 +2689,16 @@
     es.onerror = () => { plNet = 'down'; plNetPaint(); };
     es.onmessage = e => {
       let m, d; try { m = JSON.parse(e.data); if (m.event && m.event !== 'message') return; d = JSON.parse(m.message); } catch(x) { return; }
-      const w = plGet(); if (!w || !d || d.n !== w.nonce || typeof d.d !== 'string' || !(d.a >= 0 && d.a < w.opts.length)) return;
-      plDev[d.d] = d.a; plNet = 'ok'; if (document.body.classList.contains('pollon')) plShow();
+      const w = plGet(); if (!w || !d || d.n !== w.nonce || typeof d.d !== 'string') return;
+      if (w.type === 'text') { if (typeof d.t !== 'string') return; plDev[d.d] = d.t.slice(0, 200); }
+      else { if (!(d.a >= 0 && d.a < w.opts.length)) return; plDev[d.d] = d.a; } plNet = 'ok'; if (document.body.classList.contains('pollon')) plShow();
     };
   }
   function plVoteUrl(code) { return location.origin + location.pathname.replace(/[^\/]*$/, '') + 'vote.html?c=' + code; }
   function plNetPaint() {
     const el = $('plNet'); if (!el) return;
     const n = Object.keys(plDev).length;
-    el.textContent = plNet === 'down' ? 'Cannot reach the vote service. The school filter may block it.' : n + (n === 1 ? ' device voted' : ' devices voted');
+    el.textContent = plNet === 'down' ? 'Cannot reach the vote service. The school filter may block it.' : n + (n === 1 ? ' device answered' : ' devices answered');
     el.classList.toggle('bad', plNet === 'down');
   }
   function plJoinPaint(v) {
@@ -2826,6 +2845,21 @@
   };
   imgList().forEach(imgCard);
 
+  /* ---------- exit slip ---------- */
+  // Saved per grade from the poll setup (Save as exit slip). At the clean-up warning it opens as a poll with Student devices on
+  // and fills the screen, so students see the question, the QR code and the code. Tap the shrink button to put it back.
+  function exitSlipGet(g) { const v = jget('exitslip_' + (g || grade), null); return v && v.type && Array.isArray(v.opts) ? v : null; }
+  function exitSlipLaunch(force) {
+    const es = exitSlipGet(); if (!es || (!force && es.on === false)) return false;
+    const old = plGet() || {};
+    const w = { type: es.type, q: es.q || 'Exit slip', opts: es.opts, votes: es.opts.map(() => 0), hide: es.type === 'text',
+                code: old.code || String(1000 + Math.floor(Math.random() * 9000)), live: true, nonce: plNonce() };
+    plSet(w); plUndo = []; plDev = {};
+    setPoll(true);
+    if (maxEl !== $('pollCard')) { setMax($('pollCard')); maxIcons(); }
+    return true;
+  }
+
   /* ---------- clean-up warning ---------- */
   // Class length and warning come from the timer's Edit dialog (45 and 5 to start). The class start time is saved, so a refresh does not lose it.
   function warnSound() {
@@ -2871,6 +2905,7 @@
     const m = Math.max(1, Math.round(leftMs / 60000));
     $('warnBig').textContent = m + (m === 1 ? ' minute left' : ' minutes left');
     warnSound(); warnShow(true); cwPaint(cwInfo(), now);
+    exitSlipLaunch();
   }
   // Small button under the date while a class is running: "Clean up at 10:40". Tap it to change the time.
   function cwPaint(c, now) {
@@ -2911,6 +2946,18 @@
           body.innerHTML = '<p>' + (c.startAt && c.warned ? 'This class already had its warning.' : 'No class is running.') + ' Tap Start class when a class begins; then you can change this class\'s warning time here, or tap the "Clean up at" button under the date.</p>';
         }
         const r = document.createElement('div');
+        const es = exitSlipGet(), ex = document.createElement('div');
+        ex.innerHTML = '<p><b>Exit slip for ' + gradeWord() + '</b></p><p id="esWhat"></p><div class="r" id="esBtns"></div>';
+        body.appendChild(ex);
+        if (!es) $('esWhat').textContent = 'None yet. To make one: More, Poll, New poll, pick the kind, type the question, then tap Save as exit slip.';
+        else {
+          $('esWhat').textContent = '"' + (es.q || 'Exit slip') + '" (' + PL_TYPES[es.type].name + '). ' + (es.on === false ? 'Off: it will not show.' : 'It shows by itself at the clean-up warning.');
+          [['esOn', es.on === false ? 'Turn on' : 'Turn off', () => { es.on = es.on === false; store.set('exitslip_' + grade, JSON.stringify(es)); draw(); }],
+           ['esNow', 'Show it now', () => { closeDlg(); exitSlipLaunch(true); }],
+           ['esDel', 'Remove', () => { if (confirm('Remove the ' + gradeWord() + ' exit slip?')) { store.del('exitslip_' + grade); draw(); } }]].forEach(([id, t, f]) => {
+            const b = document.createElement('button'); b.className = 'tool'; b.id = id; b.textContent = t; b.onclick = f; $('esBtns').appendChild(b);
+          });
+        }
         r.innerHTML = '<p><b>Every class</b></p><div class="r"><span>Class is</span><input type="number" id="cwLen" min="5" max="180" aria-label="Class length in minutes"><span>min. Warn</span><input type="number" id="cwWm" min="0" max="30" aria-label="Warning minutes before the end"><span>min before the end (0 = off).</span></div>';
         body.appendChild(r);
         $('cwLen').value = store.get('classlen', '45'); $('cwWm').value = store.get('warnmin', '5');

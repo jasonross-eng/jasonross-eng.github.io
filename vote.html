@@ -32,6 +32,7 @@
   .opt .tx { overflow-wrap:anywhere; }
   .opts.mc .opt { justify-content:flex-start; text-align:left; }
   .opt.picked { border-color:var(--yellow); background:#3d1a78; }
+  .ans { flex:1; min-height:140px; resize:none; font-family:var(--font); font-size:clamp(22px, 5vw, 32px); padding:12px; border-radius:18px; border:3px solid var(--yellow); background:#fff; color:#1d2433; }
   .done { text-align:center; font-size:clamp(20px, 4.5vw, 30px); font-weight:700; color:var(--yellow); min-height:1.3em; }
   .go { align-self:center; font-size:18px; padding:8px 18px; background:transparent; border:2px solid #4a2a80; color:var(--soft); }
   [hidden] { display:none !important; }
@@ -108,9 +109,20 @@
   function render() {
     show('vote');
     const mc = poll.type === 'mc', mine = st.get('vote_' + code + '_' + poll.n);
-    $('q').textContent = poll.q || (mc ? 'Pick one' : 'Tap your answer');
+    $('q').textContent = poll.q || (mc ? 'Pick one' : poll.type === 'text' ? 'Type your answer' : 'Tap your answer');
     $('opts').className = 'opts' + (mc ? ' mc' : '');
     $('opts').innerHTML = '';
+    if (poll.type === 'text') {   // short answer: type and send; sending again replaces the answer
+      $('opts').className = 'opts mc';
+      const ta = document.createElement('textarea'); ta.className = 'ans'; ta.maxLength = 200; ta.placeholder = 'Type here'; ta.setAttribute('aria-label', 'Your answer');
+      ta.value = mine || '';
+      const send = document.createElement('button'); send.className = 'opt'; send.style.flex = '0 0 auto'; send.style.minHeight = '64px'; send.textContent = mine ? 'Send again' : 'Send';
+      send.onclick = () => { const t = ta.value.trim(); if (t) vote(t); else ta.focus(); };
+      $('opts').appendChild(ta); $('opts').appendChild(send);
+      $('done').textContent = mine ? 'Thanks! You can change your answer and send it again.' : '';
+      $('voteMsg').textContent = 'Do not type your name.';
+      return;
+    }
     poll.opts.forEach((o, i) => {
       const b = document.createElement('button'); b.className = 'opt' + (String(i) === mine ? ' picked' : '');
       if (mc) { const l = document.createElement('span'); l.className = 'let'; l.style.background = COLORS[i % 6]; l.textContent = String.fromCharCode(65 + i); b.appendChild(l); }
@@ -126,7 +138,8 @@
   async function vote(i) {
     if (busy || !poll) return; busy = true;
     try {
-      const r = await fetch(RELAY + PREFIX + code + '-v', { method: 'POST', body: JSON.stringify({ n: poll.n, d: dev, a: i }) });
+      const body = typeof i === 'string' ? { n: poll.n, d: dev, t: i.slice(0, 200) } : { n: poll.n, d: dev, a: i };
+      const r = await fetch(RELAY + PREFIX + code + '-v', { method: 'POST', body: JSON.stringify(body) });
       if (!r.ok) throw 0;
       st.set('vote_' + code + '_' + poll.n, String(i)); render();
     } catch(e) { $('voteMsg').textContent = 'That did not go through. Try again.'; }

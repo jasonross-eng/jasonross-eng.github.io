@@ -78,6 +78,9 @@ Classes are 45 minutes. 5 minutes before the end (counting from when you tap Sta
 ## Poll
 More, then Poll. Pick Smileys, Thumbs or Multiple choice, type a question if you like, and tap Start poll. Tap an answer on the board to add a vote. Student devices: On shows a code and a QR code; students go to the vote page, type the code and tap their answer. Their votes show up on the board. Votes go through a free service called ntfy.sh (no names, only the code and the answer). If the board says it cannot reach the vote service, the school filter is blocking it.
 
+## Exit slip
+More, Poll, New poll. Pick the kind (Smileys, Thumbs, Multiple choice or Short answer), type the question, and tap Save as exit slip. It is saved for the grade that is picked. At the 5 minute clean-up warning it fills the screen with the question, a QR code and a code. Students answer on their Chromebooks and the answers show on the board. Short answers stay hidden until you tap Show answers. More, Clean-up warning has Turn off, Show it now and Remove.
+
 ## Dice, websites and pictures
 More, then Dice: tap Roll. Plus and minus change how many dice (1 to 6).
 More, then Embed a website: paste a link and it shows inside its own widget. Some websites do not allow this; use Open in tab.
