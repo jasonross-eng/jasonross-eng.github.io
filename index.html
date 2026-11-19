@@ -136,6 +136,14 @@
   .plrow { display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center; flex:0 0 auto; }
   .plrow .chip { font-size:14px; padding:2px 12px; border-width:2px; }
   .plleft { font-size:14px; color:var(--soft); }
+  .pljoin { display:flex; align-items:center; gap:12px; background:#fff; color:#1d2433; border-radius:14px; padding:6px 12px; flex:0 0 auto; }
+  .pljoin .qr { width:min(13vh, 96px); height:min(13vh, 96px); flex:0 0 auto; }
+  .pljoin .qr svg { width:100%; height:100%; display:block; }
+  .pljoin .where { font-size:clamp(14px, 2.2vh, 20px); font-weight:700; overflow-wrap:anywhere; }
+  .pljoin .cd { font-size:clamp(26px, 5.6vh, 52px); font-weight:700; letter-spacing:.08em; line-height:1.1; }
+  .pljoin .st { font-size:13px; color:#555; }
+  .pljoin .st.bad { color:#d93025; font-weight:700; }
+  .plrow .chip.on { background:var(--green); border-color:var(--green); color:#062b12; }
   .plset { display:flex; flex-direction:column; gap:8px; font-size:16px; }
   .plset input, .plset select { font-family:var(--font); font-size:17px; padding:6px 10px; border-radius:10px; border:2px solid var(--line); background:#fff; color:#1d2433; min-width:0; }
   .plset .r { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
@@ -2392,21 +2400,23 @@
     const v = plGet(); if (!v) { plSetup(); return; }
     const card = $('pollCard'), body = $('plBody'), mc = v.type === 'mc';
     card.classList.toggle('hideres', !!v.hide);
-    const total = v.votes.reduce((a, b) => a + b, 0), top = Math.max(1, ...v.votes);
-    body.innerHTML = '<div class="plq" id="plQ"></div><div class="plopts' + (mc ? ' mc' : '') + '" id="plOpts"></div>' +
-      '<div class="plrow"><span class="plleft" id="plTot"></span><button class="chip" id="plHide"></button><button class="chip" id="plUndo">Undo</button>' +
+    const dc = plDevCounts(v), cnt = v.votes.map((x, i) => x + dc[i]);
+    const total = cnt.reduce((a, b) => a + b, 0), top = Math.max(1, ...cnt);
+    body.innerHTML = '<div class="pljoin" id="plJoin"></div><div class="plq" id="plQ"></div><div class="plopts' + (mc ? ' mc' : '') + '" id="plOpts"></div>' +
+      '<div class="plrow"><span class="plleft" id="plTot"></span><button class="chip" id="plLive"></button><button class="chip" id="plHide"></button><button class="chip" id="plUndo">Undo</button>' +
       '<button class="chip" id="plReset">Clear votes</button><button class="chip" id="plNew">New poll</button></div>';
+    plJoinPaint(v);
     $('plQ').textContent = v.q || '';
     v.opts.forEach((o, i) => {
       const b = document.createElement('button'); b.className = 'plopt';
-      b.setAttribute('aria-label', (mc ? String.fromCharCode(65 + i) + ', ' : '') + o[1] + (v.hide ? '' : ', ' + v.votes[i] + ' votes'));
+      b.setAttribute('aria-label', (mc ? String.fromCharCode(65 + i) + ', ' : '') + o[1] + (v.hide ? '' : ', ' + cnt[i] + ' votes'));
       const fill = document.createElement('i'); fill.className = 'fill'; fill.style.background = mc ? PL_COLORS[i % 6] : 'var(--accent)';
-      if (mc) fill.style.width = (v.votes[i] / top * 100) + '%'; else fill.style.height = (v.votes[i] / top * 100) + '%';
+      if (mc) fill.style.width = (cnt[i] / top * 100) + '%'; else fill.style.height = (cnt[i] / top * 100) + '%';
       b.appendChild(fill);
       if (mc) { const l = document.createElement('span'); l.className = 'let'; l.style.background = PL_COLORS[i % 6]; l.textContent = String.fromCharCode(65 + i); b.appendChild(l); }
       else { const e = document.createElement('span'); e.className = 'em'; e.textContent = o[0]; b.appendChild(e); }
       const t = document.createElement('span'); t.className = 'tx'; t.textContent = o[1]; b.appendChild(t);
-      const n = document.createElement('b'); n.className = 'n'; n.textContent = v.votes[i]; b.appendChild(n);
+      const n = document.createElement('b'); n.className = 'n'; n.textContent = cnt[i]; b.appendChild(n);
       b.onclick = () => { const w = plGet(); w.votes[i]++; plSet(w); plUndo.push(i); plShow(); };
       $('plOpts').appendChild(b);
     });
@@ -2415,7 +2425,15 @@
     $('plHide').onclick = () => { const w = plGet(); w.hide = !w.hide; plSet(w); plShow(); };
     $('plUndo').style.display = plUndo.length ? '' : 'none';
     $('plUndo').onclick = () => { const i = plUndo.pop(); const w = plGet(); if (i !== undefined && w.votes[i] > 0) w.votes[i]--; plSet(w); plShow(); };
-    $('plReset').onclick = () => { if (!confirm('Clear all the votes?')) return; const w = plGet(); w.votes = w.votes.map(() => 0); plSet(w); plUndo = []; plShow(); };
+    $('plReset').onclick = () => {
+      if (!confirm('Clear all the votes?')) return;
+      const w = plGet(); w.votes = w.votes.map(() => 0); w.nonce = plNonce(); plSet(w); plUndo = []; plDev = {};
+      if (w.live) plPublish(w);   // students see a fresh question; their earlier votes no longer count
+      plShow();
+    };
+    $('plLive').textContent = v.live ? 'Student devices: On' : 'Student devices: Off';
+    $('plLive').classList.toggle('on', !!v.live);
+    $('plLive').onclick = () => plLiveSet(!plGet().live);
     $('plNew').onclick = () => plSetup(v);
   }
   function plSetup(prev) {
@@ -2448,15 +2466,69 @@
       }
       $('plGo').onclick = () => {
         const opts = type === 'mc' ? mcOpts.map((t, i) => ['', t.trim() || ('Answer ' + String.fromCharCode(65 + i))]) : PL_TYPES[type].opts;
-        plSet({ type, q: $('plQIn').value.trim(), opts, votes: opts.map(() => 0), hide: $('plHideIn').checked }); plUndo = []; plShow();
+        const old = plGet() || {};
+        const w = { type, q: $('plQIn').value.trim(), opts, votes: opts.map(() => 0), hide: $('plHideIn').checked, code: old.code, live: !!old.live, nonce: plNonce() };
+        plSet(w); plUndo = []; plDev = {};
+        if (w.live) { plPublish(w); plListen(w); }
+        plShow();
       };
       if ($('plCancel')) $('plCancel').onclick = plShow;
     };
     draw();
   }
+  // Student devices: students open vote.html, type the 4 digit code and tap an answer. Answers travel through the free
+  // ntfy.sh relay (topics jre-tb-<code>-q for the question, jre-tb-<code>-v for votes). Only the code, a random device id and the
+  // answer number travel; never a name. One vote per device per round; a student can change it. Nonce marks the round.
+  const PL_RELAY = 'https://ntfy.sh/', PL_PREFIX = 'jre-tb-';
+  const plTopic = (code, k) => PL_RELAY + PL_PREFIX + code + '-' + k;
+  const plNonce = () => Math.random().toString(36).slice(2, 9);
+  let plES = null, plDev = {}, plNet = '';
+  function plDevCounts(v) { const c = v.opts.map(() => 0); Object.keys(plDev).forEach(k => { const a = plDev[k]; if (a >= 0 && a < c.length) c[a]++; }); return c; }
+  function plPublish(v) {
+    if (!v || !v.code) return;
+    const body = v.live ? JSON.stringify({ n: v.nonce, type: v.type, q: v.q, opts: v.opts }) : JSON.stringify({ closed: true });
+    fetch(plTopic(v.code, 'q'), { method: 'POST', body }).then(r => { if (!r.ok) throw 0; plNet = 'ok'; plNetPaint(); }).catch(() => { plNet = 'down'; plNetPaint(); });
+  }
+  function plListen(v) {
+    if (plES) { plES.close(); plES = null; }
+    plDev = {};
+    if (!v || !v.live || !v.code || typeof EventSource === 'undefined') return;
+    const es = new EventSource(plTopic(v.code, 'v') + '/sse?since=all'); plES = es;
+    es.onopen = () => { plNet = 'ok'; plNetPaint(); };
+    es.onerror = () => { plNet = 'down'; plNetPaint(); };
+    es.onmessage = e => {
+      let m, d; try { m = JSON.parse(e.data); if (m.event && m.event !== 'message') return; d = JSON.parse(m.message); } catch(x) { return; }
+      const w = plGet(); if (!w || !d || d.n !== w.nonce || typeof d.d !== 'string' || !(d.a >= 0 && d.a < w.opts.length)) return;
+      plDev[d.d] = d.a; plNet = 'ok'; if (document.body.classList.contains('pollon')) plShow();
+    };
+  }
+  function plVoteUrl(code) { return location.origin + location.pathname.replace(/[^\/]*$/, '') + 'vote.html?c=' + code; }
+  function plNetPaint() {
+    const el = $('plNet'); if (!el) return;
+    const n = Object.keys(plDev).length;
+    el.textContent = plNet === 'down' ? 'Cannot reach the vote service. The school filter may block it.' : n + (n === 1 ? ' device voted' : ' devices voted');
+    el.classList.toggle('bad', plNet === 'down');
+  }
+  function plJoinPaint(v) {
+    const box = $('plJoin'); if (!box) return;
+    box.style.display = v.live ? '' : 'none'; if (!v.live) return;
+    const url = plVoteUrl(v.code);
+    box.innerHTML = '<div class="qr"></div><div><div class="where"></div><div class="cd"></div><div class="st" id="plNet"></div></div>';
+    try { box.querySelector('.qr').innerHTML = qrSvg(url); } catch(e) {}
+    box.querySelector('.where').textContent = 'Go to ' + url.replace(/^https?:\/\//, '').replace(/\?c=\d+$/, '');
+    box.querySelector('.cd').textContent = 'Code ' + v.code;
+    plNetPaint();
+  }
+  function plLiveSet(on) {
+    const w = plGet(); if (!w) return;
+    if (on) { if (!w.code) w.code = String(1000 + Math.floor(Math.random() * 9000)); if (!w.nonce) w.nonce = plNonce(); }
+    w.live = on; plSet(w); plNet = '';
+    plPublish(w); plListen(w); plShow();
+  }
   function setPoll(on) {
     document.body.classList.toggle('pollon', on); store.set('pollon', on ? 1 : 0); $('pollBtn').textContent = on ? 'Poll: On' : 'Poll';
-    if (on) { plPlace(); plShow(); }
+    if (on) { plPlace(); const w = plGet(); if (w && w.live) { plPublish(w); plListen(w); } plShow(); }
+    else { const w = plGet(); if (w && w.live) { w.live = false; plSet(w); plPublish(w); } if (plES) { plES.close(); plES = null; } }
   }
   const plPlace = floatCard($('pollCard'), 'pollrect', { x: .28, y: .16, w: .44, h: .62 }, .26, .3);
   $('pollBtn').onclick = () => setPoll(!document.body.classList.contains('pollon'));
