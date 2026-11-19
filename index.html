@@ -115,6 +115,34 @@
   body.nobar.viewing .menubtn { display:none; }
 
   /* ---------- random student picker (the teacher's Google Sheet, embedded) ---------- */
+  /* ---------- poll ---------- */
+  .card.poll { position:fixed; z-index:3; display:none; flex-direction:column; gap:8px; padding:10px; min-width:0; min-height:0; }
+  body.pollon .card.poll { display:flex; }
+  .plbody { flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; overflow:auto; }
+  .plq { font-size:clamp(20px, 4.4vh, 44px); font-weight:700; text-align:center; line-height:1.15; overflow-wrap:anywhere; }
+  .plopts { flex:1; min-height:0; display:flex; gap:8px; }
+  .plopts.mc { flex-direction:column; }
+  .plopt { flex:1; min-width:0; min-height:0; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:.4em; border:none; border-radius:16px;
+           cursor:pointer; background:var(--accent2); color:var(--ink); font-family:var(--font); font-weight:700; font-size:clamp(18px, 3.6vh, 36px); padding:.2em .5em; }
+  .plopts:not(.mc) .plopt { flex-direction:column; }
+  .plopt .em { font-size:2em; line-height:1; position:relative; }
+  .plopt .let { flex:0 0 auto; width:1.6em; height:1.6em; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#1d2433; position:relative; }
+  .plopt .tx { position:relative; flex:1; min-width:0; text-align:left; overflow-wrap:anywhere; }
+  .plopts:not(.mc) .plopt .tx { flex:none; text-align:center; font-size:.6em; }
+  .plopt .n { position:relative; font-size:1em; }
+  .plopt .fill { position:absolute; left:0; top:0; bottom:0; opacity:.35; transition:width .3s; }
+  .plopts:not(.mc) .plopt .fill { top:auto; left:0; right:0; width:auto !important; transition:height .3s; }
+  .card.poll.hideres .plopt .n, .card.poll.hideres .plopt .fill { visibility:hidden; }
+  .plrow { display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center; flex:0 0 auto; }
+  .plrow .chip { font-size:14px; padding:2px 12px; border-width:2px; }
+  .plleft { font-size:14px; color:var(--soft); }
+  .plset { display:flex; flex-direction:column; gap:8px; font-size:16px; }
+  .plset input, .plset select { font-family:var(--font); font-size:17px; padding:6px 10px; border-radius:10px; border:2px solid var(--line); background:#fff; color:#1d2433; min-width:0; }
+  .plset .r { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .plset .r input { flex:1; }
+  .plset .types { display:flex; gap:8px; flex-wrap:wrap; }
+  .plset .types .chip.on { background:var(--accent); color:var(--onaccent); }
+  body.min-poll .plbody { display:none; }
   .card.pick { position:fixed; z-index:2; display:none; flex-direction:column; gap:8px; padding:10px; min-width:0; min-height:0; }
   body.pickon .card.pick { display:flex; }
   .pkhead { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
@@ -601,6 +629,7 @@
     .topbar { order:-2; } .plan { order:-1; }
     .guide, .clarity { overflow:auto; padding-bottom:110px; }
     .srows { flex:none; font-size:22px; } .srow { flex:none; flex-wrap:wrap; padding:8px 12px; } .srow input { flex:1 0 100%; width:auto; } .strack { flex:1 0 40%; }
+    .card.poll { position:static; grid-column:1 / -1; height:70vh; left:auto !important; top:auto !important; width:auto !important; }
     .card.pick { position:static; grid-column:1 / -1; height:70vh; left:auto !important; top:auto !important; width:auto !important; }
     .tcols { grid-template-columns:1fr; flex:none; } .tlist { overflow:visible; }
     .crows { flex:none; } .crow { flex:none; flex-direction:column; } .crow h2 { flex:none; }
@@ -686,6 +715,11 @@
     </header>
     <ol class="items" id="items"></ol>
     <div class="embedit" id="embEdit"></div>
+  </section>
+
+  <section class="card poll" id="pollCard" aria-label="Poll">
+    <div class="pkhead"><b id="plTitle">Poll</b><button class="maxbtn" data-max="poll" aria-label="Fill the screen" title="Fill the screen"></button><button class="tool" id="plClose">Close</button></div>
+    <div class="plbody" id="plBody"></div>
   </section>
 
   <section class="card pick" id="pickCard" aria-label="Student picker">
@@ -822,6 +856,7 @@
   <button class="tool" id="cdBtn">Countdown</button>
   <button class="tool" id="bgBtn">Background</button>
   <button class="tool" id="cwBtn">Clean-up warning</button>
+  <button class="tool" id="pollBtn">Poll</button>
   <button class="tool" id="qrBtn">QR code</button>
   <button class="tool" id="noiseBtn">Noise meter</button>
   <button class="tool" id="schedBtn">Schedule</button>
@@ -2342,6 +2377,92 @@
   $('maxBack').onclick = () => { setMax(null); maxIcons(); };
   addEventListener('resize', () => { if (maxEl) maxPlace(); });
 
+  /* ---------- poll ---------- */
+  // Smileys, thumbs, or multiple choice. Votes are tapped on the board. Saved on this device (poll = { type, q, opts, votes, hide }).
+  const PL_TYPES = {
+    smile: { name: 'Smileys', opts: [['😀', 'Good'], ['😐', 'Okay'], ['🙁', 'Not good']] },
+    thumbs: { name: 'Thumbs', opts: [['👍', 'Yes'], ['👎', 'No']] },
+    mc: { name: 'Multiple choice' }
+  };
+  const PL_COLORS = ['#22d3ee', '#7be0a2', '#f6c026', '#ff8a80', '#b48cff', '#ffb74d'];
+  const plGet = () => { const v = jget('poll', null); return v && v.type ? v : null; };
+  const plSet = v => store.set('poll', JSON.stringify(v));
+  let plUndo = [];
+  function plShow() {
+    const v = plGet(); if (!v) { plSetup(); return; }
+    const card = $('pollCard'), body = $('plBody'), mc = v.type === 'mc';
+    card.classList.toggle('hideres', !!v.hide);
+    const total = v.votes.reduce((a, b) => a + b, 0), top = Math.max(1, ...v.votes);
+    body.innerHTML = '<div class="plq" id="plQ"></div><div class="plopts' + (mc ? ' mc' : '') + '" id="plOpts"></div>' +
+      '<div class="plrow"><span class="plleft" id="plTot"></span><button class="chip" id="plHide"></button><button class="chip" id="plUndo">Undo</button>' +
+      '<button class="chip" id="plReset">Clear votes</button><button class="chip" id="plNew">New poll</button></div>';
+    $('plQ').textContent = v.q || '';
+    v.opts.forEach((o, i) => {
+      const b = document.createElement('button'); b.className = 'plopt';
+      b.setAttribute('aria-label', (mc ? String.fromCharCode(65 + i) + ', ' : '') + o[1] + (v.hide ? '' : ', ' + v.votes[i] + ' votes'));
+      const fill = document.createElement('i'); fill.className = 'fill'; fill.style.background = mc ? PL_COLORS[i % 6] : 'var(--accent)';
+      if (mc) fill.style.width = (v.votes[i] / top * 100) + '%'; else fill.style.height = (v.votes[i] / top * 100) + '%';
+      b.appendChild(fill);
+      if (mc) { const l = document.createElement('span'); l.className = 'let'; l.style.background = PL_COLORS[i % 6]; l.textContent = String.fromCharCode(65 + i); b.appendChild(l); }
+      else { const e = document.createElement('span'); e.className = 'em'; e.textContent = o[0]; b.appendChild(e); }
+      const t = document.createElement('span'); t.className = 'tx'; t.textContent = o[1]; b.appendChild(t);
+      const n = document.createElement('b'); n.className = 'n'; n.textContent = v.votes[i]; b.appendChild(n);
+      b.onclick = () => { const w = plGet(); w.votes[i]++; plSet(w); plUndo.push(i); plShow(); };
+      $('plOpts').appendChild(b);
+    });
+    $('plTot').textContent = total + (total === 1 ? ' vote' : ' votes');
+    $('plHide').textContent = v.hide ? 'Show results' : 'Hide results';
+    $('plHide').onclick = () => { const w = plGet(); w.hide = !w.hide; plSet(w); plShow(); };
+    $('plUndo').style.display = plUndo.length ? '' : 'none';
+    $('plUndo').onclick = () => { const i = plUndo.pop(); const w = plGet(); if (i !== undefined && w.votes[i] > 0) w.votes[i]--; plSet(w); plShow(); };
+    $('plReset').onclick = () => { if (!confirm('Clear all the votes?')) return; const w = plGet(); w.votes = w.votes.map(() => 0); plSet(w); plUndo = []; plShow(); };
+    $('plNew').onclick = () => plSetup(v);
+  }
+  function plSetup(prev) {
+    let type = (prev && prev.type) || 'smile';
+    let mcOpts = prev && prev.type === 'mc' ? prev.opts.map(o => o[1]) : ['', '', ''];
+    const body = $('plBody'); $('pollCard').classList.remove('hideres');
+    const draw = () => {
+      if ($('plQIn')) prev = Object.assign({}, prev || {}, { q: $('plQIn').value, hide: $('plHideIn').checked });   // keep what was typed when redrawing
+      body.innerHTML = '<div class="plset"><div class="types" id="plTypes"></div>' +
+        '<div class="r"><input type="text" id="plQIn" maxlength="120" placeholder="Your question (optional)" aria-label="Your question"></div><div id="plMc"></div>' +
+        '<div class="r"><label><input type="checkbox" id="plHideIn"> Hide results while voting</label></div>' +
+        '<div class="plrow"><button class="chip main" id="plGo">Start poll</button>' + (plGet() ? '<button class="chip" id="plCancel">Cancel</button>' : '') + '</div></div>';
+      $('plQIn').value = prev && prev.q || ''; $('plHideIn').checked = !!(prev && prev.hide);
+      Object.keys(PL_TYPES).forEach(k => {
+        const b = document.createElement('button'); b.className = 'chip' + (k === type ? ' on' : ''); b.textContent = PL_TYPES[k].name + (k === 'smile' ? ' 😀😐🙁' : k === 'thumbs' ? ' 👍👎' : ' A B C');
+        b.onclick = () => { prev = Object.assign({}, prev || {}, { q: $('plQIn').value, hide: $('plHideIn').checked }); type = k; draw(); };
+        $('plTypes').appendChild(b);
+      });
+      if (type === 'mc') {
+        mcOpts.forEach((o, i) => {
+          const r = document.createElement('div'); r.className = 'r';
+          r.innerHTML = '<b style="width:1.4em;text-align:center"></b><input type="text" maxlength="60"><button class="chip">Remove</button>';
+          r.querySelector('b').textContent = String.fromCharCode(65 + i);
+          const inp = r.querySelector('input'); inp.value = o; inp.placeholder = 'Answer ' + String.fromCharCode(65 + i); inp.setAttribute('aria-label', 'Answer ' + String.fromCharCode(65 + i));
+          inp.oninput = () => mcOpts[i] = inp.value;
+          r.querySelector('button').onclick = () => { if (mcOpts.length > 2) { mcOpts.splice(i, 1); draw(); } };
+          $('plMc').appendChild(r);
+        });
+        if (mcOpts.length < 6) { const a = document.createElement('button'); a.className = 'chip'; a.textContent = '+ Add answer'; a.onclick = () => { mcOpts.push(''); draw(); }; $('plMc').appendChild(a); }
+      }
+      $('plGo').onclick = () => {
+        const opts = type === 'mc' ? mcOpts.map((t, i) => ['', t.trim() || ('Answer ' + String.fromCharCode(65 + i))]) : PL_TYPES[type].opts;
+        plSet({ type, q: $('plQIn').value.trim(), opts, votes: opts.map(() => 0), hide: $('plHideIn').checked }); plUndo = []; plShow();
+      };
+      if ($('plCancel')) $('plCancel').onclick = plShow;
+    };
+    draw();
+  }
+  function setPoll(on) {
+    document.body.classList.toggle('pollon', on); store.set('pollon', on ? 1 : 0); $('pollBtn').textContent = on ? 'Poll: On' : 'Poll';
+    if (on) { plPlace(); plShow(); }
+  }
+  const plPlace = floatCard($('pollCard'), 'pollrect', { x: .28, y: .16, w: .44, h: .62 }, .26, .3);
+  $('pollBtn').onclick = () => setPoll(!document.body.classList.contains('pollon'));
+  $('plClose').onclick = () => { if (maxEl === $('pollCard')) { setMax(null); maxIcons(); } setPoll(false); };
+  setPoll(store.get('pollon', '0') === '1');
+
   /* ---------- clean-up warning ---------- */
   // Class length and warning come from the timer's Edit dialog (45 and 5 to start). The class start time is saved, so a refresh does not lose it.
   function warnSound() {
@@ -2506,7 +2627,7 @@
     if (v !== null && v.trim()) { store.set('attnwords', v.trim().slice(0, 40)); $('attnWord').textContent = v.trim().slice(0, 40); }
   };
 
-  /* ---------- floating cards (picker, noise meter): spot saved on this device, Arrange moves and resizes them ---------- */
+  /* ---------- floating cards (picker, poll): spot saved on this device, Arrange moves and resizes them ---------- */
   function floatCard(el, key, def, minW, minH, after) {
     let r = (() => { try { const v = JSON.parse(store.get(key, 'null')); if (v && [v.x, v.y, v.w, v.h].every(n => typeof n === 'number' && isFinite(n))) return v; } catch(e) {} return Object.assign({}, def); })();
     const place = () => { const st = el.style; st.left = r.x * innerWidth + 'px'; st.top = r.y * innerHeight + 'px'; st.width = r.w * innerWidth + 'px'; st.height = r.h * innerHeight + 'px'; };
