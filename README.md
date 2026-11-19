@@ -50,6 +50,9 @@ Each card (clock, timer, This week, picker) has a round button with four corners
 ## Small and big cards
 The clock, timer and "This week" each have a small round button. Tap - to make that card small, tap + to make it big again. Hide (top right) hides the top row of buttons. Tap the faint Menu button at the top right to bring it back.
 
+## Move and resize without Arrange
+Every widget has a faint dotted bar at the top middle. Drag it to move the widget. Drag the small corner at the bottom right to make it bigger or smaller. Arrange still works too, and Reset layout puts everything back.
+
 ## Arrange
 Tap Arrange (top right). Drag a card to move it. Drag its yellow corner to make it bigger or smaller. Tap Done. Reset layout puts everything back. Saved on that device only.
 
