@@ -81,6 +81,9 @@ More, then Poll. Pick Smileys, Thumbs or Multiple choice, type a question if you
 ## Exit slip
 More, Poll, New poll. Pick the kind (Smileys, Thumbs, Multiple choice or Short answer), type the question, and tap Save as exit slip. It is saved for the grade that is picked. At the 5 minute clean-up warning it fills the screen with the question, a QR code and a code. Students answer on their Chromebooks and the answers show on the board. Short answers stay hidden until you tap Show answers. More, Clean-up warning has Turn off, Show it now and Remove.
 
+## Hall pass
+More, then Hall pass. Kiosk setup has the steps: download the kiosk file, open jasonross-eng.github.io/kiosk.html on the door Chromebook, and pick the file there. Students tap their name, then where they are going. Only one student can be out at a time. The board shows who is out and for how long, turns red after the limit (8 minutes to start), and plays a bell. Log shows every pass and can be downloaded. Names never leave your devices; only a code number, the place and the time travel through the free ntfy.sh service.
+
 ## Dice, websites and pictures
 More, then Dice: tap Roll. Plus and minus change how many dice (1 to 6).
 More, then Embed a website: paste a link and it shows inside its own widget. Some websites do not allow this; use Open in tab.

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hall Pass</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚪</text></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap">
+<style>
+  /* Door hall pass kiosk. Runs on a spare Chromebook or iPad by the door.
+     Class lists come from a kiosk file the teacher downloads from the board and opens here once; they stay on this device.
+     Only a random class id, a position number, the place and the time travel through the ntfy.sh relay; never a name. */
+  :root { --bg:#160634; --card:#2a0f58; --ink:#f4f0ff; --soft:#c9bce6; --yellow:#f6c026; --red:#d93025; --green:#22e36b; --font:"Andika", "Comic Sans MS", Arial, sans-serif; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; font-family:var(--font); color:var(--ink); background:var(--bg); display:flex; flex-direction:column; user-select:none; -webkit-user-select:none; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 18px; }
+  h1 { margin:0; font-size:clamp(24px, 4vw, 40px); }
+  .st { font-size:15px; color:var(--soft); text-align:right; }
+  .st.bad { color:#ff8a80; font-weight:700; }
+  main { flex:1; min-height:0; display:flex; flex-direction:column; gap:14px; padding:0 18px 18px; }
+  .msg { text-align:center; font-size:clamp(20px, 3.4vw, 30px); color:var(--soft); }
+  .names { flex:1; min-height:0; overflow:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:10px; align-content:start; }
+  .names button, .dests button, .big, .small { font-family:var(--font); font-weight:700; border:none; cursor:pointer; color:var(--ink); background:var(--card); border-radius:18px; }
+  .names button { font-size:clamp(20px, 3vw, 28px); padding:18px 10px; }
+  .names button:disabled { opacity:.35; cursor:default; }
+  .dests { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:14px; }
+  .dests button { font-size:clamp(24px, 3.6vw, 36px); padding:28px 10px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .dests button span { font-size:2em; line-height:1; }
+  .out { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center; }
+  .out .who { font-size:clamp(34px, 7vw, 72px); font-weight:700; }
+  .out .where { font-size:clamp(24px, 4vw, 40px); color:var(--yellow); }
+  .out .time { font-size:clamp(48px, 10vw, 110px); font-weight:700; font-variant-numeric:tabular-nums; }
+  .big { font-size:clamp(28px, 5vw, 48px); padding:20px 48px; background:var(--green); color:#062b12; }
+  .small { font-size:17px; padding:8px 18px; background:transparent; border:2px solid #4a2a80; color:var(--soft); }
+  .setup { max-width:640px; margin:auto; display:flex; flex-direction:column; gap:14px; font-size:20px; line-height:1.4; }
+  .setup ol { margin:0; padding-left:1.3em; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header><h1 id="title">Hall Pass</h1><div class="st" id="st"></div></header>
+<main>
+  <section class="setup" id="setup" hidden>
+    <h1>Set up this door kiosk</h1>
+    <ol>
+      <li>On the board: More, Hall pass, Kiosk setup, Download kiosk file.</li>
+      <li>Get that file onto this device (Google Drive, email, or a flash drive).</li>
+      <li>Tap the button below and pick the file.</li>
+    </ol>
+    <button class="big" id="pick">Pick the kiosk file</button><input type="file" id="file" accept=".json,application/json" hidden>
+    <p class="msg" id="setupMsg"></p>
+  </section>
+  <section id="pickName" hidden style="display:flex;flex-direction:column;gap:14px;flex:1;min-height:0">
+    <p class="msg" id="nameMsg">Tap your name.</p>
+    <div class="names" id="names"></div>
+  </section>
+  <section id="pickDest" hidden style="display:flex;flex-direction:column;gap:18px;flex:1">
+    <p class="msg" id="destMsg"></p>
+    <div class="dests" id="dests"></div>
+    <div style="text-align:center"><button class="small" id="cancel">Cancel</button></div>
+  </section>
+  <section class="out" id="outBox" hidden>
+    <div class="who" id="outWho"></div><div class="where" id="outWhere"></div><div class="time" id="outTime"></div>
+    <button class="big" id="back">I'm back</button>
+    <p class="msg" id="outMsg">Only one person out at a time. Others, please wait.</p>
+  </section>
+</main>
+<script>
+(function () {
+  const RELAY = 'https://ntfy.sh/', $ = id => document.getElementById(id);
+  const DESTS = [['Restroom', '🚻'], ['Nurse', '🩺'], ['Locker', '🎒'], ['Water', '💧'], ['Office', '🏫']];
+  const mem = {};
+  const st = { get(k) { try { return localStorage.getItem('hpk_' + k); } catch(e) { return mem[k] || null; } }, set(k, v) { try { localStorage.setItem('hpk_' + k, v); } catch(e) { mem[k] = v; } } };
+  let cfg = null; try { cfg = JSON.parse(st.get('cfg')); } catch(e) {}
+  let cls = null;          // { g, c } the board's current class
+  let out = null;          // { c, i, dest, t }
+  let picked = null, es = null, seen = new Set();
+  const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const findClass = () => { if (!cfg || !cls) return null; const l = (cfg.classes || {})[cls.g] || []; return l.find(x => x.id === cls.c) || null; };
+  const post = m => fetch(RELAY + 'jre-hp-' + cfg.key, { method: 'POST', body: JSON.stringify(m) }).then(r => { if (!r.ok) throw 0; net(true); }).catch(() => net(false));
+  function net(ok) { $('st').textContent = ok ? '' : 'Cannot reach the hall pass service'; $('st').classList.toggle('bad', !ok); }
+  function show(id) { ['setup', 'pickName', 'pickDest', 'outBox'].forEach(s => $(s).hidden = s !== id); }
+  function nameOf(c, i) { const l = Object.values(cfg.classes || {}).flat(); const k = l.find(x => x.id === c); return k && k.n[i] ? k.n[i] : 'Someone'; }
+
+  // ---------- setup ----------
+  $('pick').onclick = () => $('file').click();
+  $('file').onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      let v = null; try { v = JSON.parse(r.result); } catch(x) {}
+      if (!v || v.app !== 'hallpass' || !v.key || !v.classes) { $('setupMsg').textContent = 'That is not a kiosk file from the board.'; return; }
+      st.set('cfg', JSON.stringify(v)); cfg = v; start();
+    };
+    r.readAsText(f);
+  };
+  // hold the title for 3 seconds to set up again (so students do not do it by accident)
+  let holdT = null;
+  $('title').addEventListener('pointerdown', () => { holdT = setTimeout(() => { if (confirm('Set up this kiosk again?')) { if (es) es.close(); cfg = null; show('setup'); } }, 3000); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('title').addEventListener(ev, () => clearTimeout(holdT)));
+
+  // ---------- screens ----------
+  function paint() {
+    if (!cfg) { show('setup'); return; }
+    if (out) {
+      show('outBox'); $('title').textContent = 'Hall Pass';
+      $('outWho').textContent = nameOf(out.c, out.i);
+      const d = DESTS.find(x => x[0] === out.dest); $('outWhere').textContent = (d ? d[1] + ' ' : '') + out.dest;
+      tick(); return;
+    }
+    const k = findClass();
+    $('title').textContent = k ? k.t + (cls.g ? '' : '') : 'Hall Pass';
+    if (picked !== null && k) {
+      show('pickDest'); $('destMsg').textContent = k.n[picked] + ', where are you going?'; return;
+    }
+    show('pickName');
+    $('names').innerHTML = '';
+    if (!cls) { $('nameMsg').textContent = 'Waiting for the board...'; return; }
+    if (!k) { $('nameMsg').textContent = 'This class is not in the kiosk file. Download a new kiosk file from the board.'; return; }
+    $('nameMsg').textContent = 'Tap your name.';
+    k.n.forEach((n, i) => { const b = document.createElement('button'); b.textContent = n; b.onclick = () => { picked = i; paint(); }; $('names').appendChild(b); });
+  }
+  DESTS.forEach(([n, e]) => {
+    const b = document.createElement('button'); b.innerHTML = '<span></span>'; b.querySelector('span').textContent = e; b.appendChild(document.createTextNode(n));
+    b.onclick = () => {
+      const k = findClass(); if (!k || picked === null || out) return;
+      out = { c: k.id, i: picked, dest: n, t: Date.now() }; picked = null; paint();
+      post({ k: 'out', c: k.id, i: out.i, dest: n, t: out.t, v: k.v });
+    };
+    $('dests').appendChild(b);
+  });
+  $('cancel').onclick = () => { picked = null; paint(); };
+  $('back').onclick = () => { if (!out) return; const o = out; out = null; paint(); post({ k: 'in', c: o.c, i: o.i, t: Date.now() }); };
+  function tick() { if (!out) return; const s = Math.max(0, Math.floor((Date.now() - out.t) / 1000)); $('outTime').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  setInterval(tick, 1000);
+  // after 30 seconds without a tap on the destination screen, go back to the names
+  let idle = null; document.addEventListener('pointerdown', () => { clearTimeout(idle); idle = setTimeout(() => { if (picked !== null) { picked = null; paint(); } }, 30000); });
+
+  // ---------- messages from the board and from this kiosk ----------
+  function handle(m) {
+    const today = dayKey(new Date());
+    if (m.k === 'class') { cls = { g: m.g, c: m.c }; if (picked !== null && (!findClass() || !findClass().n[picked])) picked = null; }
+    if (m.k === 'out' && m.t && dayKey(new Date(m.t)) === today) out = { c: m.c, i: m.i, dest: m.dest, t: m.t };
+    if (m.k === 'in' && out && m.c === out.c && m.i === out.i) out = null;
+  }
+  function start() {
+    if (es) es.close();
+    seen = new Set(); paint();
+    // read what happened today first, then listen for new messages
+    fetch(RELAY + 'jre-hp-' + cfg.key + '/json?poll=1&since=12h').then(r => r.text()).then(t => {
+      t.trim().split('\n').filter(Boolean).forEach(l => { try { const m = JSON.parse(l); if (m.event && m.event !== 'message') return; seen.add(m.id); handle(JSON.parse(m.message)); } catch(e) {} });
+      net(true); paint();
+    }).catch(() => net(false)).finally(() => {
+      es = new EventSource(RELAY + 'jre-hp-' + cfg.key + '/sse?since=' + Math.floor(Date.now() / 1000));
+      es.onmessage = e => { try { const m = JSON.parse(e.data); if (m.event && m.event !== 'message') return; if (seen.has(m.id)) return; seen.add(m.id); handle(JSON.parse(m.message)); paint(); net(true); } catch(x) {} };
+      es.onerror = () => net(false);
+      post({ k: 'hello' });   // asks the board which class is here now
+    });
+  }
+  if (cfg) start(); else show('setup');
+})();
+</script>
+</body>
+</html>
