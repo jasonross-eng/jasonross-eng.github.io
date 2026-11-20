@@ -931,6 +931,7 @@
   <button class="tool" id="hpBtn">Hall pass</button>
   <button class="tool" id="diceBtn">Dice</button>
   <button class="tool" id="embedBtn">Embed a website</button>
+  <button class="tool" id="embed2Btn">Embed website 2</button>
   <button class="tool" id="imgBtn">Add a picture</button><input type="file" id="imgFile" accept="image/*" hidden>
   <button class="tool" id="qrBtn">QR code</button>
   <button class="tool" id="noiseBtn">Noise meter</button>
@@ -2420,17 +2421,18 @@
   // Top bar buttons item never move.
   const TB = [['startClass', 'Start class'], ['pickBtn', 'Picker'], ['scoreBtn', 'Scores'], ['attnBtn', 'Attention'], ['drawBtn', 'Draw'],
     ['kbdBtn', 'Keyboard'], ['fsBtn', 'Full screen'], ['arrBtn', 'Arrange'], ['barBtn', 'Hide'],
-    ['cdBtn', 'Countdown'], ['bgBtn', 'Background'], ['cwBtn', 'Clean-up warning'], ['pollBtn', 'Poll'], ['hpBtn', 'Hall pass'], ['diceBtn', 'Dice'], ['embedBtn', 'Embed a website'],
+    ['cdBtn', 'Countdown'], ['bgBtn', 'Background'], ['cwBtn', 'Clean-up warning'], ['pollBtn', 'Poll'], ['hpBtn', 'Hall pass'], ['diceBtn', 'Dice'], ['embedBtn', 'Embed a website'], ['embed2Btn', 'Embed website 2'],
     ['imgBtn', 'Add a picture'], ['qrBtn', 'QR code'], ['noiseBtn', 'Noise meter'], ['schedBtn', 'Schedule'], ['backupBtn', 'Backup and restore'], ['subBtn', 'Sub mode']];
   // Start out with Start class right next to More, as the teacher asked.
   const TB_DEFAULT = { order: ['pickBtn', 'scoreBtn', 'attnBtn', 'drawBtn', 'kbdBtn', 'fsBtn', 'arrBtn', 'barBtn', 'startClass',
-    'cdBtn', 'bgBtn', 'cwBtn', 'pollBtn', 'hpBtn', 'diceBtn', 'embedBtn', 'imgBtn', 'qrBtn', 'noiseBtn', 'schedBtn', 'backupBtn', 'subBtn'],
-    more: ['cdBtn', 'bgBtn', 'cwBtn', 'pollBtn', 'hpBtn', 'diceBtn', 'embedBtn', 'imgBtn', 'qrBtn', 'noiseBtn', 'schedBtn', 'backupBtn', 'subBtn'] };
+    'cdBtn', 'bgBtn', 'cwBtn', 'pollBtn', 'hpBtn', 'diceBtn', 'embedBtn', 'embed2Btn', 'imgBtn', 'qrBtn', 'noiseBtn', 'schedBtn', 'backupBtn', 'subBtn'],
+    more: ['cdBtn', 'bgBtn', 'cwBtn', 'pollBtn', 'hpBtn', 'diceBtn', 'embedBtn', 'embed2Btn', 'imgBtn', 'qrBtn', 'noiseBtn', 'schedBtn', 'backupBtn', 'subBtn'] };
   function tbGet() {
     const v = jget('tbcfg', null), ids = TB.map(t => t[0]);
     if (!v || !Array.isArray(v.order) || !Array.isArray(v.more)) return JSON.parse(JSON.stringify(TB_DEFAULT));
-    const order = v.order.filter(id => ids.includes(id)); ids.forEach(id => { if (!order.includes(id)) order.push(id); });
-    return { order, more: v.more.filter(id => ids.includes(id)) };
+    const order = v.order.filter(id => ids.includes(id)), more = v.more.filter(id => ids.includes(id));
+    ids.forEach(id => { if (!order.includes(id)) { order.push(id); if (TB_DEFAULT.more.includes(id)) more.push(id); } });
+    return { order, more };
   }
   function tbApply() {
     const v = tbGet(), tools = document.querySelector('.tools'), menu = $('moreMenu');
@@ -2797,35 +2799,40 @@
   /* embed a website */
   // Any link. YouTube, Google Slides and Canva links are turned into their embed versions. Some websites refuse to be shown
   // inside another page; Open in tab is the backup.
-  const emb = makeFloat('embedCard', 'Website', 'embedrect', { x: .52, y: .14, w: .45, h: .62 }, () => setEmbed(false));
-  const embTab = document.createElement('button'); embTab.className = 'tool'; embTab.textContent = 'Open in tab';
-  const embChg = document.createElement('button'); embChg.className = 'tool'; embChg.textContent = 'Change link';
-  emb.head.insertBefore(embChg, emb.head.querySelector('.maxbtn')); emb.head.insertBefore(embTab, embChg);
+  // Two of them, each its own card and link: 1 keeps the first keys (embedurl, embedon, embedrect), 2 adds a "2" (embedurl2...).
   function embResolve(url) {
     url = String(url || '').trim(); if (url && !/^[a-z]+:/i.test(url)) url = 'https://' + url;
     if (!/^https:\/\/\S+\.\S+/i.test(url)) return null;
     const r = EMB.yt.resolve(url) || EMB.sl.resolve(url);
     return r && r.src ? r : { src: url, tab: url };
   }
-  function embPaint() {
-    const url = store.get('embedurl', ''), r = embResolve(url);
-    embTab.style.display = embChg.style.display = r ? '' : 'none';
-    if (!r) {
-      emb.body.innerHTML = '<div class="set"><p>Paste a link to show that website here. Some websites do not allow this; then use Open in tab.</p>' +
-        '<input type="text" id="embIn" placeholder="https://..." aria-label="Website link"><button class="chip main" id="embGo">Show it</button><p id="embMsg"></p></div>';
-      $('embIn').value = url;
-      const go = () => { const v = $('embIn').value.trim(); if (!embResolve(v)) { $('embMsg').textContent = 'That does not look like a link.'; return; } store.set('embedurl', v); embPaint(); };
-      $('embGo').onclick = go; $('embIn').onkeydown = e => { if (e.key === 'Enter') go(); };
-      return;
+  function makeEmbed(n) {
+    const sfx = n === 1 ? '' : String(n), btn = n === 1 ? 'embedBtn' : 'embed' + n + 'Btn', name = n === 1 ? 'Embed a website' : 'Embed website ' + n;
+    const emb = makeFloat('embedCard' + sfx, n === 1 ? 'Website' : 'Website ' + n, 'embedrect' + sfx, n === 1 ? { x: .52, y: .14, w: .45, h: .62 } : { x: .04, y: .2, w: .45, h: .62 }, () => setEmbed(false));
+    const embTab = document.createElement('button'); embTab.className = 'tool'; embTab.textContent = 'Open in tab';
+    const embChg = document.createElement('button'); embChg.className = 'tool'; embChg.textContent = 'Change link';
+    emb.head.insertBefore(embChg, emb.head.querySelector('.maxbtn')); emb.head.insertBefore(embTab, embChg);
+    function embPaint() {
+      const url = store.get('embedurl' + sfx, ''), r = embResolve(url);
+      embTab.style.display = embChg.style.display = r ? '' : 'none';
+      if (!r) {
+        emb.body.innerHTML = '<div class="set"><p>Paste a link to show that website here. Some websites do not allow this; then use Open in tab.</p>' +
+          '<input type="text" class="embIn" placeholder="https://..." aria-label="Website link"><button class="chip main embGo">Show it</button><p class="embMsg"></p></div>';
+        const inp = emb.body.querySelector('.embIn'); inp.value = url;
+        const go = () => { const v = inp.value.trim(); if (!embResolve(v)) { emb.body.querySelector('.embMsg').textContent = 'That does not look like a link.'; return; } store.set('embedurl' + sfx, v); embPaint(); };
+        emb.body.querySelector('.embGo').onclick = go; inp.onkeydown = e => { if (e.key === 'Enter') go(); };
+        return;
+      }
+      emb.body.innerHTML = ''; const f = document.createElement('iframe'); f.title = n === 1 ? 'Website' : 'Website ' + n; f.src = r.src;
+      f.setAttribute('allow', 'autoplay; encrypted-media; fullscreen'); f.allowFullscreen = true; emb.body.appendChild(f);
+      embTab.onclick = () => window.open(r.tab, '_blank', 'noopener');
     }
-    emb.body.innerHTML = ''; const f = document.createElement('iframe'); f.title = 'Website'; f.src = r.src;
-    f.setAttribute('allow', 'autoplay; encrypted-media; fullscreen'); f.allowFullscreen = true; emb.body.appendChild(f);
-    embTab.onclick = () => window.open(r.tab, '_blank', 'noopener');
+    embChg.onclick = () => { store.del('embedurl' + sfx); embPaint(); };
+    function setEmbed(on) { emb.show(on); store.set('embedon' + sfx, on ? 1 : 0); $(btn).textContent = on ? name + ': On' : name; if (on) embPaint(); else emb.body.innerHTML = ''; }
+    $(btn).onclick = () => setEmbed(emb.el.hidden);
+    setEmbed(store.get('embedon' + sfx, '0') === '1');
   }
-  embChg.onclick = () => { store.del('embedurl'); embPaint(); };
-  function setEmbed(on) { emb.show(on); store.set('embedon', on ? 1 : 0); $('embedBtn').textContent = on ? 'Embed a website: On' : 'Embed a website'; if (on) embPaint(); else emb.body.innerHTML = ''; }
-  $('embedBtn').onclick = () => setEmbed(emb.el.hidden);
-  setEmbed(store.get('embedon', '0') === '1');
+  makeEmbed(1); makeEmbed(2);
 
   /* pictures */
   // Each picture is its own card. Pictures are shrunk and saved on this device only (never put on the public site).

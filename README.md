@@ -86,7 +86,7 @@ More, then Hall pass. Kiosk setup has the steps: download the kiosk file, open j
 
 ## Dice, websites and pictures
 More, then Dice: tap Roll. Plus and minus change how many dice (1 to 6).
-More, then Embed a website: paste a link and it shows inside its own widget. Some websites do not allow this; use Open in tab.
+More, then Embed a website (or Embed website 2 for a second one): paste a link and it shows inside its own widget. Each has its own link and spot. Some websites do not allow this; use Open in tab.
 More, then Add a picture: pick a picture and it becomes its own widget. Remove takes it off. Pictures stay on that device only.
 Move or resize any of them with Arrange.
 
