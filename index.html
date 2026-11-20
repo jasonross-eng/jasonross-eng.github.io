@@ -2901,6 +2901,7 @@
       const v = hpList(), o = v.slice().reverse().find(x => x.c === m.c && x.i === m.i && !x.back); if (o) { o.back = m.t || Date.now(); hpSaveList(v); }
       hpLog(l => { const e = l.slice().reverse().find(x => x.c === m.c && x.i === m.i && !x.back); if (e) e.back = m.t || Date.now(); });
       if (live) toast(hpNameOf(m.c, m.i).name + ' is back');
+      setTimeout(gfPump, 500);
     }
     hpPaint();
   }
@@ -2921,7 +2922,7 @@
   let hpSig = null;
   function hpClear(t) {   // teacher taps a row: it leaves the board (if the student was still out, they are marked back now)
     const v = hpList(), e = v.find(x => x.t === t); if (!e) return;
-    if (!e.back) { const now = Date.now(); hpLog(l => { const x = l.slice().reverse().find(y => y.c === e.c && y.i === e.i && !y.back); if (x) x.back = now; }); hpPost({ k: 'in', c: e.c, i: e.i, t: now }); }
+    if (!e.back) { const now = Date.now(); hpLog(l => { const x = l.slice().reverse().find(y => y.c === e.c && y.i === e.i && !y.back); if (x) x.back = now; }); hpPost({ k: 'in', c: e.c, i: e.i, t: now }); setTimeout(gfPump, 500); }
     hpSaveList(v.filter(x => x.t !== t)); hpSig = null; hpPaint();
   }
   function hpPaint() {
@@ -2965,7 +2966,7 @@
   function hpLogDlg() {
     openDlg('Hall pass log', body => {
       const l = (jget('hplog', []) || []).slice().reverse(), fmtT = t => new Date(t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-      body.innerHTML = '<div class="r"><button class="tool" id="hpCsv">Download log</button><button class="tool" id="hpClr">Clear log</button></div><p>Newest first. Saved on this board only. It has student names, so keep the download private.</p>';
+      body.innerHTML = '<div class="r"><button class="tool" id="hpCsv">Download log</button><button class="tool" id="hpClr">Clear log</button><button class="tool" id="hpGf">Google Form</button></div><p>Newest first. Saved on this board only. It has student names, so keep the download private.</p>';
       const tb = document.createElement('table'); tb.className = 'hplog';
       tb.innerHTML = '<tr><th>Day</th><th>Name</th><th>Class</th><th>Place</th><th>Out</th><th>Back</th><th>Minutes</th></tr>';
       l.slice(0, 200).forEach(x => {
@@ -2983,6 +2984,62 @@
         a.download = 'hall-pass-log-' + dayKey(new Date()) + '.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
       };
       $('hpClr').onclick = () => { if (confirm('Clear the whole hall pass log on this board?')) { store.del('hplog'); hpLogDlg(); hpPaint(); } };
+      $('hpGf').onclick = gfDlg;
+    });
+  }
+  // ---- send each finished pass to the teacher's own Google Form (its answers go to their Google Sheet) ----
+  // The teacher makes a pre-filled link with the words NAME, CLASS, PLACE, DATE, OUT, BACK, MINUTES typed in the questions.
+  // The link is saved on this board only (gfurl), never in the repo. One form answer per pass, sent once it has a back time.
+  const GF_WORDS = ['name', 'class', 'place', 'date', 'out', 'back', 'minutes'];
+  function gfParse(u) {
+    let url; try { url = new URL(String(u).trim()); } catch(e) { return { err: 'That does not look like a link.' }; }
+    if (url.hostname === 'forms.gle') return { err: 'That is the short link. Use the pre-filled link instead (steps above).' };
+    const m = url.pathname.match(/^\/forms\/(?:u\/\d+\/)?d\/(e\/)?([\w-]+)\//);
+    if (url.hostname !== 'docs.google.com' || !m) return { err: 'That is not a Google Form link.' };
+    const map = {};
+    url.searchParams.forEach((v, k) => { const w = v.trim().toLowerCase(); if (/^entry\.\d+$/.test(k) && GF_WORDS.includes(w)) map[w] = k; });
+    if (!map.name) return { err: 'The link has no NAME in it. Type NAME in the name question when you make the pre-filled link.' };
+    return { post: 'https://docs.google.com/forms/d/' + (m[1] || '') + m[2] + '/formResponse', map };
+  }
+  let gfBusy = false;
+  function gfPump() {
+    const cfg = gfParse(store.get('gfurl', '')); if (!cfg.post || gfBusy) return;
+    const since = Number(store.get('gfsince', '0')) || 0;
+    const e = (jget('hplog', []) || []).find(x => x.back && !x.gs && x.t >= since); if (!e) return;
+    const fmtT = t => new Date(t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const vals = { name: e.name, class: e.cls, place: e.dest, date: dayKey(new Date(e.t)), out: fmtT(e.t), back: fmtT(e.back), minutes: String(Math.round((e.back - e.t) / 60000)) };
+    const body = new URLSearchParams(); Object.keys(cfg.map).forEach(w => body.append(cfg.map[w], vals[w]));
+    gfBusy = true;
+    fetch(cfg.post, { method: 'POST', mode: 'no-cors', body }).then(() => {
+      hpLog(l => { const x = l.find(y => y.t === e.t && y.c === e.c && y.i === e.i); if (x) x.gs = 1; });
+      store.set('gferr', ''); gfBusy = false; gfPump();
+    }).catch(() => { store.set('gferr', '1'); gfBusy = false; });
+  }
+  setInterval(gfPump, 15000);
+  function gfDlg() {
+    openDlg('Send passes to a Google Form', body => {
+      const cur = store.get('gfurl', ''), cfg = gfParse(cur), since = Number(store.get('gfsince', '0')) || 0;
+      const l = jget('hplog', []) || [], sent = l.filter(x => x.gs).length, wait = l.filter(x => x.back && !x.gs && x.t >= since).length, old = l.filter(x => x.back && !x.gs && x.t < since).length;
+      body.innerHTML = '<p>Each pass goes to your own Google Form when the student is back. Turn on Link to Sheets in the form to get a Google Sheet. The link stays on this board only, never on the website.</p>' +
+        '<p><b>Make the form (one time)</b></p><ol>' +
+        '<li>Make a Google Form with 7 Short answer questions: Name, Class, Place, Date, Out, Back, Minutes.</li>' +
+        '<li>Settings, Responses: turn off Restrict to users in your school and Collect email addresses. Otherwise the board cannot send.</li>' +
+        '<li>Three dots at the top right, Get pre-filled link. Type these words in the questions: NAME, CLASS, PLACE, DATE, OUT, BACK, MINUTES.</li>' +
+        '<li>Get link, then Copy link. Paste it below.</li></ol>' +
+        '<div class="r"><input type="text" id="gfIn" placeholder="https://docs.google.com/forms/..." aria-label="Pre-filled form link"></div>' +
+        '<p id="gfMsg"></p><div class="r"><button class="tool" id="gfSave">Save link</button><button class="tool" id="gfOff">Stop sending</button><button class="tool" id="gfOld">Send older passes too</button></div>';
+      $('gfIn').value = cur;
+      $('gfMsg').textContent = !cur ? 'Not set up yet.' : cfg.err ? cfg.err :
+        'On. Sending ' + GF_WORDS.filter(w => cfg.map[w]).join(', ') + '. ' + sent + ' sent' + (wait ? ', ' + wait + ' waiting' : '') + '.' + (store.get('gferr', '') ? ' The last try did not go through; it will try again.' : '');
+      $('gfOff').hidden = !cur; $('gfOld').hidden = !cur || !old; $('gfOld').textContent = 'Send ' + old + ' older ' + (old === 1 ? 'pass' : 'passes') + ' too';
+      $('gfSave').onclick = () => {
+        const v = $('gfIn').value.trim(), c = gfParse(v);
+        if (c.err) { $('gfMsg').textContent = c.err; return; }
+        if (v !== cur) { store.set('gfurl', v); store.set('gfsince', Date.now()); }
+        toast('Google Form saved'); gfDlg(); gfPump();
+      };
+      $('gfOff').onclick = () => { if (confirm('Stop sending passes to the Google Form?')) { store.del('gfurl'); store.del('gfsince'); gfDlg(); } };
+      $('gfOld').onclick = () => { store.set('gfsince', '0'); gfDlg(); gfPump(); };
     });
   }
   function hpSetupDlg() {
