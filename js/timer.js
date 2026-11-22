@@ -300,6 +300,7 @@
     voice = '0'; store.set('voice', '0'); paintVoice();
     TB.resetNoiseCount();
     store.del('todock_' + TB.grade);
+    if (TB.hpShowForClass) TB.hpShowForClass();
     TB.openClarity();
     toast('Ready for ' + TB.gradeWord() + (sc.m > 0 ? '. ' + (sc.l ? sc.l + ' ' : 'Timer ') + sc.m + ' min started' : ''));
   }
