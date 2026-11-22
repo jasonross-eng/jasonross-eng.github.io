@@ -16,6 +16,8 @@
   TB.resetNoiseCount = () => {};
   TB.hpPauseForSub = () => {};
   TB.setSub = () => {};
+  TB.muteHooks = [];
+  TB.subHooks = [];
 
   /* ---------- toast & dialogs ---------- */
   let toastT = null;
@@ -234,6 +236,7 @@
       store.set('muted', on ? 1 : 0);
       if (on && 'speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch (e) {} }
       paintMute();
+      TB.muteHooks.forEach(fn => { try { fn(!!on); } catch (e) {} });
       toast(on ? 'All board sounds muted' : 'Board sounds on');
     }
     if ($('muteBtn')) $('muteBtn').onclick = () => setMuted(!isMuted());

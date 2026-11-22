@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gobble Meter — Classroom Sound Monitor</title>
+<link rel="icon" href="favicon-turkey.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-turkey-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon-turkey.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grandstander:wght@600;800;900&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="meter-core.css">
+<style>
+/* ---------- Gobble Meter Theme-Specific Scene & Turkey Animations ---------- */
+.farm{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+
+.cloud-drift-1{animation:cloudDrift 75s linear infinite}
+.cloud-drift-2{animation:cloudDrift 105s linear infinite reverse}
+@keyframes cloudDrift{0%{transform:translateX(-110px)}50%{transform:translateX(110px)}100%{transform:translateX(-110px)}}
+.sun-rays{transform-box:fill-box;transform-origin:center;animation:spinSlow 50s linear infinite}
+@keyframes spinSlow{to{transform:rotate(360deg)}}
+.stalk-sway{transform-box:fill-box;transform-origin:bottom center;animation:sway 4.5s ease-in-out infinite alternate}
+.stalk-sway-2{transform-box:fill-box;transform-origin:bottom center;animation:sway 5.6s ease-in-out infinite alternate-reverse}
+@keyframes sway{from{transform:rotate(-2.4deg)}to{transform:rotate(2.8deg)}}
+.vane-spin{transform-box:fill-box;transform-origin:center;animation:vane 7s ease-in-out infinite alternate}
+@keyframes vane{0%{transform:scaleX(1)}40%{transform:scaleX(.88)}70%{transform:scaleX(1.04)}100%{transform:scaleX(.95)}}
+
+/* Hero Turkey */
+.turkey-wrap{perspective:1400px;position:relative;height:100%;width:100%;display:flex;align-items:flex-end;justify-content:center;pointer-events:none}
+svg.turkey{height:82%;max-height:82%;width:auto;max-width:96%;margin-bottom:1.2%;overflow:visible;position:relative;z-index:3;--gait:.92s;will-change:transform}
+svg.turkey.warn{--gait:.54s}
+svg.turkey.loud{--gait:.24s}
+
+.tk-all{transform-box:view-box;transform-origin:200px 338px}
+.tk-shadow{transform-box:view-box;transform-origin:200px 344px;transition:transform .2s}
+.leg{transform-box:view-box;transform-origin:200px 298px}
+.moving .tk-all{animation:strut var(--gait) ease-in-out infinite}
+.loud.moving .tk-all{animation-name:run}
+.moving .leg-l{animation:step var(--gait) ease-in-out infinite}
+.moving .leg-r{animation:step var(--gait) ease-in-out infinite calc(var(--gait) / -2)}
+.pose .tk-all{animation:puff 2.1s ease-in-out infinite}
+
+.wing-l{transform-box:view-box;transform-origin:144px 236px;transition:transform .25s}
+.wing-r{transform-box:view-box;transform-origin:256px 236px;transition:transform .25s}
+.warn .wing-l{transform:rotate(14deg)}
+.warn .wing-r{transform:rotate(-14deg)}
+.loud .wing-l{animation:flapL .18s ease-in-out infinite alternate}
+.loud .wing-r{animation:flapR .18s ease-in-out infinite alternate}
+.dance .wing-l{animation:flapL .22s ease-in-out infinite alternate!important}
+.dance .wing-r{animation:flapR .22s ease-in-out infinite alternate!important}
+@keyframes flapL{from{transform:rotate(12deg)}to{transform:rotate(52deg) translateY(-10px)}}
+@keyframes flapR{from{transform:rotate(-12deg)}to{transform:rotate(-52deg) translateY(-10px)}}
+
+.tk-head{transform-box:view-box;transform-origin:200px 206px;transition:transform .25s}
+.face-r .tk-head{transform:rotate(6deg)}
+.face-l .tk-head{transform:rotate(-6deg)}
+.loud.face-r .tk-head{transform:rotate(12deg)}
+.loud.face-l .tk-head{transform:rotate(-12deg)}
+
+.head-fill{transition:fill .3s}
+.loud .head-fill{fill:#C94A38}
+.blush{opacity:.55;transition:opacity .25s}
+.warn .blush,.loud .blush{opacity:0}
+.lid{opacity:0;transition:opacity .2s}
+.calm .lid{opacity:.85}
+.brow{opacity:0;transition:opacity .2s}
+.warn .brow,.loud .brow{opacity:1}
+.beak-open{opacity:0;transition:opacity .15s}
+.loud .beak-open{opacity:1}
+.pupil-g{transition:transform .2s}
+.face-r .pupil-g{transform:translateX(2.6px)}
+.face-l .pupil-g{transform:translateX(-2.6px)}
+.loud .pupil-dot{r:2.3}
+
+.wattle,.snood{transform-box:view-box;transform-origin:205px 176px}
+.loud .wattle{animation:wag .18s ease-in-out infinite alternate}
+.loud .snood{animation:wag .22s ease-in-out infinite alternate-reverse}
+
+.steam{opacity:0;transition:opacity .2s}
+.loud .steam{opacity:1}
+.steam path,.steam circle{transform-box:fill-box;transform-origin:center;animation:steam .78s ease-out infinite}
+.steam .s2{animation-delay:-.38s}
+
+.crown{opacity:0;transform-box:view-box;transform-origin:200px 132px;transform:scale(0) translateY(10px);transition:transform .55s cubic-bezier(.3,1.7,.5,1),opacity .3s}
+.crowned .crown{opacity:1;transform:scale(1) translateY(0)}
+
+@keyframes strut{0%,100%{transform:rotate(-4.5deg)}25%,75%{transform:translateY(-8px) rotate(0)}50%{transform:rotate(4.5deg)}}
+@keyframes run{0%,100%{transform:rotate(-10deg)}25%,75%{transform:translateY(-22px) rotate(0)}50%{transform:rotate(10deg)}}
+@keyframes step{0%,50%,100%{transform:translateY(0)}25%{transform:translateY(-14px)}}
+@keyframes puff{0%,100%{transform:scale(1)}42%,58%{transform:translateY(-4px) scale(1.045)}}
+@keyframes wag{from{transform:rotate(-18deg)}to{transform:rotate(18deg)}}
+@keyframes steam{0%{transform:translateY(0) scale(.45);opacity:.95}100%{transform:translateY(-36px) scale(1.55);opacity:0}}
+
+.feather-inner{
+  transform-box:view-box;transform-origin:200px 248px;
+  transform:scale(0);opacity:0;
+  transition:transform .72s cubic-bezier(.28,1.55,.5,1),opacity .2s;
+}
+.feather-inner.on{transform:scale(1);opacity:1}
+.feather-inner.fall{animation:fall 1.45s ease-in forwards}
+.feather-inner.plucked{transition:none;transform:scale(0);opacity:0}
+
+svg.turkey.dance{animation:dance 2.6s ease-in-out 2}
+.dance .tk-all{animation:wiggle .3s ease-in-out infinite alternate!important}
+.dance .leg-l{animation:step .3s ease-in-out infinite!important}
+.dance .leg-r{animation:step .3s ease-in-out infinite -.15s!important}
+@keyframes dance{
+  0%{translate:0 0;rotate:y 0deg}
+  10%{translate:0 -54px}
+  20%{translate:0 0}
+  30%{translate:0 -54px}
+  40%{translate:0 0;rotate:y 0deg}
+  55%{translate:0 -26px;rotate:y 360deg}
+  62%{translate:0 0;rotate:y 360deg}
+  80%{translate:0 -132px;rotate:y 720deg}
+  92%{translate:0 0;rotate:y 720deg}
+  96%{translate:0 -14px}
+  100%{translate:0 0;rotate:y 720deg}
+}
+@keyframes wiggle{from{transform:rotate(-12deg)}to{transform:rotate(12deg)}}
+
+.plucker{position:absolute;z-index:4;bottom:0;left:0;display:none;overflow:visible;pointer-events:none}
+.flying-feather{position:absolute;z-index:6;left:0;top:0;pointer-events:none;overflow:visible}
+.yelp .tk-all{animation:yelp .7s ease-out!important}
+@keyframes yelp{0%{transform:none}20%{transform:translateY(-44px) rotate(-6deg)}40%{transform:none}55%{transform:translateY(-14px) rotate(4deg)}70%,100%{transform:none}}
+@keyframes fall{0%{transform:scale(1);opacity:1}100%{transform:translate(30px,320px) rotate(72deg) scale(.78);opacity:0}}
+
+@media (prefers-reduced-motion:reduce){
+  .tk-all,.leg,.wattle,.snood,.steam path,.steam circle,.wing-l,.wing-r,
+  .cloud-drift-1,.cloud-drift-2,.sun-rays,.stalk-sway,.stalk-sway-2,.vane-spin{animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="app sky-light" id="app">
+  <header class="top">
+    <div class="brand-col">
+      <h1 class="brand display">
+        <label class="meter-pick">
+          <span class="sr-only">Choose a holiday meter</span>
+          <select onchange="location.href=this.value">
+            <option value="veterans.html">Veterans Meter</option>
+            <option value="gobble-meter.html" selected>Gobble Meter</option>
+            <option value="santa.html">Santa Meter</option>
+            <option value="mlk.html">Dream Meter</option>
+            <option value="washington.html">Washington Meter</option>
+            <option value="easter.html">Bunny Meter</option>
+          </select>
+        </label>
+      </h1>
+      <div class="status-pills">
+        <span class="pill" id="modePill"><i class="pill-dot" id="statusDot"></i><span id="statusText">Quiet &amp; Calm</span></span>
+        <span class="pill" id="streakPill" title="Current uninterrupted quiet streak">Streak: <strong id="streakVal">0:00</strong></span>
+        <span class="pill pill-goal" id="goalPill" hidden><span id="goalPillText"></span></span>
+      </div>
+    </div>
+
+    <div class="clock display" id="clock">
+      <div class="clock-readout">
+        <div class="sub" id="timeSub">left in class</div>
+        <div class="time" id="time">--:--</div>
+      </div>
+      <div class="tools">
+        <button class="tool" id="minus" title="Subtract 1 minute">−1m</button>
+        <button class="tool" id="plus" title="Add 1 minute">+1m</button>
+        <button class="tool" id="pause" title="Pause timer (Space)">Pause</button>
+        <button class="tool" id="mic" aria-pressed="false" title="Mute/unmute mic (M)">Mic on</button>
+        <button class="tool" id="voiceFilterBtn" title="Filter 300–3400 Hz human voice range to ignore HVAC & chair rumble">Voice filter ✓</button>
+        <button class="tool" id="sound" aria-pressed="false" title="Toggle turkey & chime audio">Sound on</button>
+        <button class="tool" id="skyLock" aria-pressed="false" title="Lock bright daytime for classroom projectors">Daylight</button>
+        <button class="tool" id="histBtnTop" title="View saved class history & weekly stats">History</button>
+        <button class="tool" id="full" title="Toggle full screen">Full screen</button>
+        <button class="tool" id="stop" title="End session & return to setup">End</button>
+      </div>
+    </div>
+  </header>
+
+  <canvas class="weather" id="weather" aria-hidden="true"></canvas>
+  <canvas class="fx-canvas" id="fxCanvas" aria-hidden="true"></canvas>
+
+  <main class="stage">
+    <!-- Rich Illustrated Autumn Farm Scene -->
+    <svg class="farm" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+      <defs>
+        <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FFF5C4" stop-opacity="1"/>
+          <stop offset="48%" stop-color="#FFD15C" stop-opacity=".85"/>
+          <stop offset="100%" stop-color="#FFD15C" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FFF7DC" stop-opacity=".75"/>
+          <stop offset="100%" stop-color="#FFF7DC" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="hill1Grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#E4B567"/>
+          <stop offset="100%" stop-color="#BC863E"/>
+        </linearGradient>
+        <linearGradient id="hill2Grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#B8AD58"/>
+          <stop offset="100%" stop-color="#87863E"/>
+        </linearGradient>
+        <linearGradient id="fieldGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#92A656"/>
+          <stop offset="55%" stop-color="#7B8E44"/>
+          <stop offset="100%" stop-color="#5E6E32"/>
+        </linearGradient>
+        <linearGradient id="barnRed" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#BC3730"/>
+          <stop offset="100%" stop-color="#8F241F"/>
+        </linearGradient>
+        <linearGradient id="barnRoof" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#7A312A"/>
+          <stop offset="100%" stop-color="#541E1A"/>
+        </linearGradient>
+        <linearGradient id="siloWall" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#DED7C8"/>
+          <stop offset="50%" stop-color="#C8C0B0"/>
+          <stop offset="100%" stop-color="#9D9587"/>
+        </linearGradient>
+        <linearGradient id="siloDome" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#A6B4BF"/>
+          <stop offset="55%" stop-color="#7D8C9A"/>
+          <stop offset="100%" stop-color="#5B6976"/>
+        </linearGradient>
+        <linearGradient id="hayGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#F2CA66"/>
+          <stop offset="100%" stop-color="#CE9A34"/>
+        </linearGradient>
+
+        <pattern id="posts" x="0" y="408" width="76" height="66" patternUnits="userSpaceOnUse">
+          <rect x="30" y="2" width="14" height="62" rx="2" fill="#D5BC8F" stroke="#3B2314" stroke-width="3"/>
+          <line x1="34" y1="6" x2="34" y2="60" stroke="#EFE0BE" stroke-width="2" opacity=".65"/>
+        </pattern>
+
+        <g id="treeGold" stroke="#3B2314" stroke-width="3" stroke-linejoin="round">
+          <path d="M-6 0 L-4 -42 L4 -42 L6 0 Z" fill="#6E4427"/>
+          <circle cx="-18" cy="-58" r="24" fill="#D87228"/>
+          <circle cx="18" cy="-56" r="22" fill="#C94A29"/>
+          <circle cx="0" cy="-76" r="28" fill="#E6A132"/>
+          <circle cx="-6" cy="-84" r="14" fill="#F2C054" stroke="none" opacity=".7"/>
+        </g>
+        <g id="treeRed" stroke="#3B2314" stroke-width="3" stroke-linejoin="round">
+          <path d="M-5 0 L-3 -38 L3 -38 L5 0 Z" fill="#643D22"/>
+          <circle cx="-16" cy="-52" r="21" fill="#A62B38"/>
+          <circle cx="15" cy="-50" r="20" fill="#C8462C"/>
+          <circle cx="0" cy="-68" r="25" fill="#BE3532"/>
+          <circle cx="-5" cy="-75" r="12" fill="#DF6A3C" stroke="none" opacity=".65"/>
+        </g>
+
+        <g id="stalk" stroke="#3B2314" stroke-width="2.8" stroke-linejoin="round">
+          <path d="M0 0 C-5 -50 5 -100 0 -152" fill="none" stroke="#9C7A30" stroke-width="7" stroke-linecap="round"/>
+          <path d="M0 -36 C22 -58 38 -56 48 -44 C30 -48 16 -42 0 -32 Z" fill="#D6B152"/>
+          <path d="M0 -76 C-22 -98 -38 -96 -48 -84 C-30 -88 -16 -82 0 -72 Z" fill="#CFA645"/>
+          <path d="M0 -114 C20 -134 34 -132 42 -120 C26 -124 14 -118 0 -110 Z" fill="#D6B152"/>
+          <ellipse cx="9" cy="-68" rx="8.5" ry="21" fill="#F2C14B" transform="rotate(20 9 -68)"/>
+          <path d="M2 -54 Q10 -66 15 -84" fill="none" stroke="#B68524" stroke-width="1.8" stroke-dasharray="3 3"/>
+          <path d="M0 -152 l-9 -16 M0 -152 l0 -19 M0 -152 l9 -16" fill="none" stroke="#9C7A30" stroke-width="3.6" stroke-linecap="round"/>
+        </g>
+
+        <g id="pumpkin" stroke="#3B2314" stroke-width="2.8" stroke-linejoin="round">
+          <ellipse cx="0" cy="24" rx="34" ry="7" fill="#3B2314" opacity=".18" stroke="none"/>
+          <path d="M-24 -12 Q-42 -22 -44 -6" fill="none" stroke="#53682B" stroke-width="3" stroke-linecap="round"/>
+          <ellipse cx="-16" cy="2" rx="18" ry="23" fill="#CE5822"/>
+          <ellipse cx="16" cy="2" rx="18" ry="23" fill="#CE5822"/>
+          <ellipse cx="-7" cy="2" rx="15" ry="25" fill="#E36E29"/>
+          <ellipse cx="7" cy="2" rx="15" ry="25" fill="#E36E29"/>
+          <ellipse cx="0" cy="2" rx="12" ry="26" fill="#EE8336"/>
+          <path d="M-5 -12 Q-8 0 -5 14" fill="none" stroke="#FFB56B" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+          <path d="M0 -22 C-2 -31 4 -36 10 -38 C8 -32 6 -27 5 -22 Z" fill="#5D6F31"/>
+        </g>
+
+        <g id="tuft" stroke="#4D5E28" stroke-width="2.6" stroke-linecap="round" fill="none">
+          <path d="M0 0 Q-6 -10 -12 -13 M0 0 Q-1 -12 2 -16 M0 0 Q7 -9 13 -11"/>
+        </g>
+      </defs>
+
+      <filter id="tod" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <feColorMatrix id="todMatrix" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+      </filter>
+
+      <g id="stars" fill="#FFF7DF" opacity="0"></g>
+      <g id="moon" opacity="0">
+        <circle cx="0" cy="0" r="68" fill="url(#moonGlow)"/>
+        <path d="M4 -36 A36 36 0 1 0 4 36 A27 36 0 1 1 4 -36 Z" fill="#FAF0CD" stroke="#3B2314" stroke-width="2.5"/>
+      </g>
+      <g id="sunGroup" transform="translate(960 115)">
+        <circle cx="0" cy="0" r="105" fill="url(#sunGlow)"/>
+        <g class="sun-rays" stroke="#FFE38A" stroke-width="4" stroke-linecap="round" opacity=".55">
+          <line x1="0" y1="-78" x2="0" y2="-66"/><line x1="0" y1="66" x2="0" y2="78"/>
+          <line x1="-78" y1="0" x2="-66" y2="0"/><line x1="66" y1="0" x2="78" y2="0"/>
+          <line x1="-55" y1="-55" x2="-46" y2="-46"/><line x1="46" y1="46" x2="55" y2="55"/>
+          <line x1="55" y1="-55" x2="46" y2="-46"/><line x1="-46" y1="46" x2="-55" y2="55"/>
+        </g>
+        <circle id="sun" cx="0" cy="0" r="52" fill="var(--sun)"/>
+      </g>
+
+      <g id="clouds">
+        <g class="cloud-drift-1" fill="var(--cloud)" opacity=".92">
+          <ellipse cx="240" cy="120" rx="74" ry="22"/><ellipse cx="278" cy="102" rx="44" ry="26"/>
+          <ellipse cx="212" cy="108" rx="34" ry="20"/><ellipse cx="244" cy="128" rx="68" ry="11" fill="#E8D2A4" opacity=".32"/>
+        </g>
+        <g class="cloud-drift-2" fill="var(--cloud)" opacity=".85">
+          <ellipse cx="670" cy="82" rx="64" ry="18"/><ellipse cx="702" cy="66" rx="38" ry="22"/>
+          <ellipse cx="640" cy="72" rx="28" ry="16"/>
+        </g>
+        <g class="cloud-drift-1" fill="var(--cloud)" opacity=".65">
+          <ellipse cx="1040" cy="148" rx="54" ry="16"/><ellipse cx="1064" cy="136" rx="30" ry="18"/>
+        </g>
+      </g>
+
+      <g id="land" filter="url(#tod)">
+        <path d="M0 392 Q210 308 430 370 T860 348 T1200 362 V600 H0 Z" fill="url(#hill1Grad)"/>
+        <g opacity=".95">
+          <use href="#treeGold" transform="translate(52 384) scale(.95)"/>
+          <use href="#treeRed" transform="translate(95 378) scale(.78)"/>
+          <use href="#treeGold" transform="translate(462 380) scale(.82)"/>
+          <use href="#treeRed" transform="translate(510 386) scale(.66)"/>
+          <use href="#treeGold" transform="translate(860 364) scale(.88)"/>
+          <use href="#treeRed" transform="translate(918 370) scale(.72)"/>
+          <use href="#treeGold" transform="translate(1135 376) scale(.92)"/>
+        </g>
+        <path d="M0 436 Q310 380 610 420 T1200 410 V600 H0 Z" fill="url(#hill2Grad)"/>
+
+        <!-- Classic Red Barn -->
+        <g stroke="#3B2314" stroke-width="3.6" stroke-linejoin="round">
+          <rect x="195" y="218" width="30" height="24" fill="#A62F2A"/>
+          <path d="M190 220 L210 206 L230 220 Z" fill="#61231E"/>
+          <g class="vane-spin" stroke="#3B2314" stroke-width="2.5">
+            <line x1="210" y1="206" x2="210" y2="190"/>
+            <line x1="199" y1="194" x2="222" y2="194"/>
+            <polygon points="222,194 216,190 216,198" fill="#E5A024" stroke="none"/>
+          </g>
+          <rect x="110" y="322" width="200" height="140" fill="url(#barnRed)"/>
+          <g stroke="#6D1B17" stroke-width="1.4" opacity=".4">
+            <line x1="130" y1="324" x2="130" y2="460"/><line x1="150" y1="324" x2="150" y2="460"/>
+            <line x1="270" y1="324" x2="270" y2="460"/><line x1="290" y1="324" x2="290" y2="460"/>
+          </g>
+          <path d="M92 330 L134 266 L210 236 L286 266 L328 330 Z" fill="url(#barnRoof)"/>
+          <path d="M104 326 L138 272 L210 245 L282 272 L316 326" fill="none" stroke="#FFF8E6" stroke-width="3.5" opacity=".88"/>
+          <rect id="barnWin" x="188" y="272" width="44" height="38" rx="4" fill="#F4C776"/>
+          <path d="M210 272 V310 M188 291 H232" stroke="#3B2314" stroke-width="2.5"/>
+          <rect x="168" y="368" width="84" height="94" fill="#82221E"/>
+          <path d="M168 368 L252 462 M252 368 L168 462" stroke="#FFF8E6" stroke-width="5"/>
+          <rect x="168" y="368" width="84" height="94" fill="none" stroke="#FFF8E6" stroke-width="5"/>
+          <line x1="210" y1="368" x2="210" y2="462" stroke="#3B2314" stroke-width="3"/>
+          <rect x="108" y="454" width="204" height="10" rx="2" fill="#8F887D"/>
+        </g>
+
+        <!-- Silo -->
+        <g stroke="#3B2314" stroke-width="3.6" stroke-linejoin="round">
+          <rect x="326" y="286" width="58" height="176" fill="url(#siloWall)"/>
+          <path d="M326 288 Q355 234 384 288 Z" fill="url(#siloDome)"/>
+          <circle cx="355" cy="259" r="3" fill="#FFF8E6" stroke="none" opacity=".55"/>
+          <path d="M326 322 H384 M326 358 H384 M326 394 H384 M326 430 H384" stroke-width="2.4" opacity=".8"/>
+          <rect x="348" y="302" width="14" height="18" rx="2" fill="#6B5C4E" stroke-width="2"/>
+          <rect x="348" y="338" width="14" height="18" rx="2" fill="#6B5C4E" stroke-width="2"/>
+        </g>
+
+        <!-- Fence -->
+        <rect x="394" y="408" width="806" height="66" fill="url(#posts)"/>
+        <g stroke="#3B2314" stroke-width="3">
+          <rect x="394" y="424" width="806" height="9" fill="#DEC79A"/>
+          <rect x="394" y="446" width="806" height="9" fill="#CFAF79"/>
+        </g>
+
+        <!-- Meadow -->
+        <rect x="0" y="460" width="1200" height="140" fill="url(#fieldGrad)"/>
+        <path d="M0 460 Q300 452 600 462 T1200 458" fill="none" stroke="#5E6E32" stroke-width="6"/>
+        <ellipse cx="600" cy="515" rx="340" ry="38" fill="#A2B664" opacity=".24"/>
+        <use href="#tuft" transform="translate(180 510)"/>
+        <use href="#tuft" transform="translate(320 555) scale(1.1)"/>
+        <use href="#tuft" transform="translate(560 492) scale(.85)"/>
+        <use href="#tuft" transform="translate(710 562)"/>
+        <use href="#tuft" transform="translate(910 520) scale(.9)"/>
+
+        <!-- Pilgrim farmer -->
+        <g id="pilgrim" style="display:none" stroke="#3B2314" stroke-width="2.5" stroke-linejoin="round">
+          <g id="pilBody">
+            <ellipse cx="0" cy="-1" rx="20" ry="5" fill="#3B2314" opacity=".22" stroke="none"/>
+            <g id="pilLegB">
+              <rect x="-5" y="-52" width="10" height="30" rx="2" fill="#4A3324"/>
+              <rect x="-4" y="-24" width="8" height="18" fill="#D9D1C0"/>
+              <ellipse cx="4" cy="-4" rx="9" ry="5" fill="#1E1A1C"/>
+            </g>
+            <g id="pilLegA">
+              <rect x="-5" y="-52" width="10" height="30" rx="2" fill="#5A3E2B"/>
+              <rect x="-4" y="-24" width="8" height="18" fill="#EDE6D6"/>
+              <ellipse cx="4" cy="-4" rx="9" ry="5" fill="#1E1A1C"/>
+              <rect x="3" y="-9" width="5" height="4" fill="#E5A024" stroke-width="1"/>
+            </g>
+            <path d="M-14 -98 L16 -98 L21 -45 L-19 -45 Z" fill="#2F2A30"/>
+            <rect x="-17" y="-64" width="37" height="6" fill="#1A1416"/>
+            <rect x="8" y="-66" width="8" height="9" fill="none" stroke="#E5A024" stroke-width="2"/>
+            <path d="M-13 -99 L17 -99 L22 -89 L-16 -89 Z" fill="#F8F3E8"/>
+            <g id="pilFork"><g transform="translate(22 -58) rotate(-125)">
+              <line x1="0" y1="0" x2="98" y2="0" stroke="#9C7A30" stroke-width="4.2" stroke-linecap="round"/>
+              <path d="M98 -9 V9 M98 -8 H118 M98 0 H120 M98 8 H118" fill="none" stroke="#7E8C99" stroke-width="3" stroke-linecap="round"/>
+            </g></g>
+            <g id="pilArm">
+              <line x1="2" y1="-92" x2="14" y2="-67" stroke="#3B2314" stroke-width="11" stroke-linecap="round"/>
+              <line x1="2" y1="-92" x2="14" y2="-67" stroke="#2F2A30" stroke-width="7" stroke-linecap="round"/>
+              <circle id="pilHand" cx="15" cy="-64" r="5.2" fill="#F3CCA2"/>
+            </g>
+            <circle cx="-1" cy="-112" r="13.5" fill="#6E4423"/>
+            <circle cx="3" cy="-110" r="11.5" fill="#F3CCA2"/>
+            <circle cx="9.2" cy="-113" r="1.7" fill="#3B2314" stroke="none"/>
+            <path d="M7 -117 l5 -1" stroke="#3B2314" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M13 -112 q4 3 0 5" fill="#F3CCA2" stroke-width="2"/>
+            <path d="M5 -104 q3.5 2.5 6.5 0" fill="none" stroke-width="1.8" stroke-linecap="round"/>
+            <g id="pilHat">
+              <ellipse cx="2" cy="-122" rx="22" ry="4.5" fill="#1E1A1C"/>
+              <path d="M-10 -122 L14 -122 L12 -153 L-8 -153 Z" fill="#1E1A1C"/>
+              <rect x="-10" y="-131" width="23" height="5.5" fill="#4A3F44" stroke-width="1.5"/>
+              <rect x="-1" y="-132" width="7.5" height="7.5" fill="none" stroke="#E5A024" stroke-width="2"/>
+            </g>
+          </g>
+        </g>
+
+        <!-- Hay Bales -->
+        <g stroke="#3B2314" stroke-width="3" stroke-linejoin="round">
+          <rect x="18" y="438" width="84" height="42" rx="6" fill="url(#hayGrad)"/>
+          <line x1="38" y1="438" x2="38" y2="480" stroke="#9B6E1D" stroke-width="2.5"/>
+          <line x1="82" y1="438" x2="82" y2="480" stroke="#9B6E1D" stroke-width="2.5"/>
+          <rect x="42" y="400" width="82" height="42" rx="6" fill="url(#hayGrad)"/>
+          <line x1="62" y1="400" x2="62" y2="442" stroke="#9B6E1D" stroke-width="2.5"/>
+          <line x1="104" y1="400" x2="104" y2="442" stroke="#9B6E1D" stroke-width="2.5"/>
+          <ellipse cx="938" cy="508" rx="44" ry="8" fill="#3B2314" opacity=".18" stroke="none"/>
+          <circle cx="935" cy="466" r="41" fill="url(#hayGrad)"/>
+          <path d="M935 466 m-8 0 a8 8 0 1 1 16 0 a16 16 0 1 1 -32 0 a24 24 0 1 1 48 0 a32 32 0 1 1 -64 0" fill="none" stroke="#AD7E26" stroke-width="3"/>
+        </g>
+
+        <g class="stalk-sway"><use href="#stalk" transform="translate(1050 472) scale(1.05)"/></g>
+        <g class="stalk-sway-2"><use href="#stalk" transform="translate(1096 478) scale(1.2)"/></g>
+        <g class="stalk-sway"><use href="#stalk" transform="translate(1145 472) scale(.95)"/></g>
+        <g class="stalk-sway-2"><use href="#stalk" transform="translate(1184 480) scale(1.14)"/></g>
+
+        <use href="#pumpkin" transform="translate(425 524) scale(.95)"/>
+        <use href="#pumpkin" transform="translate(476 552) scale(.72)"/>
+        <use href="#pumpkin" transform="translate(788 532) scale(1.08)"/>
+        <use href="#pumpkin" transform="translate(844 558) scale(.76)"/>
+        <use href="#pumpkin" transform="translate(1012 548) scale(1.22)"/>
+      </g>
+    </svg>
+
+    <svg class="plucker" id="plucker" viewBox="-75 -165 150 172" aria-hidden="true"></svg>
+
+    <div class="bubble display" id="bubble">Nice and quiet!</div>
+
+    <!-- Feather Counter HUD -->
+    <div class="score" id="scoreCard">
+      <div class="score-head">
+        <div class="n display"><span id="count">0</span> / 10</div>
+        <div class="lbl">tail feathers</div>
+      </div>
+      <div class="feather-pips" id="featherPips" aria-hidden="true"></div>
+      <div class="next-wrap">
+        <div class="next" title="Progress to next feather"><i id="nextBar"></i></div>
+        <span class="next-pct" id="nextPct">0%</span>
+      </div>
+      <div class="fb-row">
+        <button class="give display" id="give" type="button" title="Give a feather for great behavior (shortcut: F)">+ Give</button>
+        <button class="give take display" id="take" type="button" title="Have the farmer pluck a feather (shortcut: T)">− Take</button>
+      </div>
+    </div>
+
+    <!-- Demo Mode Noise Simulator -->
+    <div class="demo-pad" id="demoPad" hidden>
+      <div class="demo-title display">
+        <span>Demo Sound Level</span>
+        <span id="demoVal">25%</span>
+      </div>
+      <input type="range" id="demoSlider" min="0" max="100" value="25" aria-label="Simulated room noise">
+      <div class="demo-btns">
+        <button class="demo-btn" type="button" data-demo="18">Quiet</button>
+        <button class="demo-btn" type="button" data-demo="52">Warn</button>
+        <button class="demo-btn" type="button" data-demo="88">Loud!</button>
+      </div>
+    </div>
+
+    <!-- Hero Illustrated Turkey -->
+    <div class="turkey-wrap">
+      <svg class="turkey calm" id="turkey" viewBox="-50 -10 500 375" role="img" aria-label="Turkey whose tail feathers grow as the class stays quiet">
+        <defs>
+          <radialGradient id="bodyGrad" cx="46%" cy="35%" r="60%">
+            <stop offset="0%" stop-color="#A66D39"/>
+            <stop offset="68%" stop-color="#845127"/>
+            <stop offset="100%" stop-color="#613919"/>
+          </radialGradient>
+          <radialGradient id="wingGrad" cx="40%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="#8B5628"/>
+            <stop offset="100%" stop-color="#5E3717"/>
+          </radialGradient>
+          <radialGradient id="headGrad" cx="42%" cy="32%" r="65%">
+            <stop offset="0%" stop-color="#B57B48"/>
+            <stop offset="100%" stop-color="#8A572C"/>
+          </radialGradient>
+          <linearGradient id="beakGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#F7C448"/>
+            <stop offset="100%" stop-color="#D4881C"/>
+          </linearGradient>
+          <linearGradient id="wattleGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#D9364B"/>
+            <stop offset="100%" stop-color="#961B2C"/>
+          </linearGradient>
+        </defs>
+
+        <ellipse class="tk-shadow" cx="200" cy="342" rx="88" ry="15" fill="#3B2314" opacity=".24"/>
+
+        <g class="tk-all">
+          <g id="tail"></g>
+
+          <g class="tk-body">
+            <g stroke="#3B2314" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <g class="leg leg-l">
+                <path d="M180 296 L176 330" stroke="#3B2314" stroke-width="11"/>
+                <path d="M180 296 L176 330" stroke="#DF9628" stroke-width="6"/>
+                <path d="M176 330 l-16 6 M176 330 l1 9 M176 330 l15 4" stroke="#3B2314" stroke-width="9"/>
+                <path d="M176 330 l-16 6 M176 330 l1 9 M176 330 l15 4" stroke="#DF9628" stroke-width="4.5"/>
+              </g>
+              <g class="leg leg-r">
+                <path d="M220 296 L224 330" stroke="#3B2314" stroke-width="11"/>
+                <path d="M220 296 L224 330" stroke="#DF9628" stroke-width="6"/>
+                <path d="M224 330 l16 6 M224 330 l-1 9 M224 330 l-15 4" stroke="#3B2314" stroke-width="9"/>
+                <path d="M224 330 l16 6 M224 330 l-1 9 M224 330 l-15 4" stroke="#DF9628" stroke-width="4.5"/>
+              </g>
+            </g>
+
+            <ellipse cx="179" cy="296" rx="18" ry="14" fill="#70421E" stroke="#3B2314" stroke-width="4"/>
+            <ellipse cx="221" cy="296" rx="18" ry="14" fill="#70421E" stroke="#3B2314" stroke-width="4"/>
+
+            <g class="wing-l">
+              <path d="M148 214 C112 222 104 268 134 292 C148 296 164 282 164 256 Z" fill="url(#wingGrad)" stroke="#3B2314" stroke-width="4.5" stroke-linejoin="round"/>
+              <path d="M126 244 Q138 250 152 245 M124 264 Q137 270 151 264" fill="none" stroke="#4D2B10" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+            </g>
+            <g class="wing-r">
+              <path d="M252 214 C288 222 296 268 266 292 C252 296 236 282 236 256 Z" fill="url(#wingGrad)" stroke="#3B2314" stroke-width="4.5" stroke-linejoin="round"/>
+              <path d="M274 244 Q262 250 248 245 M276 264 Q263 270 249 264" fill="none" stroke="#4D2B10" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+            </g>
+
+            <ellipse cx="200" cy="248" rx="79" ry="65" fill="url(#bodyGrad)" stroke="#3B2314" stroke-width="5"/>
+            <ellipse cx="200" cy="236" rx="52" ry="38" fill="#BD854D" opacity=".28"/>
+            <g fill="none" stroke="#5B3415" stroke-width="4" stroke-linecap="round" opacity=".72">
+              <path d="M156 248 q14 14 29 0 q15 14 30 0 q15 14 29 0"/>
+              <path d="M164 270 q12 13 24 0 q12 13 24 0 q12 13 24 0"/>
+              <path d="M178 290 q11 10 22 0 q11 10 22 0"/>
+            </g>
+
+            <g class="tk-head">
+              <g class="steam" fill="#FFF9EB" stroke="#3B2314" stroke-width="2.4">
+                <circle class="s1" cx="158" cy="134" r="9"/>
+                <circle class="s2" cx="146" cy="120" r="6"/>
+                <circle class="s1" cx="242" cy="134" r="9"/>
+                <circle class="s2" cx="254" cy="120" r="6"/>
+              </g>
+
+              <path d="M178 216 Q180 186 184 176 H216 Q220 186 222 216 Q200 224 178 216 Z" fill="#925F32" stroke="#3B2314" stroke-width="4.5" stroke-linejoin="round"/>
+              <path d="M196 130 Q190 116 198 114 Q202 122 203 128 Q208 115 215 119 Q211 127 207 132" fill="#9E6B3C" stroke="#3B2314" stroke-width="3.2" stroke-linejoin="round"/>
+
+              <circle class="head-fill" cx="200" cy="166" r="37" fill="url(#headGrad)" stroke="#3B2314" stroke-width="5"/>
+
+              <g class="crown" stroke="#3B2314" stroke-width="3" stroke-linejoin="round">
+                <path d="M175 135 L170 110 L187 122 L200 103 L213 122 L230 110 L225 135 Z" fill="#F7C548"/>
+                <circle cx="200" cy="124" r="4" fill="#B8253A" stroke-width="2"/>
+                <circle cx="183" cy="126" r="3" fill="#6E8E43" stroke-width="1.8"/>
+                <circle cx="217" cy="126" r="3" fill="#6E8E43" stroke-width="1.8"/>
+              </g>
+
+              <ellipse class="blush" cx="174" cy="173" rx="7" ry="4.2" fill="#E87A6A"/>
+              <ellipse class="blush" cx="226" cy="173" rx="7" ry="4.2" fill="#E87A6A"/>
+
+              <circle cx="185" cy="158" r="10.5" fill="#FFF" stroke="#3B2314" stroke-width="2.8"/>
+              <circle cx="215" cy="158" r="10.5" fill="#FFF" stroke="#3B2314" stroke-width="2.8"/>
+              <g class="pupil-g">
+                <circle class="pupil-dot" cx="186" cy="159" r="5" fill="#2A160B"/>
+                <circle cx="188" cy="156" r="2" fill="#FFF"/>
+                <circle class="pupil-dot" cx="214" cy="159" r="5" fill="#2A160B"/>
+                <circle cx="216" cy="156" r="2" fill="#FFF"/>
+              </g>
+              <path class="lid" d="M174 157 a11 11 0 0 1 22 0 Z M204 157 a11 11 0 0 1 22 0 Z" fill="#9E6B3C" stroke="#3B2314" stroke-width="2.6" stroke-linejoin="round"/>
+              <path class="brow" d="M172 142 l20 8 M228 142 l-20 8" stroke="#3B2314" stroke-width="4.6" stroke-linecap="round"/>
+
+              <path class="wattle" d="M204 184 q13 8 8 25 q-5 9 -11 0 q-3 -10 3 -25 z" fill="url(#wattleGrad)" stroke="#3B2314" stroke-width="3" stroke-linejoin="round"/>
+              <ellipse class="beak-open" cx="200" cy="183" rx="8" ry="6.5" fill="#6E141E" stroke="#3B2314" stroke-width="2.5"/>
+              <path d="M188 171 Q200 165 212 171 L200 190 Z" fill="url(#beakGrad)" stroke="#3B2314" stroke-width="3.2" stroke-linejoin="round"/>
+              <path d="M192 174 L208 174" stroke="#FFF4C2" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+              <path class="snood" d="M200 165 C208 164 214 172 211 182 C209 187 203 185 204 179 C204 174 202 171 198 171 Z" fill="url(#wattleGrad)" stroke="#3B2314" stroke-width="2.6" stroke-linejoin="round"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </main>
+
+  <!-- Upgraded Sound Meter Bar + 30-Second Rolling Sparkline -->
+  <footer class="meter-row">
+    <div class="meter-col">
+      <div class="meter-head">
+        <div class="meter-head-left">
+          <span class="zone-badge" id="zoneBadge">Safe &amp; Quiet</span>
+          <span class="filter-tag" id="filterTag">Voice filter 300–3400 Hz</span>
+        </div>
+        <div class="danger-wrap" id="dangerWrap">
+          <span>Farmer alert!</span>
+          <div class="danger-track"><i id="dangerFill"></i></div>
+        </div>
+      </div>
+
+      <div class="spark-wrap" title="Rolling 30-second noise history (dashed line = loudness limit)">
+        <canvas id="sparkline" aria-hidden="true"></canvas>
+        <span class="spark-lbl">Last 30s</span>
+      </div>
+
+      <div class="meter" id="meter" role="meter" aria-label="Classroom noise level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="meter-zones"></div>
+        <div class="fill" id="fill"></div>
+        <div class="meter-ticks"></div>
+        <div class="peak" id="peakMark"></div>
+        <div class="limit" id="limitMark" title="Loudness limit"></div>
+      </div>
+
+      <div class="meter-labels">
+        <span>0 · Silent</span>
+        <span>1 · Whisper</span>
+        <span>2 · Partner</span>
+        <span>3 · Too Loud!</span>
+      </div>
+    </div>
+
+    <div class="limit-ctl">
+      <div class="limit-top">
+        <label for="limit2">Loudness limit</label>
+        <span class="limit-val" id="limitVal">60%</span>
+      </div>
+      <input type="range" id="limit2" min="25" max="90" value="60" aria-label="Loudness limit">
+      <div class="presets" aria-label="Voice level presets">
+        <button class="preset" type="button" data-limit="38">Silent</button>
+        <button class="preset" type="button" data-limit="52">Whisper</button>
+        <button class="preset" type="button" data-limit="66">Partner</button>
+        <button class="preset" type="button" data-limit="80">Group</button>
+      </div>
+      <div class="grace-inline">
+        <span>Grace window</span>
+        <div class="grace-pills" aria-label="Grace window before pluck">
+          <button class="grace-pill" type="button" data-grace="1000">1s</button>
+          <button class="grace-pill" type="button" data-grace="2000">2s</button>
+          <button class="grace-pill" type="button" data-grace="4000">4s</button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Setup Overlay -->
+  <div class="overlay" id="setup">
+    <div class="card">
+      <div class="card-head">
+        <h2 class="display">
+          <label class="meter-pick">
+            <span class="sr-only">Choose a holiday meter</span>
+            <select onchange="location.href=this.value">
+              <option value="veterans.html">Veterans Meter</option>
+              <option value="gobble-meter.html" selected>Gobble Meter</option>
+              <option value="santa.html">Santa Meter</option>
+              <option value="mlk.html">Dream Meter</option>
+              <option value="washington.html">Washington Meter</option>
+              <option value="easter.html">Bunny Meter</option>
+            </select>
+          </label>
+        </h2>
+        <button class="cal-btn" id="histBtnSetup" type="button">Class History</button>
+      </div>
+      <p>Keep the classroom under the loudness limit to grow all 10 tail feathers. Stay too loud past the grace window and the farmer walks out to pluck one!</p>
+
+      <label class="q" for="minsInput">How many minutes are left in class?</label>
+      <div class="mins">
+        <input id="minsInput" type="number" min="1" max="180" value="20" inputmode="numeric">
+        <span>minutes</span>
+      </div>
+      <div class="chips" id="chips"></div>
+
+      <div class="q">
+        <label for="limit1">Expected voice level</label>
+        <span id="limit1Label" style="font-size:.88rem;color:var(--muted)">60%</span>
+      </div>
+      <div class="setup-presets">
+        <button class="setup-preset" type="button" data-limit="38">0 · Silent<small>Independent</small></button>
+        <button class="setup-preset" type="button" data-limit="52">1 · Whisper<small>Quiet work</small></button>
+        <button class="setup-preset" type="button" data-limit="66">2 · Partner<small>Soft talking</small></button>
+        <button class="setup-preset" type="button" data-limit="80">3 · Group<small>Discussion</small></button>
+      </div>
+      <input type="range" id="limit1" min="25" max="90" value="60">
+      <div class="range-ends"><span>Strict</span><span>Relaxed</span></div>
+
+      <!-- Speech Filter & Grace Window Controls -->
+      <div class="setup-two-col">
+        <div class="sub-box">
+          <div class="sub-box-title">
+            <span>Voice-Band Filter</span>
+            <button class="switch-btn" id="voiceFilterSetup" type="button" aria-pressed="true">ON · 300–3400 Hz</button>
+          </div>
+          <div style="font-size:.77rem;color:var(--muted);line-height:1.35">Focuses on human speech and ignores low HVAC hum, chair scrapes, and footsteps.</div>
+        </div>
+        <div class="sub-box">
+          <div class="sub-box-title"><span>Grace Window</span></div>
+          <div class="seg-row">
+            <button class="seg-btn" type="button" data-grace="1000">1s Strict</button>
+            <button class="seg-btn" type="button" data-grace="2000">2s Std</button>
+            <button class="seg-btn" type="button" data-grace="4000">4s Soft</button>
+          </div>
+          <div id="graceHint" style="font-size:.76rem;color:var(--muted);margin-top:.32rem">Standard: 2s over limit plucks</div>
+        </div>
+      </div>
+
+      <!-- Custom Class Reward Goal -->
+      <div class="q">
+        <label for="goalInput">Class reward goal <span style="font-weight:400;color:var(--muted);font-size:.86rem">(optional)</span></label>
+      </div>
+      <div class="goal-input-row">
+        <input class="goal-input" id="goalInput" type="text" maxlength="64" placeholder="e.g. 10 feathers = 5 min extra recess!">
+        <button class="cal-btn" id="clearGoal" type="button">Clear</button>
+      </div>
+      <div class="chips" style="margin-top:.38rem">
+        <button class="chip" type="button" data-goal="5 min extra recess">5 min extra recess</button>
+        <button class="chip" type="button" data-goal="Free choice time">Free choice time</button>
+        <button class="chip" type="button" data-goal="Music break">Music break</button>
+        <button class="chip" type="button" data-goal="Class sticker star">Class sticker star</button>
+      </div>
+
+      <!-- Room Auto-Calibration -->
+      <div class="cal-box">
+        <div class="cal-row">
+          <strong style="font-size:.86rem">Room Mic Test &amp; Auto-Calibrate</strong>
+          <button class="cal-btn" id="calBtn" type="button">Test / Calibrate Room</button>
+        </div>
+        <div class="mini-meter" aria-hidden="true">
+          <i id="calFill"></i>
+          <div class="mini-limit" id="calLimit"></div>
+        </div>
+        <div id="calHint" style="font-size:.78rem;color:var(--muted);margin-top:.28rem">Optional: measure your room’s quiet baseline for 2 seconds to auto-set the limit.</div>
+      </div>
+
+      <div class="go-row">
+        <button class="go display" id="start">Start listening</button>
+        <button class="go-secondary display" id="startDemo" type="button" title="Run with a manual slider instead of a microphone">Demo mode</button>
+      </div>
+      <div class="err" id="err" role="alert"></div>
+    </div>
+  </div>
+
+  <!-- Session Summary Overlay -->
+  <div class="overlay" id="done" hidden>
+    <div class="card" style="text-align:center">
+      <h2 class="display">Time’s up!</h2>
+      <p style="margin-inline:auto">Your class grew</p>
+      <div class="big-feathers display"><span id="finalCount">0</span> of 10</div>
+      <p style="margin-inline:auto" id="finalMsg">tail feathers.</p>
+      <div class="goal-result" id="goalResult" hidden></div>
+      <div class="stats-grid">
+        <div class="stat-card"><b id="statQuiet">100%</b><span>Time Quiet</span></div>
+        <div class="stat-card"><b id="statStreak">0:00</b><span>Best Streak</span></div>
+        <div class="stat-card"><b id="statPlucks">0</b><span>Plucks</span></div>
+      </div>
+      <button class="go display" id="again">Start again</button>
+    </div>
+  </div>
+
+  <!-- Class History & Weekly Stats Modal -->
+  <div class="overlay" id="historyModal" hidden>
+    <div class="card">
+      <div class="card-head">
+        <h2 class="display">Class History</h2>
+        <button class="cal-btn" id="histClose" type="button">Close</button>
+      </div>
+      <p>Your saved classroom sessions and 7-day averages (stored locally in this browser).</p>
+      <div class="hist-kpis">
+        <div class="stat-card"><b id="histSessions">0</b><span>7-Day Sessions</span></div>
+        <div class="stat-card"><b id="histAvgFeathers">—</b><span>Avg Feathers</span></div>
+        <div class="stat-card"><b id="histAvgQuiet">—</b><span>Avg Quiet %</span></div>
+        <div class="stat-card"><b id="histBestStreak">—</b><span>Best Streak</span></div>
+      </div>
+      <div class="hist-list" id="histRows"></div>
+      <div class="hist-footer">
+        <button class="danger-link" id="histClear" type="button">Clear history</button>
+        <button class="cal-btn" type="button" onclick="document.getElementById('historyModal').hidden=true">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="meter-core.js"></script>
+<script>
+(() => {
+  const FEATHERS = 10;
+  const FEATHER_PALETTE = [
+    {base:"#A82538", band:"#5C121D", tip:"#F6E2B8"},
+    {base:"#D96226", band:"#6E2B0D", tip:"#FBE8BE"},
+    {base:"#E4A024", band:"#784B09", tip:"#FFF2CC"},
+    {base:"#6B853B", band:"#334219", tip:"#EFF0CA"},
+    {base:"#8E5528", band:"#4A280E", tip:"#F4DFB4"}
+  ];
+  const $ = id => document.getElementById(id);
+  const ns = "http://www.w3.org/2000/svg";
+  const turkeyEl = $("turkey"), stageEl = document.querySelector(".stage"), bubbleEl = $("bubble"), appEl = $("app");
+
+  // ---------- Build Ornate Layered Tail Feathers & Score Pips ----------
+  const tail = $("tail"), pipsEl = $("featherPips");
+  const feathers = [], pips = [];
+  for (let i = 0; i < FEATHERS; i++) {
+    const angle = -74 + i * (148 / (FEATHERS - 1));
+    const outer = document.createElementNS(ns, "g");
+    outer.setAttribute("transform", `rotate(${angle} 200 248)`);
+    const inner = document.createElementNS(ns, "g");
+    inner.setAttribute("class", "feather-inner");
+    const pal = FEATHER_PALETTE[i % FEATHER_PALETTE.length];
+    inner.innerHTML =
+      `<path d="M200 22 C218 22 230 56 227 112 C224 156 213 196 200 218 C187 196 176 156 173 112 C170 56 182 22 200 22 Z" fill="${pal.base}" stroke="#3B2314" stroke-width="4" stroke-linejoin="round"/>` +
+      `<path d="M180 64 Q200 50 220 64 Q216 42 200 32 Q184 42 180 64 Z" fill="${pal.tip}" opacity=".9"/>` +
+      `<path d="M177 82 Q200 68 223 82 Q222 68 219 60 Q200 48 181 60 Q178 68 177 82 Z" fill="${pal.band}" opacity=".85"/>` +
+      `<line x1="200" y1="36" x2="200" y2="210" stroke="#3B2314" stroke-width="2.6" opacity=".48" stroke-linecap="round"/>` +
+      `<path d="M184 118 L200 108 L216 118 M185 148 L200 138 L215 148" fill="none" stroke="#FFF9EB" stroke-width="2" opacity=".28" stroke-linecap="round"/>`;
+    outer.appendChild(inner);
+    tail.appendChild(outer);
+    feathers.push(inner);
+
+    const pip = document.createElement("div");
+    pip.className = "pip";
+    pip.dataset.color = pal.base;
+    pipsEl.appendChild(pip);
+    pips.push(pip);
+  }
+
+  // ---------- Optional custom gobble MP3 + Built-in Turkey Gobble Synth ----------
+  let gobbleFile = null, gobbleFileOk = false;
+  if (window.GOBBLE_MP3) {
+    gobbleFile = new Audio(window.GOBBLE_MP3);
+    gobbleFile.preload = "auto";
+    gobbleFile.addEventListener("canplaythrough", () => { gobbleFileOk = true; });
+    gobbleFile.addEventListener("error", () => { gobbleFileOk = false; });
+  }
+  function synthGobble(ctx){
+    if (!ctx) return 820;
+    const t0 = ctx.currentTime + .02;
+    const osc = ctx.createOscillator(), filt = ctx.createBiquadFilter(), gate = ctx.createGain(), out = ctx.createGain();
+    osc.type = "sawtooth";
+    filt.type = "bandpass"; filt.frequency.value = 1100; filt.Q.value = 1.4;
+    out.gain.value = .5;
+    gate.gain.setValueAtTime(0, t0);
+    const pulses = [0, .065, .13, .195, .26, .38, .445, .51, .575, .64, .705];
+    pulses.forEach((p, i) => {
+      const t = t0 + p, f = 620 - i * 22;
+      osc.frequency.setValueAtTime(f * 1.25, t);
+      osc.frequency.exponentialRampToValueAtTime(f * .8, t + .055);
+      gate.gain.setValueAtTime(0, t);
+      gate.gain.linearRampToValueAtTime(1, t + .012);
+      gate.gain.linearRampToValueAtTime(.12, t + .055);
+      gate.gain.linearRampToValueAtTime(0, t + .062);
+    });
+    osc.connect(filt); filt.connect(gate); gate.connect(out); out.connect(ctx.destination);
+    osc.start(t0); osc.stop(t0 + .82);
+    return 820;
+  }
+  function playGobble(ctx){
+    if (gobbleFileOk && gobbleFile) {
+      try {
+        gobbleFile.currentTime = 0;
+        gobbleFile.play().catch(() => synthGobble(ctx));
+        return (isFinite(gobbleFile.duration) ? gobbleFile.duration : 1.2) * 1000;
+      } catch(e) { return synthGobble(ctx); }
+    }
+    return synthGobble(ctx);
+  }
+
+  // ---------- Initialize Shared MeterCore ----------
+  let danceUntil = 0;
+  const core = window.MeterCore.init({
+    storagePrefix: "gobble",
+    maxItems: FEATHERS,
+    itemLabel: "tail feathers",
+    lines: {
+      calm: ["Nice and quiet!", "Look at these feathers!", "Strut, strut, strut.", "Best class on the farm!", "Shh… I’m fabulous."],
+      warn: ["Getting louder…", "Hey… keep it down.", "Easy now, friends…"],
+      loud: ["Too loud! My feathers!", "GOBBLE GOBBLE!!", "Who’s making that racket?!", "Watch out — the farmer hears us!"]
+    },
+    giftLines: ["Ooh, a new feather!", "Thank you, class!", "Looking fabulous!", "Gobble-licious!"],
+    onMoodChange(m){
+      turkeyEl.classList.remove("calm","warn","loud");
+      turkeyEl.classList.add(m);
+    },
+    onCountUpdate(earned, max){
+      turkeyEl.classList.toggle("crowned", earned >= max);
+      pips.forEach((p, i) => {
+        const on = i < earned;
+        p.classList.toggle("on", on);
+        p.style.background = on ? p.dataset.color : "";
+      });
+    },
+    onGain(idx){
+      const f = feathers[idx];
+      f.classList.remove("fall", "plucked");
+      void f.getBBox();
+      f.classList.add("on");
+    },
+    onReset(){
+      feathers.forEach(f => f.classList.remove("on","fall","plucked"));
+      turkeyEl.classList.remove("crowned","dance");
+    },
+    onFull(goal){
+      core.say(goal ? `GOAL UNLOCKED! ${goal}!` : "A PERFECT TAIL! Look at me go!", false, 5500);
+      if (core.reduceMotion.matches) return;
+      danceUntil = performance.now() + 5300;
+      turkeyEl.classList.remove("dance"); void turkeyEl.getBBox(); turkeyEl.classList.add("dance");
+      setTimeout(() => turkeyEl.classList.remove("dance"), 5300);
+    },
+    onLoudSound(ctx){
+      return playGobble(ctx);
+    },
+    onRequestTake(){
+      takeFeather();
+    },
+    getBurstOrigin(){
+      const tr = turkeyEl.getBoundingClientRect(), ar = appEl.getBoundingClientRect();
+      return { x: tr.left - ar.left + tr.width * .5, y: tr.top - ar.top + tr.height * .38 };
+    }
+  });
+
+  // ---------- Turkey Movement Loop ----------
+  let holdTurkey = false, holdFace = 1;
+  let tx = 0, tv = 0, target = 0, facing = 1, pauseUntil = 0, retargetAt = 0, motionLast = performance.now();
+
+  function pickTarget(range){
+    if (range < 20) return 0;
+    let n = 0;
+    for (let i = 0; i < 8; i++) { n = (Math.random() * 2 - 1) * range; if (Math.abs(n - tx) > range * 0.35) break; }
+    return n;
+  }
+
+  function motion(now){
+    const dt = Math.min(0.1, (now - motionLast) / 1000); motionLast = now;
+    const W = stageEl.clientWidth;
+    const range = Math.max(0, W / 2 - turkeyEl.getBoundingClientRect().width * 0.4 - 16);
+    const mood = core.mood;
+    let moving = false;
+    if (core.reduceMotion.matches) {
+      tx = 0; tv = 0;
+    } else {
+      const speed = W * (mood === "loud" ? 0.54 : mood === "warn" ? 0.14 : 0.068);
+      if (Math.abs(target) > range) target = Math.sign(target) * range;
+      let desired = 0;
+      if (!(mood === "calm" && now < pauseUntil)) {
+        const arrived = Math.abs(target - tx) < Math.max(6, speed * 0.08);
+        if (arrived) {
+          if (mood === "calm") pauseUntil = now + 1300 + Math.random() * 2200;
+          target = pickTarget(range);
+          retargetAt = now + 300 + Math.random() * 600;
+        } else if (mood === "loud" && now > retargetAt) {
+          target = pickTarget(range);
+          retargetAt = now + 300 + Math.random() * 600;
+        }
+        if (!(mood === "calm" && now < pauseUntil)) desired = Math.sign(target - tx) * speed;
+      }
+      if (holdTurkey || now < danceUntil) desired = 0;
+      tv += (desired - tv) * Math.min(1, dt * (mood === "loud" ? 10 : 5));
+      tx += tv * dt;
+      if (tx > range) { tx = range; tv = Math.min(0, tv); }
+      if (tx < -range) { tx = -range; tv = Math.max(0, tv); }
+      if (holdTurkey) facing = holdFace;
+      else if (Math.abs(tv) > 4) facing = tv > 0 ? 1 : -1;
+      moving = Math.abs(tv) > W * 0.01 || mood === "loud";
+    }
+    turkeyEl.classList.toggle("moving", moving);
+    turkeyEl.classList.toggle("pose", !moving && mood === "calm" && !core.reduceMotion.matches);
+    turkeyEl.classList.toggle("face-r", facing > 0);
+    turkeyEl.classList.toggle("face-l", facing < 0);
+    turkeyEl.style.transform = `translateX(${tx.toFixed(1)}px)`;
+
+    const bLim = Math.max(0, W / 2 - bubbleEl.offsetWidth / 2 - 12);
+    const bx = Math.max(-bLim, Math.min(bLim, tx));
+    bubbleEl.style.left = `calc(50% + ${bx.toFixed(1)}px)`;
+
+    core.maybeRotateBubble(now);
+    requestAnimationFrame(motion);
+  }
+  requestAnimationFrame(motion);
+
+  // ---------- Time of Day, Daylight Lock & Fireflies ----------
+  const DAY_MS = 8 * 60 * 1000;
+  const SKY = [
+    [0.00, "#9DB4E0", "#F6C29A", "#6F7FB8", .18, .15, .85],
+    [0.08, "#F8E9B8", "#F1C57A", "#000000", 0,   0,   1],
+    [0.50, "#F8E9B8", "#F1C57A", "#000000", 0,   0,   1],
+    [0.58, "#7B5A8C", "#F08A4B", "#8A3E5C", .24, .12, .75],
+    [0.66, "#161636", "#2F2A57", "#141A45", .48, 1,   .28],
+    [0.92, "#161636", "#2F2A57", "#141A45", .48, 1,   .28],
+    [1.00, "#9DB4E0", "#F6C29A", "#6F7FB8", .18, .15, .85]
+  ];
+  const hex = h => [1,3,5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const mix = (a, b, f) => a.map((v, i) => v + (b[i] - v) * f);
+  const css = c => `rgb(${c.map(Math.round).join(",")})`;
+  const STORM = hex("#6E7480");
+  const sunGroup = $("sunGroup"), moonEl = $("moon"), starsEl = $("stars"), cloudsEl = $("clouds"), todEl = $("todMatrix"), barnWin = $("barnWin");
+
+  for (let i = 0; i < 52; i++) {
+    const c = document.createElementNS(ns, "circle");
+    c.setAttribute("cx", (Math.random() * 1200).toFixed(0));
+    c.setAttribute("cy", (12 + Math.random() * 270).toFixed(0));
+    c.setAttribute("r", (1 + Math.random() * 2.1).toFixed(1));
+    starsEl.appendChild(c);
+  }
+
+  let dayLock = false;
+  try { dayLock = localStorage.getItem("gobble-daylock") === "on"; } catch(e){}
+  function syncDayLock(){
+    const b = $("skyLock");
+    b.setAttribute("aria-pressed", String(dayLock));
+    b.classList.toggle("active-day", dayLock);
+    b.textContent = dayLock ? "Daylight ✓" : "Daylight";
+  }
+  syncDayLock();
+  $("skyLock").onclick = () => {
+    dayLock = !dayLock;
+    try { localStorage.setItem("gobble-daylock", dayLock ? "on" : "off"); } catch(e){}
+    syncDayLock();
+    paintSky(performance.now());
+  };
+
+  const dayStart = performance.now() - 0.14 * DAY_MS;
+  let rainAmt = 0, nightAmt = 0;
+
+  function paintSky(now){
+    const t = dayLock ? 0.25 : ((now - dayStart) % DAY_MS) / DAY_MS;
+    let k = 0; while (k < SKY.length - 2 && t > SKY[k + 1][0]) k++;
+    const A = SKY[k], B = SKY[k + 1], f = (t - A[0]) / (B[0] - A[0] || 1);
+    const r = rainAmt;
+    let top = mix(hex(A[1]), hex(B[1]), f), bot = mix(hex(A[2]), hex(B[2]), f);
+    top = mix(top, STORM, r * .55); bot = mix(bot, STORM, r * .45);
+    document.body.style.background = `linear-gradient(180deg, ${css(top)} 0%, ${css(bot)} 70%)`;
+    const tintA = A[4] + (B[4] - A[4]) * f, tint = mix(hex(A[3]), hex(B[3]), f);
+    let tc = tint.map(v => v / 255), ta = tintA;
+    if (r > 0) { tc = tc.map((v, i) => (v * ta + (STORM[i] / 255) * r * .25) / (ta + r * .25)); ta = Math.min(.7, ta + r * .25); }
+    const g = (1 - ta).toFixed(3);
+    todEl.setAttribute("values", `${g} 0 0 0 ${(tc[0] * ta).toFixed(3)}  0 ${g} 0 0 ${(tc[1] * ta).toFixed(3)}  0 0 ${g} 0 ${(tc[2] * ta).toFixed(3)}  0 0 0 1 0`);
+
+    nightAmt = (A[5] + (B[5] - A[5]) * f) * (1 - r);
+    starsEl.setAttribute("opacity", nightAmt.toFixed(2));
+    cloudsEl.setAttribute("opacity", ((A[6] + (B[6] - A[6]) * f) * (1 - r * .6)).toFixed(2));
+    barnWin.setAttribute("fill", nightAmt > .35 ? "#FFE082" : "#F4C776");
+
+    const su = (t + 0.03) / 0.66;
+    if (su >= 0 && su <= 1) {
+      const sx = 60 + su * 1080, sy = 420 - Math.sin(Math.PI * su) * 315;
+      sunGroup.setAttribute("transform", `translate(${sx.toFixed(1)} ${sy.toFixed(1)})`);
+      sunGroup.setAttribute("opacity", (1 - r * .7).toFixed(2));
+    } else sunGroup.setAttribute("opacity", "0");
+
+    const mu = ((t - 0.6 + 1) % 1) / 0.44;
+    if (mu <= 1) {
+      moonEl.setAttribute("transform", `translate(${(80 + mu * 1040).toFixed(1)} ${(420 - Math.sin(Math.PI * mu) * 315).toFixed(1)})`);
+      moonEl.setAttribute("opacity", (1 - r * .7).toFixed(2));
+    } else moonEl.setAttribute("opacity", "0");
+
+    const lum = (.299 * top[0] + .587 * top[1] + .114 * top[2]) / 255;
+    appEl.classList.toggle("sky-dark", lum < .52);
+    appEl.classList.toggle("sky-light", lum >= .52);
+  }
+
+  // ---------- Weather (Leaves, Rain & Fireflies) + Wandering Pilgrim ----------
+  const cv = $("weather"), ctx = cv.getContext("2d");
+  const LEAF_COLORS = ["#C8452B", "#D8662A", "#E3A12F", "#A3283F", "#B5762E"];
+  let leaves = [], drops = [], splashes = [], fireflies = [];
+  let event = null, nextEventAt = performance.now() + 18000 + Math.random() * 22000;
+
+  const pilEl = $("pilgrim"), pilBody = $("pilBody"), pilLegA = $("pilLegA"), pilLegB = $("pilLegB"), pilHat = $("pilHat");
+  let pil = null, nextPilAt = performance.now() + 28000 + Math.random() * 28000;
+  function startPilgrim(){
+    const dir = Math.random() < .5 ? 1 : -1;
+    pil = {dir, x: dir > 0 ? -80 : 1280, speed: 46 + Math.random() * 14, ph: 0};
+    pilEl.style.display = "";
+  }
+  window.gobblePilgrim = startPilgrim;
+
+  function walkPilgrim(now, dt){
+    if (!pil && now > nextPilAt && !core.reduceMotion.matches && !pk) startPilgrim();
+    if (!pil) return;
+    pil.x += pil.dir * pil.speed * dt;
+    pil.ph += dt * pil.speed / 9;
+    const sw = Math.sin(pil.ph) * 24, bob = -Math.abs(Math.cos(pil.ph)) * 3;
+    pilLegA.setAttribute("transform", `rotate(${sw.toFixed(1)} 0 -50)`);
+    pilLegB.setAttribute("transform", `rotate(${(-sw).toFixed(1)} 0 -50)`);
+    pilBody.setAttribute("transform", `translate(0 ${bob.toFixed(1)})`);
+    const d = Math.abs(pil.x - 600), tip = d < 90 ? Math.sin((1 - d / 90) * Math.PI / 2) : 0;
+    pilHat.setAttribute("transform", `translate(0 ${(-9 * tip).toFixed(1)}) rotate(${(-22 * tip).toFixed(1)} 2 -122)`);
+    pilEl.setAttribute("transform", `translate(${pil.x.toFixed(1)} 482) scale(${1.05 * pil.dir} 1.05)`);
+    if (pil.x < -100 || pil.x > 1300) {
+      pil = null; pilEl.style.display = "none";
+      nextPilAt = now + 60000 + Math.random() * 90000;
+    }
+  }
+
+  let lastSky = 0, wLast = performance.now(), dpr = 1, groundTop = 0, groundBot = 0;
+  function sizeCanvas(){
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = appEl.clientWidth, h = appEl.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    }
+    const sr = stageEl.getBoundingClientRect(), ar = appEl.getBoundingClientRect();
+    const scale = Math.max(sr.width / 1200, sr.height / 600);
+    groundBot = sr.bottom - ar.top;
+    groundTop = groundBot - (600 - 465) * scale;
+  }
+
+  function startEvent(now, type){
+    const rain = type ? type === "rain" : Math.random() < 0.4;
+    const dur = rain ? 18000 + Math.random() * 14000 : 10000 + Math.random() * 8000;
+    event = {type: rain ? "rain" : "leaves", start: now, end: now + dur, wind: 40 + Math.random() * 75, spawnAcc: 0};
+  }
+  window.gobbleWeather = type => startEvent(performance.now(), type);
+
+  function spawnLeaf(W, wind){
+    leaves.push({
+      x: -0.15 * W + Math.random() * W * 1.05, y: -20 - Math.random() * 40,
+      vy: 45 + Math.random() * 42, wind, sway: 25 + Math.random() * 35, ph: Math.random() * 6.28,
+      rot: Math.random() * 6.28, vrot: (Math.random() - .5) * 4, flip: Math.random() * 6.28,
+      size: 9 + Math.random() * 8, color: LEAF_COLORS[Math.floor(Math.random() * LEAF_COLORS.length)],
+      land: groundTop + Math.random() * (groundBot - groundTop - 10), landedAt: 0
+    });
+  }
+  function drawLeaf(L, alpha){
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(L.x, L.y); ctx.rotate(L.rot);
+    ctx.scale(1, L.landedAt ? .55 : Math.max(.25, Math.abs(Math.cos(L.flip))));
+    const s = L.size;
+    ctx.beginPath();
+    ctx.moveTo(0, -s);
+    ctx.quadraticCurveTo(s * .95, -s * .2, 0, s);
+    ctx.quadraticCurveTo(-s * .95, -s * .2, 0, -s);
+    ctx.fillStyle = L.color; ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = "#3B2314"; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, -s * .8); ctx.lineTo(0, s * 1.35); ctx.stroke();
+    ctx.restore();
+  }
+
+  function weather(now){
+    const dt = Math.min(.1, (now - wLast) / 1000); wLast = now;
+    sizeCanvas();
+    const W = cv.width / dpr, H = cv.height / dpr;
+    const still = core.reduceMotion.matches;
+
+    if (!event && now > nextEventAt) startEvent(now);
+    let rainTarget = 0;
+    if (event) {
+      const fadeIn = Math.min(1, (now - event.start) / 3000), fadeOut = Math.min(1, (event.end - now) / 3000);
+      const strength = Math.max(0, Math.min(fadeIn, fadeOut));
+      if (event.type === "rain") rainTarget = strength;
+      else if (!still) {
+        event.spawnAcc += dt * 3.6 * strength * (W / 1200 + .4);
+        while (event.spawnAcc >= 1) { event.spawnAcc--; spawnLeaf(W, event.wind); }
+      }
+      if (now > event.end) { event = null; nextEventAt = now + 40000 + Math.random() * 80000; }
+    }
+    rainAmt += (rainTarget - rainAmt) * Math.min(1, dt * 1.5);
+    if (rainAmt < .002) rainAmt = 0;
+
+    if (now - lastSky > 200) { paintSky(now); lastSky = now; }
+    walkPilgrim(now, dt);
+    core.tickFx(dt);
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    if (!still) {
+      leaves = leaves.filter(L => {
+        if (!L.landedAt) {
+          L.ph += dt * 2.2; L.flip += dt * 3;
+          L.x += (L.wind + Math.sin(L.ph) * L.sway) * dt;
+          L.y += L.vy * dt; L.rot += L.vrot * dt;
+          if (L.y >= L.land) { L.y = L.land; L.landedAt = now; }
+        }
+        const age = L.landedAt ? (now - L.landedAt) / 1000 : 0;
+        const alpha = age < 3 ? 1 : Math.max(0, 1 - (age - 3) / 3);
+        if (alpha <= 0 || L.x > W + 40) return false;
+        drawLeaf(L, alpha);
+        return true;
+      });
+
+      const wantFlies = nightAmt > .35 ? Math.round(nightAmt * 18) : 0;
+      while (fireflies.length < wantFlies) {
+        fireflies.push({
+          x: Math.random() * W, y: groundTop - 40 + Math.random() * (groundBot - groundTop + 30),
+          ph: Math.random() * 6.28, vx: (Math.random() - .5) * 18, vy: (Math.random() - .5) * 10
+        });
+      }
+      if (fireflies.length > wantFlies) fireflies.length = wantFlies;
+      for (const ff of fireflies) {
+        ff.ph += dt * 2.4;
+        ff.x = (ff.x + ff.vx * dt + W) % W;
+        ff.y += Math.sin(ff.ph) * 8 * dt;
+        const glow = (.35 + .65 * Math.abs(Math.sin(ff.ph * .9))) * nightAmt;
+        ctx.fillStyle = `rgba(255,235,140,${glow.toFixed(2)})`;
+        ctx.beginPath(); ctx.arc(ff.x, ff.y, 2.5, 0, 6.29); ctx.fill();
+        ctx.fillStyle = `rgba(255,220,100,${(glow * .32).toFixed(2)})`;
+        ctx.beginPath(); ctx.arc(ff.x, ff.y, 8, 0, 6.29); ctx.fill();
+      }
+
+      if (rainAmt > 0) {
+        ctx.fillStyle = `rgba(112,118,136,${(rainAmt * .92).toFixed(3)})`;
+        const n = Math.ceil(W / 160) + 2, drift = (now / 120) % 160;
+        ctx.beginPath();
+        ctx.rect(0, 0, W, 48);
+        for (let i = 0; i < n; i++) {
+          const cx = i * 160 - 80 + drift, cy = 54 + (i % 2) * 20;
+          ctx.moveTo(cx + 130, cy); ctx.ellipse(cx, cy, 130, 46, 0, 0, 6.29);
+        }
+        ctx.fill();
+      }
+      const want = Math.round(rainAmt * W / 5.2);
+      while (drops.length < want) drops.push({x: Math.random() * W * 1.1 - W * .1, y: Math.random() * groundBot, v: 900 + Math.random() * 440, len: 12 + Math.random() * 10, land: groundTop + Math.random() * (groundBot - groundTop)});
+      if (drops.length > want) drops.length = want;
+      ctx.strokeStyle = "rgba(210,225,245,.75)"; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+      ctx.beginPath();
+      for (const d of drops) {
+        d.y += d.v * dt; d.x += d.v * .12 * dt;
+        if (d.y > d.land) {
+          if (splashes.length < 80) splashes.push({x: d.x, y: d.land, t: 0});
+          d.y = -d.len - Math.random() * 60; d.x = Math.random() * W * 1.1 - W * .1;
+        }
+        ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - d.len * .12, d.y - d.len);
+      }
+      ctx.stroke();
+      splashes = splashes.filter(sp => {
+        sp.t += dt; if (sp.t > .3) return false;
+        ctx.globalAlpha = 1 - sp.t / .3;
+        ctx.beginPath(); ctx.ellipse(sp.x, sp.y, 2 + sp.t * 22, 1 + sp.t * 6, 0, 0, 6.29); ctx.stroke();
+        ctx.globalAlpha = 1; return true;
+      });
+    }
+    requestAnimationFrame(weather);
+  }
+  requestAnimationFrame(weather);
+
+  // ---------- Farmer Walks Up & Plucks a Feather ----------
+  const PLUCK_LINES = ["OUCH! My feather!", "Hey! Give that back!", "Not my feather!", "Ow ow ow!"];
+  const pluckSvg = $("plucker");
+  (() => {
+    const clone = $("pilgrim").cloneNode(true);
+    clone.removeAttribute("style");
+    clone.querySelectorAll("[id]").forEach(n => n.id = "pk" + n.id.slice(3));
+    clone.id = "pkRoot";
+    pluckSvg.appendChild(clone);
+    const held = document.createElementNS(ns, "g");
+    held.id = "pkHeld"; held.style.display = "none";
+    held.innerHTML =
+      '<path d="M15 -132 C22 -132 26 -116 25 -96 C24 -80 20 -70 15 -64 C10 -70 6 -80 5 -96 C4 -116 8 -132 15 -132 Z" stroke="#3B2314" stroke-width="2.5"/>' +
+      '<line x1="15" y1="-124" x2="15" y2="-66" stroke="#3B2314" stroke-width="1.5" opacity=".5"/>';
+    $("pkArm").insertBefore(held, $("pkHand"));
+    $("pkFork").style.display = "none";
+  })();
+  const pkRoot = $("pkRoot"), pkBody = $("pkBody"), pkLegA = $("pkLegA"), pkLegB = $("pkLegB"), pkArm = $("pkArm"), pkHand = $("pkHand"), pkHeld = $("pkHeld"), pkHat = $("pkHat");
+  let pk = null, pendingPlucks = 0, pkLast = 0;
+
+  function pluckOne(){
+    const idx = core.commitLoss();
+    if (idx < 0) return null;
+    const f = feathers[idx];
+    f.classList.remove("on", "fall");
+    f.classList.add("plucked");
+    return f;
+  }
+
+  function takeFeather(){
+    if (core.earned - pendingPlucks <= 0) return;
+    if (core.reduceMotion.matches) { pluckOne(); core.say(PLUCK_LINES[0], true); return; }
+    pendingPlucks++;
+    if (!pk) startPluck();
+  }
+
+  function startPluck(){
+    if (pil) { pil = null; pilEl.style.display = "none"; nextPilAt = performance.now() + 60000; }
+    const i = Math.max(0, core.earned - 1);
+    const side = i < FEATHERS / 2 ? -1 : 1;
+    const W = stageEl.clientWidth;
+    pk = {phase: "enter", side, x: side * (W / 2 + 140), ph: 0, t0: 0, plucked: false, arm: 0};
+    holdTurkey = true; holdFace = side;
+    pluckSvg.style.display = "block";
+    pkHeld.style.display = "none";
+    core.say("Uh oh… here comes the farmer!", true);
+    pkLast = performance.now();
+    requestAnimationFrame(pluckLoop);
+  }
+
+  function flyFeather(f, fromSvgEl, toEl, toPoint, pal){
+    const sr = stageEl.getBoundingClientRect();
+    const a = new DOMPoint(200, 110).matrixTransform(fromSvgEl.getScreenCTM());
+    const b = new DOMPoint(toPoint[0], toPoint[1]).matrixTransform(toEl.getScreenCTM());
+    const k = turkeyEl.getBoundingClientRect().height / 375;
+    const el = document.createElementNS(ns, "svg");
+    el.setAttribute("class", "flying-feather");
+    el.setAttribute("width", 66 * k); el.setAttribute("height", 200 * k);
+    el.setAttribute("viewBox", "-33 -100 66 200");
+    el.innerHTML =
+      `<path d="M0 -94 C18 -94 30 -60 27 -4 C24 40 13 80 0 98 C-13 80 -24 40 -27 -4 C-30 -60 -18 -94 0 -94 Z" fill="${pal.base}" stroke="#3B2314" stroke-width="4"/>` +
+      `<path d="M-20 -52 Q0 -66 20 -52 Q16 -74 0 -84 Q-16 -74 -20 -52 Z" fill="${pal.tip}" opacity=".9"/>` +
+      `<line x1="0" y1="-78" x2="0" y2="90" stroke="#3B2314" stroke-width="2.5" opacity=".5"/>`;
+    stageEl.appendChild(el);
+    const off = (x, y) => `translate(${x - sr.left - 33 * k}px, ${y - sr.top - 100 * k}px)`;
+    const angle = f.parentNode.transform.baseVal[0] ? f.parentNode.transform.baseVal[0].angle : 0;
+    const anim = el.animate([
+      {transform: `${off(a.x, a.y)} rotate(${angle}deg) scale(1)`},
+      {transform: `${off((a.x + b.x) / 2, Math.min(a.y, b.y) - 62 * k)} rotate(${angle / 2 - 20}deg) scale(.72)`, offset: .45},
+      {transform: `${off(b.x, b.y)} rotate(0deg) scale(.38)`}
+    ], {duration: 450, easing: "ease-in-out", fill: "forwards"});
+    anim.onfinish = () => el.remove();
+  }
+
+  function pluckLoop(now){
+    if (!pk) return;
+    const dt = Math.min(.1, (now - pkLast) / 1000); pkLast = now;
+    const W = stageEl.clientWidth;
+    const k = turkeyEl.getBoundingClientRect().height / 375;
+    const s = k * 1.5;
+    const standX = tx + pk.side * 150 * k;
+    const speed = Math.max(220, W * .3);
+    let walking = false, facing = -pk.side;
+
+    if (pk.phase === "enter") {
+      walking = true;
+      const d = standX - pk.x;
+      if (Math.abs(d) < speed * dt + 2) { pk.x = standX; pk.phase = "reach"; pk.t0 = now; pk.plucked = false; }
+      else pk.x += Math.sign(d) * speed * dt;
+    } else if (pk.phase === "reach") {
+      pk.x = standX;
+      const t = (now - pk.t0) / 350;
+      pk.arm = -115 * Math.min(1, t);
+      if (t >= 1 && !pk.plucked) {
+        pk.plucked = true;
+        if (core.soundOn) {
+          const ms = playGobble(core.outCtx);
+          core.setDeaf(ms + 600);
+        }
+        const i = core.earned - 1;
+        if (i >= 0) {
+          const pal = FEATHER_PALETTE[i % FEATHER_PALETTE.length];
+          pkArm.setAttribute("transform", `rotate(${pk.arm} 2 -92)`);
+          flyFeather(feathers[i], feathers[i], pkHand, [15, -64], pal);
+          pluckOne();
+          pkHeld.setAttribute("fill", pal.base);
+          setTimeout(() => { if (pk) pkHeld.style.display = ""; }, 420);
+          core.say(PLUCK_LINES[Math.floor(Math.random() * PLUCK_LINES.length)], true);
+          turkeyEl.classList.remove("yelp"); void turkeyEl.getBBox(); turkeyEl.classList.add("yelp");
+          setTimeout(() => turkeyEl.classList.remove("yelp"), 750);
+        }
+        pendingPlucks = Math.max(0, pendingPlucks - 1);
+        pk.phase = "hold"; pk.t0 = now;
+      }
+    } else if (pk.phase === "hold") {
+      pk.x = standX;
+      const t = now - pk.t0;
+      if (t > 450) pk.arm = -115 * Math.max(0, 1 - (t - 450) / 400);
+      if (t > 1100) {
+        if (pendingPlucks > 0 && core.earned > 0) { pk.phase = "reach"; pk.t0 = now; pk.plucked = false; }
+        else { pendingPlucks = 0; pk.phase = "leave"; holdTurkey = false; }
+      }
+    } else if (pk.phase === "leave") {
+      walking = true; facing = pk.side;
+      pk.x += pk.side * speed * dt;
+      if (Math.abs(pk.x) > W / 2 + 160) {
+        pk = null; pluckSvg.style.display = "none";
+        if (pendingPlucks > 0 && core.earned > 0) startPluck(); else pendingPlucks = 0;
+        return;
+      }
+    }
+
+    if (walking) pk.ph += dt * 9; else pk.ph = 0;
+    const sw = Math.sin(pk.ph) * 24, bob = walking ? -Math.abs(Math.cos(pk.ph)) * 3 : 0;
+    pkLegA.setAttribute("transform", `rotate(${sw.toFixed(1)} 0 -50)`);
+    pkLegB.setAttribute("transform", `rotate(${(-sw).toFixed(1)} 0 -50)`);
+    pkBody.setAttribute("transform", `translate(0 ${bob.toFixed(1)})`);
+    pkArm.setAttribute("transform", `rotate(${pk.arm.toFixed(1)} 2 -92)`);
+    pkHeld.setAttribute("transform", `rotate(${(-pk.arm).toFixed(1)} 15 -64)`);
+    pkHat.removeAttribute("transform");
+    pkRoot.setAttribute("transform", `scale(${facing} 1)`);
+    pluckSvg.style.width = (150 * s) + "px";
+    pluckSvg.style.height = (172 * s) + "px";
+    pluckSvg.style.left = (W / 2 + pk.x - 75 * s) + "px";
+    pluckSvg.style.bottom = Math.max(0, 20 * k - 7 * s) + "px";
+    requestAnimationFrame(pluckLoop);
+  }
+
+  paintSky(performance.now());
+})();
+</script>
+</body>
+</html>

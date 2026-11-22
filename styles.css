@@ -152,9 +152,10 @@ body.nobar.viewing .menubtn { display:none; }
 /* ---------- extra widgets: dice, embed, pictures ---------- */
 .card.flt { position:fixed; z-index:var(--z-float); display:flex; flex-direction:column; gap:8px; padding:10px; min-width:0; min-height:0; }
 .card.flt[hidden] { display:none; }
-.flthead { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+.flthead { display:flex; align-items:center; gap:8px; flex:0 0 auto; flex-wrap:wrap; }
 .flthead b { font-size:20px; margin-right:auto; padding-left:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .flthead .tool { font-size:15px; padding:5px 12px; box-shadow:none; border:2px solid var(--line); white-space:nowrap; }
+.flthead select { font-family:var(--font); font-size:15px; font-weight:700; padding:5px 10px; border-radius:999px; border:2px solid var(--line); background:var(--btn); color:var(--ink); cursor:pointer; }
 .flthead .maxbtn { position:static; flex:0 0 auto; }
 .fltbody { flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; }
 .fltbody iframe { flex:1; border:0; border-radius:12px; background:#fff; }
@@ -419,7 +420,7 @@ body.sub #schedBtn, body.sub #backupBtn, body.sub #subBtn, body.sub #tbBtn,
 body.sub .minbtn, body.sub #planEdit, body.sub #pastBtn, body.sub #planPick,
 body.sub #cEdit, body.sub #cReset, body.sub #tEdit, body.sub #tReset,
 body.sub #sMode, body.sub #sZero, body.sub #cwPill,
-body.sub .card.pick, body.sub .card.poll, body.sub .card.flt,
+body.sub .card.pick, body.sub .card.poll, body.sub .card.flt:not(.sub-ok),
 body.sub .grab, body.sub .rs, body.sub #attnEdit, body.sub #lpresets .edit, body.sub #qrChange { display:none !important; }
 body.sub .ticker { pointer-events:none; }
 
@@ -565,13 +566,13 @@ body.dark.purple .tool.onoff.on { background:#22e36b; }
 body.dark { --ink:#f2f5f2; --soft:#9fb3a5; --card:#151515; --line:#2c2c2c; --accent:#22e36b; --accent2:#1d1d1d;
             --accent3:#26352b; --onaccent:#062b12; --btn:#151515; --pop:#202020; --green:#22e36b; }
 body.dark .card, body.dark .tool { box-shadow:0 0 0 1px #262626, 0 8px 30px rgba(0,0,0,.5); }
-body.dark .plan select { background:#202020; color:var(--ink); border-color:#333; }
+body.dark .plan select, body.dark .flthead select { background:#202020; color:var(--ink); border-color:#333; }
 body.dark .item { border-left:6px solid var(--accent); }
 body.dark .swatch.on { border-color:var(--accent); }
 body.dark.purple { --card:#2a0f58; --accent:#ffffff; --onaccent:#391273; --accent2:#391273; --accent3:#4a1a8c;
                    --line:#4a2a80; --btn:#2a0f58; --pop:#2a0f58; --soft:#c9bce6; --green:#ffffff; }
 body.dark.purple .card, body.dark.purple .tool { box-shadow:0 0 0 1px #3d1a78, 0 8px 30px rgba(0,0,0,.5); }
-body.dark.purple .plan select { background:#391273; border-color:#4a2a80; }
+body.dark.purple .plan select, body.dark.purple .flthead select { background:#391273; border-color:#4a2a80; }
 
 /* ---------- guide viewer ---------- */
 .guide { position:fixed; inset:0; z-index:var(--z-overlay); display:none; flex-direction:column; gap:1.2vh; padding:1.5vh 16px 80px;

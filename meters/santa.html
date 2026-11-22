@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Santa Meter — Classroom Sound Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grandstander:wght@600;800;900&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="meter-core.css">
+<style>
+:root{
+  --sky:#DCEBF5; --sky2:#B9D3E8; --field:#F2F7FB; --field2:#1F5132;
+  --ink:#3B2314; --muted:#5E5550; --panel:#FFFDF7; --panel-line:#CFDCE6;
+  --cranberry:#B82032; --gold:#E5A12E; --pumpkin:#C8282E; --sage:#3E8E5A;
+  --meter-bg:#DCE8EF; --btn:#1F5132; --btn-ink:#FFFDF7;
+  --sun:#FFE07D; --cloud:#FFFFFF; --hill1:#E4EEF6; --hill2:#D3E2EE;
+  --hud-bg:rgba(255,253,247,.93);
+}
+.app.sky-dark{
+  --sun:#F2E6C4; --cloud:#4D5E82; --hill1:#96AAC6; --hill2:#7F95B5;
+  --field:#DCE6F2; --field2:#143622;
+  --ink:#F4EEE4; --muted:#C9C2B8; --panel:#1D293B; --panel-line:#3A4A5E;
+  --meter-bg:#33445A; --btn:#F4EEE4; --btn-ink:#1D293B;
+  --hud-bg:rgba(29,41,59,.9);
+}
+
+.farm{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.cloud-drift-1{animation:cloudDrift 78s linear infinite}
+.cloud-drift-2{animation:cloudDrift 108s linear infinite reverse}
+@keyframes cloudDrift{0%{transform:translateX(-110px)}50%{transform:translateX(110px)}100%{transform:translateX(-110px)}}
+.sun-rays{transform-box:fill-box;transform-origin:center;animation:spinSlow 50s linear infinite}
+@keyframes spinSlow{to{transform:rotate(360deg)}}
+.aur1{animation:aur 14s ease-in-out infinite alternate}
+.aur2{animation:aur 10s ease-in-out infinite alternate-reverse}
+@keyframes aur{from{transform:translateX(-50px)}to{transform:translateX(50px)}}
+.twinkle{animation:twinkle 1.6s ease-in-out infinite}
+@keyframes twinkle{50%{opacity:.28}}
+.brow-n{transition:opacity .2s}
+.warn .brow-n,.loud .brow-n{opacity:0}
+
+/* Santa Hero */
+.turkey-wrap{perspective:1400px;position:relative;height:100%;width:100%;display:flex;align-items:flex-end;justify-content:center;pointer-events:none}
+svg.turkey{height:82%;max-height:82%;width:auto;max-width:96%;margin-bottom:1.2%;overflow:visible;position:relative;z-index:3;--gait:.92s;will-change:transform}
+svg.turkey.warn{--gait:.54s}
+svg.turkey.loud{--gait:.24s}
+
+.tk-all{transform-box:view-box;transform-origin:200px 338px}
+.leg{transform-box:view-box}
+.moving .tk-all{animation:strut var(--gait) ease-in-out infinite}
+.loud.moving .tk-all{animation-name:run}
+.moving .leg-l{animation:step var(--gait) ease-in-out infinite}
+.moving .leg-r{animation:step var(--gait) ease-in-out infinite calc(var(--gait) / -2)}
+.pose .tk-all{animation:puff 2s ease-in-out infinite}
+.tk-head{transform-box:view-box;transform-origin:200px 205px;transition:transform .25s}
+.face-r .tk-head{transform:rotate(6deg)}
+.face-l .tk-head{transform:rotate(-6deg)}
+.loud.face-r .tk-head{transform:rotate(12deg)}
+.loud.face-l .tk-head{transform:rotate(-12deg)}
+.head{transition:fill .3s}
+.loud .head{fill:#E68978}
+.lid{opacity:0;transition:opacity .2s}
+.calm .lid{opacity:1}
+.brow{opacity:0;transition:opacity .2s}
+.warn .brow,.loud .brow{opacity:1}
+.pupil{transition:r .2s,transform .2s}
+.face-r .pupil{transform:translateX(3px)}
+.face-l .pupil{transform:translateX(-3px)}
+.loud .pupil{r:2.2}
+.wattle{transform-box:view-box;transform-origin:200px 186px}
+.loud .wattle{animation:wag .2s ease-in-out infinite alternate}
+.eyes-happy,.m-happy,.m-warn,.m-loud{opacity:0;transition:opacity .2s}
+svg.turkey.calm .eyes-happy,svg.turkey.calm .m-happy,svg.turkey.warn .m-warn,svg.turkey.loud .m-loud{opacity:1}
+svg.turkey.calm .eye,svg.turkey.calm .pupil,svg.turkey.calm .lid{opacity:0}
+.steam{opacity:0;transition:opacity .2s}
+.loud .steam{opacity:1}
+.steam circle{transform-box:fill-box;transform-origin:center;animation:steam .8s ease-out infinite}
+.steam circle:nth-child(2){animation-delay:-.4s}
+@keyframes strut{0%,100%{transform:rotate(-4.5deg)}25%,75%{transform:translateY(-8px) rotate(0)}50%{transform:rotate(4.5deg)}}
+@keyframes run{0%,100%{transform:rotate(-10deg)}25%,75%{transform:translateY(-22px) rotate(0)}50%{transform:rotate(10deg)}}
+@keyframes step{0%,50%,100%{transform:translateY(0)}25%{transform:translateY(-14px)}}
+@keyframes puff{0%,100%{transform:scale(1)}40%,60%{transform:translateY(-4px) scale(1.05)}}
+@keyframes wag{from{transform:rotate(-10deg)}to{transform:rotate(10deg)}}
+@keyframes steam{0%{transform:translateY(0) scale(.4);opacity:.95}100%{transform:translateY(-34px) scale(1.6);opacity:0}}
+
+.feather-inner{transform-box:view-box;transform-origin:200px 250px;transform:scale(0);opacity:0;transition:transform .7s cubic-bezier(.3,1.6,.5,1),opacity .2s}
+.feather-inner.on{transform:scale(1);opacity:1}
+.feather-inner.fall{animation:fall 1.5s ease-in forwards}
+.feather-inner.plucked{transition:none;transform:scale(0);opacity:0}
+
+svg.turkey.dance{animation:dance 2.6s ease-in-out 2}
+.dance .tk-all{animation:wiggle .32s ease-in-out infinite alternate!important}
+.dance .leg-l{animation:step .32s ease-in-out infinite!important}
+.dance .leg-r{animation:step .32s ease-in-out infinite -.16s!important}
+@keyframes dance{
+  0%{translate:0 0;rotate:y 0deg}
+  10%{translate:0 -54px}
+  20%{translate:0 0}
+  30%{translate:0 -54px}
+  40%{translate:0 0;rotate:y 0deg}
+  55%{translate:0 -26px;rotate:y 360deg}
+  62%{translate:0 0;rotate:y 360deg}
+  80%{translate:0 -132px;rotate:y 720deg}
+  92%{translate:0 0;rotate:y 720deg}
+  96%{translate:0 -14px}
+  100%{translate:0 0;rotate:y 720deg}
+}
+@keyframes wiggle{from{transform:rotate(-12deg)}to{transform:rotate(12deg)}}
+.plucker{position:absolute;z-index:4;bottom:0;left:0;display:none;overflow:visible;pointer-events:none}
+.flying-feather{position:absolute;z-index:6;left:0;top:0;pointer-events:none;overflow:visible}
+.yelp .tk-all{animation:yelp .7s ease-out!important}
+@keyframes yelp{0%{transform:none}20%{transform:translateY(-44px) rotate(-6deg)}40%{transform:none}55%{transform:translateY(-14px) rotate(4deg)}70%,100%{transform:none}}
+@keyframes fall{0%{transform:scale(1);opacity:1}100%{transform:translate(30px,320px) rotate(70deg) scale(.8);opacity:0}}
+
+@media (prefers-reduced-motion:reduce){
+  .tk-all,.leg,.wattle,.steam circle,.aur1,.aur2,.twinkle,.cloud-drift-1,.cloud-drift-2,.sun-rays{animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="app sky-light" id="app">
+  <header class="top">
+    <div class="brand-col">
+      <h1 class="brand display">
+        <label class="meter-pick">
+          <span class="sr-only">Choose a holiday meter</span>
+          <select onchange="location.href=this.value">
+            <option value="veterans.html">Veterans Meter</option>
+            <option value="gobble-meter.html">Gobble Meter</option>
+            <option value="santa.html" selected>Santa Meter</option>
+            <option value="mlk.html">Dream Meter</option>
+            <option value="washington.html">Washington Meter</option>
+            <option value="easter.html">Bunny Meter</option>
+          </select>
+        </label>
+      </h1>
+      <div class="status-pills">
+        <span class="pill" id="modePill"><i class="pill-dot" id="statusDot"></i><span id="statusText">Quiet &amp; Calm</span></span>
+        <span class="pill" id="streakPill" title="Current uninterrupted quiet streak">Streak: <strong id="streakVal">0:00</strong></span>
+        <span class="pill pill-goal" id="goalPill" hidden><span id="goalPillText"></span></span>
+      </div>
+    </div>
+
+    <div class="clock display" id="clock">
+      <div class="clock-readout">
+        <div class="sub" id="timeSub">left in class</div>
+        <div class="time" id="time">--:--</div>
+      </div>
+      <div class="tools">
+        <button class="tool" id="minus">−1m</button>
+        <button class="tool" id="plus">+1m</button>
+        <button class="tool" id="pause">Pause</button>
+        <button class="tool" id="mic" aria-pressed="false">Mic on</button>
+        <button class="tool" id="voiceFilterBtn">Voice filter ✓</button>
+        <button class="tool" id="sound" aria-pressed="false">Sound on</button>
+        <button class="tool" id="skyLock" aria-pressed="false">Daylight</button>
+        <button class="tool" id="histBtnTop">History</button>
+        <button class="tool" id="full">Full screen</button>
+        <button class="tool" id="stop">End</button>
+      </div>
+    </div>
+  </header>
+
+  <canvas class="weather" id="weather" aria-hidden="true"></canvas>
+  <canvas class="fx-canvas" id="fxCanvas" aria-hidden="true"></canvas>
+
+  <main class="stage">
+    <svg class="farm" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+      <defs>
+        <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FFF9DC" stop-opacity="1"/>
+          <stop offset="50%" stop-color="#FFE07D" stop-opacity=".8"/>
+          <stop offset="100%" stop-color="#FFE07D" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FFF7DC" stop-opacity=".75"/>
+          <stop offset="100%" stop-color="#FFF7DC" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="snowField" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#F7FBFF"/>
+          <stop offset="100%" stop-color="#DCE8F4"/>
+        </linearGradient>
+        <linearGradient id="workshopRed" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#C83832"/>
+          <stop offset="100%" stop-color="#9B2320"/>
+        </linearGradient>
+        <pattern id="posts" x="0" y="412" width="70" height="62" patternUnits="userSpaceOnUse">
+          <rect x="28" y="2" width="14" height="58" fill="#B98A5A" stroke="#3B2314" stroke-width="3"/>
+          <ellipse cx="35" cy="3" rx="11" ry="5" fill="#FFFFFF" stroke="#3B2314" stroke-width="2"/>
+        </pattern>
+        <pattern id="stripes" width="32" height="32" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+          <rect width="32" height="32" fill="#FFFFFF"/><rect width="16" height="32" fill="#C8282E"/>
+        </pattern>
+        <linearGradient id="aur" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#7CF5C3" stop-opacity="0"/>
+          <stop offset=".5" stop-color="#5BE3A8" stop-opacity=".65"/>
+          <stop offset="1" stop-color="#4FB0E8" stop-opacity="0"/>
+        </linearGradient>
+        <g id="pine" stroke="#3B2314" stroke-width="3" stroke-linejoin="round">
+          <rect x="-6" y="-14" width="12" height="14" fill="#6B4322"/>
+          <path d="M0 -120 L-34 -70 L-20 -70 L-46 -30 L-28 -30 L-56 -12 L56 -12 L28 -30 L46 -30 L20 -70 L34 -70 Z" fill="#2F6B45"/>
+          <path d="M0 -120 L-14 -100 L-6 -97 L0 -103 L6 -97 L14 -100 Z M-34 -70 L-20 -70 L-26 -64 Z M34 -70 L20 -70 L26 -64 Z" fill="#FFFFFF" stroke-width="2"/>
+        </g>
+        <g id="gift" stroke="#3B2314" stroke-width="3" stroke-linejoin="round">
+          <rect x="-22" y="-36" width="44" height="36" rx="3" fill="currentColor"/>
+          <rect x="-5" y="-36" width="10" height="36" fill="#F4D35E"/>
+          <rect x="-26" y="-46" width="52" height="11" rx="2" fill="currentColor"/>
+          <rect x="-5" y="-46" width="10" height="11" fill="#F4D35E"/>
+          <path d="M0 -46 C-16 -62 -24 -48 0 -46 C24 -48 16 -62 0 -46 Z" fill="#F4D35E"/>
+        </g>
+        <g id="cane" fill="none" stroke-linecap="round">
+          <path d="M0 0 V-70 A14 14 0 0 1 28 -70 V-62" stroke="#3B2314" stroke-width="13"/>
+          <path d="M0 0 V-70 A14 14 0 0 1 28 -70 V-62" stroke="#FFFFFF" stroke-width="8"/>
+          <path d="M0 0 V-70 A14 14 0 0 1 28 -70 V-62" stroke="#C8282E" stroke-width="8" stroke-dasharray="8 8"/>
+        </g>
+      </defs>
+
+      <filter id="tod" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <feColorMatrix id="todMatrix" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+      </filter>
+
+      <g id="aurora" opacity="0">
+        <path class="aur1" d="M-100 150 C150 60 300 200 500 110 S850 60 1300 150 L1300 260 C900 160 700 300 450 210 S100 240 -100 270 Z" fill="url(#aur)"/>
+        <path class="aur2" d="M-100 90 C200 30 380 150 620 80 S980 40 1300 100 L1300 175 C1000 110 800 215 600 150 S200 135 -100 185 Z" fill="url(#aur)" opacity=".75"/>
+      </g>
+      <g id="stars" fill="#FFF6DD" opacity="0"></g>
+      <g id="moon" opacity="0">
+        <circle cx="0" cy="0" r="68" fill="url(#moonGlow)"/>
+        <path d="M4 -36 A36 36 0 1 0 4 36 A27 36 0 1 1 4 -36 Z" fill="#F4EBC8" stroke="#3B2314" stroke-width="2.5"/>
+      </g>
+      <g id="sunGroup" transform="translate(960 115)">
+        <circle cx="0" cy="0" r="100" fill="url(#sunGlow)"/>
+        <g class="sun-rays" stroke="#FFF2B8" stroke-width="4" stroke-linecap="round" opacity=".55">
+          <line x1="0" y1="-74" x2="0" y2="-62"/><line x1="0" y1="62" x2="0" y2="74"/>
+          <line x1="-74" y1="0" x2="-62" y2="0"/><line x1="62" y1="0" x2="74" y2="0"/>
+          <line x1="-52" y1="-52" x2="-43" y2="-43"/><line x1="43" y1="43" x2="52" y2="52"/>
+          <line x1="52" y1="-52" x2="43" y2="-43"/><line x1="-43" y1="43" x2="-52" y2="52"/>
+        </g>
+        <circle id="sun" cx="0" cy="0" r="50" fill="var(--sun)"/>
+      </g>
+
+      <g id="clouds">
+        <g class="cloud-drift-1" fill="var(--cloud)" opacity=".92">
+          <ellipse cx="250" cy="120" rx="72" ry="22"/><ellipse cx="285" cy="104" rx="42" ry="24"/><ellipse cx="222" cy="108" rx="32" ry="18"/>
+        </g>
+        <g class="cloud-drift-2" fill="var(--cloud)" opacity=".86">
+          <ellipse cx="660" cy="80" rx="62" ry="18"/><ellipse cx="690" cy="66" rx="36" ry="20"/>
+        </g>
+      </g>
+
+      <g id="land" filter="url(#tod)">
+        <path d="M0 395 Q200 315 420 375 T850 355 T1200 365 V600 H0 Z" fill="var(--hill1)" stroke="#B9CCDB" stroke-width="3"/>
+        <use href="#pine" transform="translate(470 392) scale(.55)"/>
+        <use href="#pine" transform="translate(520 386) scale(.7)"/>
+        <use href="#pine" transform="translate(700 372) scale(.6)"/>
+        <use href="#pine" transform="translate(890 372) scale(.65)"/>
+        <use href="#pine" transform="translate(940 378) scale(.5)"/>
+        <path d="M0 440 Q300 385 600 425 T1200 415 V600 H0 Z" fill="var(--hill2)" stroke="#B9CCDB" stroke-width="3"/>
+
+        <!-- Santa's workshop -->
+        <g stroke="#3B2314" stroke-width="4" stroke-linejoin="round">
+          <rect x="248" y="226" width="28" height="56" fill="#A8432F"/>
+          <rect x="243" y="218" width="38" height="12" rx="5" fill="#FFFFFF"/>
+          <rect x="110" y="322" width="200" height="140" fill="url(#workshopRed)"/>
+          <path d="M92 332 L135 266 L210 236 L285 266 L328 332 Q318 342 306 334 Q294 344 282 334 Q270 344 258 334 Q246 344 234 334 Q222 344 210 334 Q198 344 186 334 Q174 344 162 334 Q150 344 138 334 Q126 344 114 334 Q102 342 92 332 Z" fill="#FFFFFF"/>
+          <rect x="190" y="272" width="40" height="36" fill="#FFE078"/>
+          <path d="M210 272 V308 M190 290 H230" stroke="#2E6B3A" stroke-width="4"/>
+          <rect x="128" y="368" width="34" height="30" fill="#FFE078"/>
+          <path d="M145 368 V398 M128 383 H162" stroke="#2E6B3A" stroke-width="4"/>
+          <rect x="258" y="368" width="34" height="30" fill="#FFE078"/>
+          <path d="M275 368 V398 M258 383 H292" stroke="#2E6B3A" stroke-width="4"/>
+          <rect x="178" y="372" width="64" height="90" rx="4" fill="#2E6B3A"/>
+          <circle cx="210" cy="400" r="15" fill="none" stroke="#1F5132" stroke-width="9"/>
+          <path d="M210 386 l-9 -7 v12 z M210 386 l9 -7 v12 z" fill="#C8282E" stroke-width="2"/>
+          <circle cx="232" cy="420" r="3.5" fill="#E3A12F" stroke-width="1.5"/>
+        </g>
+
+        <!-- North Pole -->
+        <g stroke="#3B2314" stroke-width="4">
+          <rect x="340" y="256" width="30" height="206" fill="url(#stripes)"/>
+          <circle cx="355" cy="246" r="15" fill="#E3A12F"/>
+          <ellipse cx="355" cy="462" rx="30" ry="8" fill="#FFFFFF"/>
+        </g>
+
+        <rect x="395" y="412" width="805" height="62" fill="url(#posts)"/>
+        <g fill="#B98A5A" stroke="#3B2314" stroke-width="3">
+          <rect x="395" y="426" width="805" height="9"/>
+          <rect x="395" y="448" width="805" height="9"/>
+        </g>
+        <g fill="#FFFFFF" stroke="#3B2314" stroke-width="2">
+          <rect x="395" y="421" width="805" height="6" rx="3"/>
+          <rect x="395" y="443" width="805" height="6" rx="3"/>
+        </g>
+
+        <rect x="0" y="460" width="1200" height="140" fill="url(#snowField)"/>
+        <path d="M0 460 H1200" stroke="#C9D9E6" stroke-width="6"/>
+
+        <!-- Wandering Elf -->
+        <g id="pilgrim" style="display:none" stroke="#3B2314" stroke-width="2.5" stroke-linejoin="round">
+          <g id="pilBody">
+            <ellipse cx="0" cy="-1" rx="18" ry="4.5" fill="#3B2314" opacity=".18" stroke="none"/>
+            <g id="pilLegB">
+              <rect x="-4" y="-50" width="8" height="42" fill="#E9E2D6"/>
+              <path d="M-4 -44 h8 M-4 -36 h8 M-4 -28 h8 M-4 -20 h8" stroke="#A8232C" stroke-width="3"/>
+              <path d="M-6 -9 H8 Q16 -9 20 -16 Q24 -10 18 -4 Q14 0 4 0 H-6 Z" fill="#245E38"/>
+            </g>
+            <g id="pilLegA">
+              <rect x="-4" y="-50" width="8" height="42" fill="#FFFFFF"/>
+              <path d="M-4 -44 h8 M-4 -36 h8 M-4 -28 h8 M-4 -20 h8" stroke="#C8282E" stroke-width="3"/>
+              <path d="M-6 -9 H8 Q16 -9 20 -16 Q24 -10 18 -4 Q14 0 4 0 H-6 Z" fill="#2E7D46"/>
+              <circle cx="20" cy="-17" r="2.8" fill="#E3A12F" stroke-width="1.2"/>
+            </g>
+            <path d="M-13 -98 L15 -98 L22 -50 L16 -44 L10 -50 L4 -44 L-2 -50 L-8 -44 L-14 -50 L-20 -44 Z" fill="#2E8B4A"/>
+            <rect x="-16" y="-66" width="35" height="6" fill="#1A1416"/>
+            <rect x="9" y="-68" width="7" height="9" fill="none" stroke="#E3A12F" stroke-width="2"/>
+            <path d="M-12 -99 L16 -99 L12 -90 L8 -96 L4 -90 L0 -96 L-4 -90 L-8 -96 L-12 -90 Z" fill="#C8282E"/>
+            <g id="pilFork"><g>
+              <rect x="6" y="-86" width="26" height="22" rx="2" fill="#C8282E"/>
+              <rect x="16" y="-86" width="6" height="22" fill="#F4D35E" stroke-width="1.5"/>
+              <path d="M19 -86 c-7 -9 -14 -2 0 0 c14 -2 7 -9 0 0" fill="#F4D35E" stroke-width="1.5"/>
+            </g></g>
+            <g id="pilArm">
+              <line x1="2" y1="-92" x2="13" y2="-68" stroke="#3B2314" stroke-width="11" stroke-linecap="round"/>
+              <line x1="2" y1="-92" x2="13" y2="-68" stroke="#2E8B4A" stroke-width="7" stroke-linecap="round"/>
+              <circle id="pilHand" cx="15" cy="-64" r="5" fill="#F1C9A0"/>
+            </g>
+            <circle cx="0" cy="-112" r="12.5" fill="#C0652A"/>
+            <circle cx="3" cy="-110" r="11" fill="#F1C9A0"/>
+            <path d="M-7 -115 L-22 -128 L-5 -105 Z" fill="#F1C9A0"/>
+            <circle cx="9" cy="-113" r="1.6" fill="#3B2314" stroke="none"/>
+            <circle cx="8" cy="-106" r="3" fill="#E88A8A" stroke="none"/>
+            <path d="M13 -112 q4 3 0 5" fill="#F1C9A0" stroke-width="2"/>
+            <path d="M4 -103 q4 3 8 0" fill="none" stroke-width="1.8" stroke-linecap="round"/>
+            <g id="pilHat">
+              <path d="M-10 -121 L16 -121 C12 -140 0 -153 -22 -151 Z" fill="#2E8B4A"/>
+              <rect x="-11" y="-125" width="28" height="7" rx="3.5" fill="#C8282E"/>
+              <circle cx="-23" cy="-151" r="4.5" fill="#E3A12F"/>
+            </g>
+          </g>
+        </g>
+
+        <!-- Sleigh -->
+        <g stroke="#3B2314" stroke-width="4" stroke-linejoin="round">
+          <path d="M14 482 H122 Q146 482 142 462" fill="none" stroke="#E3A12F" stroke-width="6" stroke-linecap="round"/>
+          <path d="M40 470 V482 M100 470 V482" stroke="#E3A12F" stroke-width="5"/>
+          <use href="#gift" transform="translate(66 432) scale(.7)" style="color:#2F6DB5"/>
+          <use href="#gift" transform="translate(92 432) scale(.55)" style="color:#2E8B4A"/>
+          <path d="M24 472 L22 420 Q22 400 42 402 L56 404 L60 432 L112 432 Q132 432 130 448 L122 472 Z" fill="#C8282E"/>
+          <path d="M30 462 H118" stroke="#E3A12F" stroke-width="4"/>
+        </g>
+
+        <!-- Snowman -->
+        <g stroke="#3B2314" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round">
+          <ellipse cx="935" cy="508" rx="44" ry="8" fill="#6D86A2" opacity=".25" stroke="none"/>
+          <path d="M908 410 L872 386 M876 389 l-8 -8 M962 410 L998 384 M994 387 l6 -10" fill="none" stroke="#6B4322" stroke-width="4"/>
+          <circle cx="935" cy="470" r="40" fill="#FFFFFF"/>
+          <circle cx="935" cy="414" r="29" fill="#FFFFFF"/>
+          <circle cx="935" cy="370" r="21" fill="#FFFFFF"/>
+          <path d="M915 386 Q935 396 955 386 L957 394 Q935 404 913 394 Z M948 392 l6 22 l-10 -2 z" fill="#C8282E"/>
+          <circle cx="928" cy="366" r="2.6" fill="#3B2314"/><circle cx="942" cy="366" r="2.6" fill="#3B2314"/>
+          <path d="M935 372 L956 376 L935 378 Z" fill="#E8792E" stroke-width="2"/>
+          <circle cx="935" cy="408" r="3" fill="#3B2314"/><circle cx="935" cy="422" r="3" fill="#3B2314"/>
+          <rect x="917" y="324" width="36" height="28" fill="#1E1A1C"/>
+          <rect x="909" y="348" width="52" height="7" rx="3" fill="#1E1A1C"/>
+          <rect x="917" y="340" width="36" height="6" fill="#C8282E" stroke-width="2"/>
+        </g>
+
+        <!-- Christmas tree -->
+        <g stroke="#3B2314" stroke-width="3.5" stroke-linejoin="round">
+          <rect x="1100" y="466" width="22" height="20" fill="#6B4322"/>
+          <path d="M1110 288 L1030 474 L1192 474 Z" fill="#2F6B45"/>
+          <path d="M1110 288 L1046 404 Q1110 420 1176 404 Z" fill="#357A4F"/>
+          <path d="M1110 288 L1066 356 Q1110 368 1154 356 Z" fill="#3B8757"/>
+          <path d="M1062 356 Q1110 376 1158 352 M1044 406 Q1110 428 1178 404" fill="none" stroke="#F4D35E" stroke-width="3"/>
+          <path d="M1110 262 l7 15 l16 1 l-12 10 l4 16 l-15 -9 l-15 9 l4 -16 l-12 -10 l16 -1 z" fill="#F4D35E"/>
+        </g>
+
+        <use href="#cane" transform="translate(300 556)"/>
+        <use href="#cane" transform="translate(694 566) scale(.8)"/>
+        <use href="#gift" transform="translate(440 548)" style="color:#C8282E"/>
+        <use href="#gift" transform="translate(490 566) scale(.75)" style="color:#2E8B4A"/>
+        <use href="#gift" transform="translate(790 556) scale(1.1)" style="color:#2F6DB5"/>
+        <use href="#gift" transform="translate(846 574) scale(.8)" style="color:#8E44AD"/>
+        <use href="#gift" transform="translate(1010 570) scale(1.2)" style="color:#C8282E"/>
+      </g>
+
+      <!-- Twinkling lights stay bright at night -->
+      <circle class="twinkle" cx="122" cy="334" r="5" fill="#FF5A5A" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.00s"/><circle class="twinkle" cx="140" cy="334" r="5" fill="#FFD84A" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.37s"/><circle class="twinkle" cx="158" cy="334" r="5" fill="#5AC8FF" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.74s"/><circle class="twinkle" cx="176" cy="334" r="5" fill="#7CE07C" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-1.11s"/><circle class="twinkle" cx="194" cy="334" r="5" fill="#FF8AD8" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-1.48s"/><circle class="twinkle" cx="212" cy="334" r="5" fill="#FF5A5A" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.25s"/><circle class="twinkle" cx="230" cy="334" r="5" fill="#FFD84A" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.62s"/><circle class="twinkle" cx="248" cy="334" r="5" fill="#5AC8FF" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.99s"/><circle class="twinkle" cx="266" cy="334" r="5" fill="#7CE07C" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-1.36s"/><circle class="twinkle" cx="284" cy="334" r="5" fill="#FF8AD8" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.13s"/><circle class="twinkle" cx="302" cy="334" r="5" fill="#FF5A5A" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.50s"/>
+      <circle class="twinkle" cx="1092" cy="318" r="5" fill="#FF5A5A" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.00s"/><circle class="twinkle" cx="1128" cy="334" r="5" fill="#FFD84A" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.37s"/><circle class="twinkle" cx="1080" cy="372" r="5" fill="#5AC8FF" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.74s"/><circle class="twinkle" cx="1112" cy="388" r="5" fill="#7CE07C" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-1.11s"/><circle class="twinkle" cx="1146" cy="370" r="5" fill="#FF8AD8" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-1.48s"/><circle class="twinkle" cx="1062" cy="420" r="5" fill="#FF5A5A" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.25s"/><circle class="twinkle" cx="1098" cy="438" r="5" fill="#FFD84A" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.62s"/><circle class="twinkle" cx="1134" cy="446" r="5" fill="#5AC8FF" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.99s"/><circle class="twinkle" cx="1168" cy="424" r="5" fill="#7CE07C" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-1.36s"/><circle class="twinkle" cx="1050" cy="458" r="5" fill="#FF8AD8" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.13s"/><circle class="twinkle" cx="1180" cy="460" r="5" fill="#FF5A5A" stroke="#3B2314" stroke-width="1.5" style="animation-delay:-0.50s"/>
+    </svg>
+
+    <svg class="plucker" id="plucker" viewBox="-75 -165 150 172" aria-hidden="true"></svg>
+    <div class="bubble display" id="bubble">Ho ho ho! Nice and quiet!</div>
+
+    <div class="score" id="scoreCard">
+      <div class="score-head">
+        <div class="n display"><span id="count">0</span> / 10</div>
+        <div class="lbl">presents</div>
+      </div>
+      <div class="feather-pips" id="featherPips" aria-hidden="true"></div>
+      <div class="next-wrap">
+        <div class="next" title="Progress to next present"><i id="nextBar"></i></div>
+        <span class="next-pct" id="nextPct">0%</span>
+      </div>
+      <div class="fb-row">
+        <button class="give display" id="give" type="button" title="Give a present for good behavior (shortcut: F)">+ Give</button>
+        <button class="give take display" id="take" type="button" title="An elf comes and takes a present (shortcut: T)">− Take</button>
+      </div>
+    </div>
+
+    <div class="demo-pad" id="demoPad" hidden>
+      <div class="demo-title display"><span>Demo Sound Level</span><span id="demoVal">25%</span></div>
+      <input type="range" id="demoSlider" min="0" max="100" value="25" aria-label="Simulated room noise">
+      <div class="demo-btns">
+        <button class="demo-btn" type="button" data-demo="18">Quiet</button>
+        <button class="demo-btn" type="button" data-demo="52">Warn</button>
+        <button class="demo-btn" type="button" data-demo="88">Loud!</button>
+      </div>
+    </div>
+
+    <div class="turkey-wrap">
+      <svg class="turkey calm" id="turkey" viewBox="-50 -10 500 375" role="img" aria-label="Santa, whose sack fills with presents as the class stays quiet">
+        <defs>
+          <clipPath id="coatClip"><ellipse cx="200" cy="250" rx="78" ry="66"/></clipPath>
+          <radialGradient id="coatGrad" cx="44%" cy="34%" r="65%">
+            <stop offset="0%" stop-color="#DE3438"/>
+            <stop offset="100%" stop-color="#A61D24"/>
+          </radialGradient>
+        </defs>
+        <ellipse cx="200" cy="342" rx="92" ry="15" fill="#6D86A2" opacity=".28"/>
+        <g class="tk-all">
+          <g stroke="#3B2314" stroke-width="5" stroke-linejoin="round">
+            <path d="M112 300 C82 240 100 168 150 150 L250 150 C300 168 318 240 288 300 Z" fill="#A9773F"/>
+            <path d="M130 220 q8 -6 16 0 M260 210 q8 -6 16 0 M120 262 q8 -6 16 0" fill="none" stroke="#7E5428" stroke-width="3"/>
+            <ellipse cx="200" cy="152" rx="56" ry="14" fill="#5A3A1E"/>
+          </g>
+          <g id="tail"></g>
+          <g class="tk-body">
+            <g stroke="#3B2314" stroke-width="4" stroke-linejoin="round">
+              <g class="leg leg-l">
+                <rect x="168" y="290" width="22" height="28" fill="#B8262E"/>
+                <path d="M164 316 H192 V334 Q192 340 186 340 H156 Q148 340 150 332 Q152 324 164 322 Z" fill="#1E1A1C"/>
+              </g>
+              <g class="leg leg-r">
+                <rect x="210" y="290" width="22" height="28" fill="#B8262E"/>
+                <path d="M236 316 H208 V334 Q208 340 214 340 H244 Q252 340 250 332 Q248 324 236 322 Z" fill="#1E1A1C"/>
+              </g>
+            </g>
+            <ellipse cx="200" cy="250" rx="78" ry="66" fill="url(#coatGrad)"/>
+            <g clip-path="url(#coatClip)">
+              <rect x="189" y="180" width="22" height="140" fill="#FFF8F0"/>
+              <rect x="110" y="298" width="180" height="24" fill="#FFF8F0"/>
+              <rect x="110" y="250" width="180" height="18" fill="#1E1A1C"/>
+              <path d="M110 298 H290 M189 180 V298 M211 180 V298" stroke="#3B2314" stroke-width="3"/>
+            </g>
+            <ellipse cx="200" cy="250" rx="78" ry="66" fill="none" stroke="#3B2314" stroke-width="5"/>
+            <rect x="186" y="246" width="28" height="26" rx="3" fill="none" stroke="#E3A12F" stroke-width="5"/>
+            <g stroke="#3B2314" stroke-width="4">
+              <ellipse cx="146" cy="244" rx="22" ry="38" fill="#B8262E" transform="rotate(18 146 246)"/>
+              <ellipse cx="254" cy="244" rx="22" ry="38" fill="#B8262E" transform="rotate(-18 254 246)"/>
+              <ellipse cx="137" cy="268" rx="15" ry="7" fill="#FFF8F0" transform="rotate(18 137 268)"/>
+              <ellipse cx="263" cy="268" rx="15" ry="7" fill="#FFF8F0" transform="rotate(-18 263 268)"/>
+              <circle cx="133" cy="282" r="13" fill="#2E6B3A"/>
+              <circle cx="267" cy="282" r="13" fill="#2E6B3A"/>
+            </g>
+            <g class="tk-head">
+              <g class="steam" fill="#FFF8E6" stroke="#3B2314" stroke-width="2">
+                <circle cx="158" cy="112" r="8"/>
+                <circle cx="242" cy="112" r="8"/>
+              </g>
+              <circle class="head" cx="200" cy="168" r="36" fill="#F3C9A6" stroke="#3B2314" stroke-width="5"/>
+              <path d="M164 168 C158 204 176 230 200 236 C224 230 242 204 236 168 C228 182 214 188 200 188 C186 188 172 182 164 168 Z" fill="#FFFFFF" stroke="#3B2314" stroke-width="4" stroke-linejoin="round"/>
+              <circle cx="177" cy="175" r="7" fill="#E88A8A" opacity=".6"/>
+              <circle cx="223" cy="175" r="7" fill="#E88A8A" opacity=".6"/>
+              <circle class="eye" cx="186" cy="160" r="8" fill="#fff" stroke="#3B2314" stroke-width="2.5"/>
+              <circle class="eye" cx="214" cy="160" r="8" fill="#fff" stroke="#3B2314" stroke-width="2.5"/>
+              <circle class="pupil" cx="187" cy="161" r="4.5" fill="#3B2314"/>
+              <circle class="pupil" cx="213" cy="161" r="4.5" fill="#3B2314"/>
+              <path class="lid" d="M177 161 a9 9 0 0 1 18 0 Z M205 161 a9 9 0 0 1 18 0 Z" fill="#F3C9A6" stroke="#3B2314" stroke-width="2.5" stroke-linejoin="round"/>
+              <path class="eyes-happy" d="M177 163 q9 -11 18 0 M205 163 q9 -11 18 0" fill="none" stroke="#3B2314" stroke-width="4.5" stroke-linecap="round"/>
+              <g class="brow-n" fill="none" stroke-linecap="round">
+                <path d="M176 148 q10 -6 20 0 M204 148 q10 -6 20 0" stroke="#3B2314" stroke-width="9"/>
+                <path d="M176 148 q10 -6 20 0 M204 148 q10 -6 20 0" stroke="#FFFFFF" stroke-width="5"/>
+              </g>
+              <g class="brow" stroke-linecap="round">
+                <path d="M175 144 l20 8 M225 144 l-20 8" stroke="#3B2314" stroke-width="9"/>
+                <path d="M175 144 l20 8 M225 144 l-20 8" stroke="#FFFFFF" stroke-width="5"/>
+              </g>
+              <path class="m-happy" d="M184 194 Q200 218 216 194 Q200 201 184 194 Z" fill="#8E2A2A" stroke="#3B2314" stroke-width="3" stroke-linejoin="round"/>
+              <path class="m-happy" d="M193 205 Q200 211 207 205 Q200 202 193 205 Z" fill="#E57373"/>
+              <path class="m-warn" d="M190 202 H210" stroke="#3B2314" stroke-width="4" stroke-linecap="round"/>
+              <path class="m-loud" d="M187 207 Q200 194 213 207" fill="none" stroke="#3B2314" stroke-width="4.5" stroke-linecap="round"/>
+              <path class="wattle" d="M200 184 C190 177 172 180 167 193 C180 191 190 194 200 190 C210 194 220 191 233 193 C228 180 210 177 200 184 Z" fill="#FFFFFF" stroke="#3B2314" stroke-width="3" stroke-linejoin="round"/>
+              <circle cx="200" cy="177" r="8" fill="#E57373" stroke="#3B2314" stroke-width="3"/>
+              <path d="M166 132 C168 92 214 74 246 92 C262 102 268 120 266 140 L254 140 C252 126 246 116 236 112 L234 132 Z" fill="#C8282E" stroke="#3B2314" stroke-width="4" stroke-linejoin="round"/>
+              <rect x="158" y="124" width="84" height="19" rx="9.5" fill="#FFF8F0" stroke="#3B2314" stroke-width="4"/>
+              <circle cx="260" cy="146" r="12" fill="#FFF8F0" stroke="#3B2314" stroke-width="4"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </main>
+
+  <footer class="meter-row">
+    <div class="meter-col">
+      <div class="meter-head">
+        <div class="meter-head-left">
+          <span class="zone-badge" id="zoneBadge">Safe &amp; Quiet</span>
+          <span class="filter-tag" id="filterTag">Voice filter 300–3400 Hz</span>
+        </div>
+        <div class="danger-wrap" id="dangerWrap">
+          <span>Elf alert!</span>
+          <div class="danger-track"><i id="dangerFill"></i></div>
+        </div>
+      </div>
+      <div class="spark-wrap" title="Rolling 30-second noise history (dashed line = loudness limit)">
+        <canvas id="sparkline" aria-hidden="true"></canvas>
+        <span class="spark-lbl">Last 30s</span>
+      </div>
+      <div class="meter" id="meter" role="meter" aria-label="Classroom noise level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="meter-zones"></div>
+        <div class="fill" id="fill"></div>
+        <div class="meter-ticks"></div>
+        <div class="peak" id="peakMark"></div>
+        <div class="limit" id="limitMark"></div>
+      </div>
+      <div class="meter-labels"><span>0 · Silent</span><span>1 · Whisper</span><span>2 · Partner</span><span>3 · Too Loud!</span></div>
+    </div>
+
+    <div class="limit-ctl">
+      <div class="limit-top"><label for="limit2">Loudness limit</label><span class="limit-val" id="limitVal">60%</span></div>
+      <input type="range" id="limit2" min="25" max="90" value="60" aria-label="Loudness limit">
+      <div class="presets">
+        <button class="preset" type="button" data-limit="38">Silent</button>
+        <button class="preset" type="button" data-limit="52">Whisper</button>
+        <button class="preset" type="button" data-limit="66">Partner</button>
+        <button class="preset" type="button" data-limit="80">Group</button>
+      </div>
+      <div class="grace-inline">
+        <span>Grace window</span>
+        <div class="grace-pills">
+          <button class="grace-pill" type="button" data-grace="1000">1s</button>
+          <button class="grace-pill" type="button" data-grace="2000">2s</button>
+          <button class="grace-pill" type="button" data-grace="4000">4s</button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Setup Overlay -->
+  <div class="overlay" id="setup">
+    <div class="card">
+      <div class="card-head">
+        <h2 class="display">
+          <label class="meter-pick">
+            <span class="sr-only">Choose a holiday meter</span>
+            <select onchange="location.href=this.value">
+              <option value="veterans.html">Veterans Meter</option>
+              <option value="gobble-meter.html">Gobble Meter</option>
+              <option value="santa.html" selected>Santa Meter</option>
+              <option value="mlk.html">Dream Meter</option>
+              <option value="washington.html">Washington Meter</option>
+              <option value="easter.html">Bunny Meter</option>
+            </select>
+          </label>
+        </h2>
+        <button class="cal-btn" id="histBtnSetup" type="button">Class History</button>
+      </div>
+      <p>Stay under the loudness limit to fill Santa’s sack with 10 presents. If the room gets too loud past the grace window, an elf walks out to take one back!</p>
+
+      <label class="q" for="minsInput">How many minutes are left in class?</label>
+      <div class="mins"><input id="minsInput" type="number" min="1" max="180" value="20" inputmode="numeric"><span>minutes</span></div>
+      <div class="chips" id="chips"></div>
+
+      <div class="q"><label for="limit1">Expected voice level</label><span id="limit1Label" style="font-size:.88rem;color:var(--muted)">60%</span></div>
+      <div class="setup-presets">
+        <button class="setup-preset" type="button" data-limit="38">0 · Silent<small>Independent</small></button>
+        <button class="setup-preset" type="button" data-limit="52">1 · Whisper<small>Quiet work</small></button>
+        <button class="setup-preset" type="button" data-limit="66">2 · Partner<small>Soft talking</small></button>
+        <button class="setup-preset" type="button" data-limit="80">3 · Group<small>Discussion</small></button>
+      </div>
+      <input type="range" id="limit1" min="25" max="90" value="60">
+      <div class="range-ends"><span>Strict</span><span>Relaxed</span></div>
+
+      <div class="setup-two-col">
+        <div class="sub-box">
+          <div class="sub-box-title"><span>Voice-Band Filter</span><button class="switch-btn" id="voiceFilterSetup" type="button" aria-pressed="true">ON · 300–3400 Hz</button></div>
+          <div style="font-size:.77rem;color:var(--muted);line-height:1.35">Focuses on human speech and ignores low HVAC hum, chair scrapes, and footsteps.</div>
+        </div>
+        <div class="sub-box">
+          <div class="sub-box-title"><span>Grace Window</span></div>
+          <div class="seg-row">
+            <button class="seg-btn" type="button" data-grace="1000">1s Strict</button>
+            <button class="seg-btn" type="button" data-grace="2000">2s Std</button>
+            <button class="seg-btn" type="button" data-grace="4000">4s Soft</button>
+          </div>
+          <div id="graceHint" style="font-size:.76rem;color:var(--muted);margin-top:.32rem">Standard: 2s over limit takes one</div>
+        </div>
+      </div>
+
+      <div class="q"><label for="goalInput">Class reward goal <span style="font-weight:400;color:var(--muted);font-size:.86rem">(optional)</span></label></div>
+      <div class="goal-input-row">
+        <input class="goal-input" id="goalInput" type="text" maxlength="64" placeholder="e.g. 10 presents = hot cocoa party!">
+        <button class="cal-btn" id="clearGoal" type="button">Clear</button>
+      </div>
+      <div class="chips" style="margin-top:.38rem">
+        <button class="chip" type="button" data-goal="5 min extra recess">5 min extra recess</button>
+        <button class="chip" type="button" data-goal="Holiday music break">Holiday music break</button>
+        <button class="chip" type="button" data-goal="Free choice time">Free choice time</button>
+        <button class="chip" type="button" data-goal="Nice-list stickers">Nice-list stickers</button>
+      </div>
+
+      <div class="cal-box">
+        <div class="cal-row">
+          <strong style="font-size:.86rem">Room Mic Test &amp; Auto-Calibrate</strong>
+          <button class="cal-btn" id="calBtn" type="button">Test / Calibrate Room</button>
+        </div>
+        <div class="mini-meter" aria-hidden="true"><i id="calFill"></i><div class="mini-limit" id="calLimit"></div></div>
+        <div id="calHint" style="font-size:.78rem;color:var(--muted);margin-top:.28rem">Optional: measure your room’s quiet baseline for 2 seconds to auto-set the limit.</div>
+      </div>
+
+      <div class="go-row">
+        <button class="go display" id="start">Start listening</button>
+        <button class="go-secondary display" id="startDemo" type="button">Demo mode</button>
+      </div>
+      <div class="err" id="err" role="alert"></div>
+    </div>
+  </div>
+
+  <!-- Summary Overlay -->
+  <div class="overlay" id="done" hidden>
+    <div class="card" style="text-align:center">
+      <h2 class="display">Time’s up!</h2>
+      <p style="margin-inline:auto">Your class earned</p>
+      <div class="big-feathers display"><span id="finalCount">0</span> of 10</div>
+      <p style="margin-inline:auto" id="finalMsg">presents.</p>
+      <div class="goal-result" id="goalResult" hidden></div>
+      <div class="stats-grid">
+        <div class="stat-card"><b id="statQuiet">100%</b><span>Time Quiet</span></div>
+        <div class="stat-card"><b id="statStreak">0:00</b><span>Best Streak</span></div>
+        <div class="stat-card"><b id="statPlucks">0</b><span>Elf Visits</span></div>
+      </div>
+      <button class="go display" id="again">Start again</button>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div class="overlay" id="historyModal" hidden>
+    <div class="card">
+      <div class="card-head">
+        <h2 class="display">Class History</h2>
+        <button class="cal-btn" id="histClose" type="button">Close</button>
+      </div>
+      <p>Your saved Santa Meter sessions and 7-day averages.</p>
+      <div class="hist-kpis">
+        <div class="stat-card"><b id="histSessions">0</b><span>7-Day Sessions</span></div>
+        <div class="stat-card"><b id="histAvgFeathers">—</b><span>Avg Presents</span></div>
+        <div class="stat-card"><b id="histAvgQuiet">—</b><span>Avg Quiet %</span></div>
+        <div class="stat-card"><b id="histBestStreak">—</b><span>Best Streak</span></div>
+      </div>
+      <div class="hist-list" id="histRows"></div>
+      <div class="hist-footer">
+        <button class="danger-link" id="histClear" type="button">Clear history</button>
+        <button class="cal-btn" type="button" onclick="document.getElementById('historyModal').hidden=true">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="meter-core.js"></script>
+<script>
+(() => {
+  const FEATHERS = 10;
+  const COLORS = ["#C8282E","#2E8B4A","#2F6DB5","#E3A12F","#8E44AD"];
+  const RIBBONS = ["#F4D35E","#F4D35E","#F4D35E","#C8282E","#F4D35E"];
+  const presentSvg = (c, r) =>
+    `<rect x="-28" y="-14" width="56" height="44" rx="4" fill="${c}" stroke="#3B2314" stroke-width="4"/>` +
+    `<rect x="-6" y="-14" width="12" height="44" fill="${r}" stroke="#3B2314" stroke-width="2"/>` +
+    `<rect x="-32" y="-26" width="64" height="13" rx="3" fill="${c}" stroke="#3B2314" stroke-width="4"/>` +
+    `<rect x="-6" y="-26" width="12" height="13" fill="${r}" stroke="#3B2314" stroke-width="2"/>` +
+    `<path d="M0 -26 C-18 -44 -28 -28 0 -26 C28 -28 18 -44 0 -26 Z" fill="${r}" stroke="#3B2314" stroke-width="3"/>`;
+  const $ = id => document.getElementById(id);
+  const ns = "http://www.w3.org/2000/svg";
+  const turkeyEl = $("turkey"), stageEl = document.querySelector(".stage"), bubbleEl = $("bubble"), appEl = $("app");
+
+  const tail = $("tail"), pipsEl = $("featherPips");
+  const feathers = [], pips = [];
+  for (let i = 0; i < FEATHERS; i++) {
+    const angle = -72 + i * (144 / (FEATHERS - 1));
+    const outer = document.createElementNS(ns, "g");
+    outer.setAttribute("transform", `rotate(${angle} 200 250)`);
+    const inner = document.createElementNS(ns, "g");
+    inner.setAttribute("class", "feather-inner");
+    const c = COLORS[i % COLORS.length];
+    inner.innerHTML = `<g transform="translate(200 108) rotate(${(-angle * 0.8).toFixed(1)})">${presentSvg(c, RIBBONS[i % RIBBONS.length])}</g>`;
+    outer.appendChild(inner);
+    tail.appendChild(outer);
+    feathers.push(inner);
+
+    const pip = document.createElement("div");
+    pip.className = "pip";
+    pip.dataset.color = c;
+    pipsEl.appendChild(pip);
+    pips.push(pip);
+  }
+
+  function synthSleighBells(ctx){
+    if (!ctx) return 1100;
+    const t0 = ctx.currentTime + .02, out = ctx.createGain();
+    out.gain.value = .28; out.connect(ctx.destination);
+    const hits = [0, .06, .12, .18, .24, .42, .48, .54, .60, .66, .72];
+    hits.forEach((h, i) => {
+      [2650, 3950, 5350].forEach((f, j) => {
+        const o = ctx.createOscillator(), g = ctx.createGain(), t = t0 + h + (j * .004);
+        o.type = "sine"; o.frequency.value = f * (1 + (Math.random() - .5) * .05);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(.5 / (j + 1), t + .004);
+        g.gain.exponentialRampToValueAtTime(.001, t + .22 + (i === hits.length - 1 ? .4 : 0));
+        o.connect(g); g.connect(out); o.start(t); o.stop(t + .7);
+      });
+    });
+    return 1100;
+  }
+
+  let danceUntil = 0;
+  const core = window.MeterCore.init({
+    storagePrefix: "santa",
+    maxItems: FEATHERS,
+    itemLabel: "presents",
+    lines: {
+      calm: ["Ho ho ho! Nice and quiet!", "Silent night… just right.", "You’re on the nice list!", "Jolly good work!", "Shh… the reindeer are napping."],
+      warn: ["Getting louder…", "Hmm… naughty or nice?", "Easy now…"],
+      loud: ["Too loud! My presents!", "HO HO… NO!!", "You’ll wake the reindeer!", "Who’s making that racket?!"]
+    },
+    giftLines: ["Ho ho ho! A new present!", "Thank you, class!", "Nice list for sure!", "Merry and bright!"],
+    onMoodChange(m){ turkeyEl.classList.remove("calm","warn","loud"); turkeyEl.classList.add(m); },
+    onCountUpdate(earned){
+      pips.forEach((p, i) => { const on = i < earned; p.classList.toggle("on", on); p.style.background = on ? p.dataset.color : ""; });
+    },
+    onGain(idx){ const f = feathers[idx]; f.classList.remove("fall","plucked"); void f.getBBox(); f.classList.add("on"); },
+    onReset(){ feathers.forEach(f => f.classList.remove("on","fall","plucked")); turkeyEl.classList.remove("dance"); },
+    onFull(goal){
+      core.say(goal ? `HO HO HO! Unlocked: ${goal}!` : "A FULL SACK! HO HO HO!", false, 5500);
+      if (core.reduceMotion.matches) return;
+      danceUntil = performance.now() + 5300;
+      turkeyEl.classList.remove("dance"); void turkeyEl.getBBox(); turkeyEl.classList.add("dance");
+      setTimeout(() => turkeyEl.classList.remove("dance"), 5300);
+    },
+    onLoudSound(ctx){ return synthSleighBells(ctx); },
+    onRequestTake(){ takeFeather(); },
+    getBurstOrigin(){
+      const tr = turkeyEl.getBoundingClientRect(), ar = appEl.getBoundingClientRect();
+      return { x: tr.left - ar.left + tr.width * .5, y: tr.top - ar.top + tr.height * .38 };
+    }
+  });
+
+  // Santa movement
+  let holdTurkey = false, holdFace = 1;
+  let tx = 0, tv = 0, target = 0, facing = 1, pauseUntil = 0, retargetAt = 0, motionLast = performance.now();
+  function pickTarget(range){
+    if (range < 20) return 0;
+    let n = 0;
+    for (let i = 0; i < 8; i++) { n = (Math.random() * 2 - 1) * range; if (Math.abs(n - tx) > range * 0.35) break; }
+    return n;
+  }
+  function motion(now){
+    const dt = Math.min(0.1, (now - motionLast) / 1000); motionLast = now;
+    const W = stageEl.clientWidth;
+    const range = Math.max(0, W / 2 - turkeyEl.getBoundingClientRect().width * 0.4 - 16);
+    const mood = core.mood;
+    let moving = false;
+    if (core.reduceMotion.matches) { tx = 0; tv = 0; }
+    else {
+      const speed = W * (mood === "loud" ? 0.54 : mood === "warn" ? 0.14 : 0.068);
+      if (Math.abs(target) > range) target = Math.sign(target) * range;
+      let desired = 0;
+      if (!(mood === "calm" && now < pauseUntil)) {
+        const arrived = Math.abs(target - tx) < Math.max(6, speed * 0.08);
+        if (arrived) {
+          if (mood === "calm") pauseUntil = now + 1300 + Math.random() * 2200;
+          target = pickTarget(range); retargetAt = now + 300 + Math.random() * 600;
+        } else if (mood === "loud" && now > retargetAt) {
+          target = pickTarget(range); retargetAt = now + 300 + Math.random() * 600;
+        }
+        if (!(mood === "calm" && now < pauseUntil)) desired = Math.sign(target - tx) * speed;
+      }
+      if (holdTurkey || now < danceUntil) desired = 0;
+      tv += (desired - tv) * Math.min(1, dt * (mood === "loud" ? 10 : 5));
+      tx += tv * dt;
+      if (tx > range) { tx = range; tv = Math.min(0, tv); }
+      if (tx < -range) { tx = -range; tv = Math.max(0, tv); }
+      if (holdTurkey) facing = holdFace;
+      else if (Math.abs(tv) > 4) facing = tv > 0 ? 1 : -1;
+      moving = Math.abs(tv) > W * 0.01 || mood === "loud";
+    }
+    turkeyEl.classList.toggle("moving", moving);
+    turkeyEl.classList.toggle("pose", !moving && mood === "calm" && !core.reduceMotion.matches);
+    turkeyEl.classList.toggle("face-r", facing > 0);
+    turkeyEl.classList.toggle("face-l", facing < 0);
+    turkeyEl.style.transform = `translateX(${tx.toFixed(1)}px)`;
+    const bLim = Math.max(0, W / 2 - bubbleEl.offsetWidth / 2 - 12);
+    bubbleEl.style.left = `calc(50% + ${Math.max(-bLim, Math.min(bLim, tx)).toFixed(1)}px)`;
+    core.maybeRotateBubble(now);
+    requestAnimationFrame(motion);
+  }
+  requestAnimationFrame(motion);
+
+  // Sky, Aurora & Daylight Lock
+  const DAY_MS = 8 * 60 * 1000;
+  const SKY = [
+    [0.00, "#A9BCE6", "#F5C9C9", "#7383C0", .2,  .2,  .8],
+    [0.08, "#BFDDF4", "#EAF4FB", "#000000", 0,   0,   1],
+    [0.50, "#BFDDF4", "#EAF4FB", "#000000", 0,   0,   1],
+    [0.58, "#5E5A9C", "#F0A0A8", "#6A4A8C", .25, .15, .7],
+    [0.66, "#0E1838", "#1F2F5A", "#101C45", .5,  1,   .25],
+    [0.92, "#0E1838", "#1F2F5A", "#101C45", .5,  1,   .25],
+    [1.00, "#A9BCE6", "#F5C9C9", "#7383C0", .2,  .2,  .8]
+  ];
+  const hex = h => [1,3,5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const mix = (a, b, f) => a.map((v, i) => v + (b[i] - v) * f);
+  const css = c => `rgb(${c.map(Math.round).join(",")})`;
+  const STORM = hex("#9AA4B2");
+  const sunGroup = $("sunGroup"), moonEl = $("moon"), starsEl = $("stars"), cloudsEl = $("clouds"), todEl = $("todMatrix");
+  for (let i = 0; i < 50; i++) {
+    const c = document.createElementNS(ns, "circle");
+    c.setAttribute("cx", (Math.random() * 1200).toFixed(0));
+    c.setAttribute("cy", (10 + Math.random() * 270).toFixed(0));
+    c.setAttribute("r", (1 + Math.random() * 2).toFixed(1));
+    starsEl.appendChild(c);
+  }
+  let dayLock = false;
+  try { dayLock = localStorage.getItem("santa-daylock") === "on"; } catch(e){}
+  function syncDayLock(){
+    const b = $("skyLock");
+    b.setAttribute("aria-pressed", String(dayLock));
+    b.classList.toggle("active-day", dayLock);
+    b.textContent = dayLock ? "Daylight ✓" : "Daylight";
+  }
+  syncDayLock();
+  $("skyLock").onclick = () => {
+    dayLock = !dayLock;
+    try { localStorage.setItem("santa-daylock", dayLock ? "on" : "off"); } catch(e){}
+    syncDayLock(); paintSky(performance.now());
+  };
+
+  const dayStart = performance.now() - 0.14 * DAY_MS;
+  let rainAmt = 0;
+  function paintSky(now){
+    const t = dayLock ? 0.25 : ((now - dayStart) % DAY_MS) / DAY_MS;
+    let k = 0; while (k < SKY.length - 2 && t > SKY[k + 1][0]) k++;
+    const A = SKY[k], B = SKY[k + 1], f = (t - A[0]) / (B[0] - A[0] || 1);
+    const r = rainAmt;
+    let top = mix(hex(A[1]), hex(B[1]), f), bot = mix(hex(A[2]), hex(B[2]), f);
+    top = mix(top, STORM, r * .55); bot = mix(bot, STORM, r * .45);
+    document.body.style.background = `linear-gradient(180deg, ${css(top)} 0%, ${css(bot)} 70%)`;
+    const tintA = A[4] + (B[4] - A[4]) * f, tint = mix(hex(A[3]), hex(B[3]), f);
+    let tc = tint.map(v => v / 255), ta = tintA;
+    if (r > 0) { tc = tc.map((v, i) => (v * ta + (STORM[i] / 255) * r * .25) / (ta + r * .25)); ta = Math.min(.7, ta + r * .25); }
+    const g = (1 - ta).toFixed(3);
+    todEl.setAttribute("values", `${g} 0 0 0 ${(tc[0] * ta).toFixed(3)}  0 ${g} 0 0 ${(tc[1] * ta).toFixed(3)}  0 0 ${g} 0 ${(tc[2] * ta).toFixed(3)}  0 0 0 1 0`);
+    const night = (A[5] + (B[5] - A[5]) * f) * (1 - r);
+    starsEl.setAttribute("opacity", night.toFixed(2));
+    $("aurora").setAttribute("opacity", (night * .92).toFixed(2));
+    cloudsEl.setAttribute("opacity", ((A[6] + (B[6] - A[6]) * f) * (1 - r * .6)).toFixed(2));
+    const su = (t + 0.03) / 0.66;
+    if (su >= 0 && su <= 1) {
+      sunGroup.setAttribute("transform", `translate(${(60 + su * 1080).toFixed(1)} ${(420 - Math.sin(Math.PI * su) * 315).toFixed(1)})`);
+      sunGroup.setAttribute("opacity", (1 - r * .7).toFixed(2));
+    } else sunGroup.setAttribute("opacity", "0");
+    const mu = ((t - 0.6 + 1) % 1) / 0.44;
+    if (mu <= 1) {
+      moonEl.setAttribute("transform", `translate(${(80 + mu * 1040).toFixed(1)} ${(420 - Math.sin(Math.PI * mu) * 315).toFixed(1)})`);
+      moonEl.setAttribute("opacity", (1 - r * .7).toFixed(2));
+    } else moonEl.setAttribute("opacity", "0");
+    const lum = (.299 * top[0] + .587 * top[1] + .114 * top[2]) / 255;
+    appEl.classList.toggle("sky-dark", lum < .52);
+    appEl.classList.toggle("sky-light", lum >= .52);
+  }
+
+  // Snowflakes & Snowstorm + Wandering Elf
+  const cv = $("weather"), ctx = cv.getContext("2d");
+  let leaves = [], drops = [];
+  let event = null, nextEventAt = performance.now() + 18000 + Math.random() * 22000;
+  const pilEl = $("pilgrim"), pilBody = $("pilBody"), pilLegA = $("pilLegA"), pilLegB = $("pilLegB"), pilHat = $("pilHat");
+  let pil = null, nextPilAt = performance.now() + 26000 + Math.random() * 28000;
+  function startPilgrim(){
+    const dir = Math.random() < .5 ? 1 : -1;
+    pil = {dir, x: dir > 0 ? -80 : 1280, speed: 46 + Math.random() * 14, ph: 0};
+    pilEl.style.display = "";
+  }
+  window.gobblePilgrim = startPilgrim;
+  function walkPilgrim(now, dt){
+    if (!pil && now > nextPilAt && !core.reduceMotion.matches && !pk) startPilgrim();
+    if (!pil) return;
+    pil.x += pil.dir * pil.speed * dt;
+    pil.ph += dt * pil.speed / 9;
+    const sw = Math.sin(pil.ph) * 24, bob = -Math.abs(Math.cos(pil.ph)) * 3;
+    pilLegA.setAttribute("transform", `rotate(${sw.toFixed(1)} 0 -50)`);
+    pilLegB.setAttribute("transform", `rotate(${(-sw).toFixed(1)} 0 -50)`);
+    pilBody.setAttribute("transform", `translate(0 ${bob.toFixed(1)})`);
+    const d = Math.abs(pil.x - 600), tip = d < 90 ? Math.sin((1 - d / 90) * Math.PI / 2) : 0;
+    pilHat.setAttribute("transform", `translate(0 ${(-9 * tip).toFixed(1)}) rotate(${(-22 * tip).toFixed(1)} 2 -122)`);
+    pilEl.setAttribute("transform", `translate(${pil.x.toFixed(1)} 480) scale(${1.05 * pil.dir} 1.05)`);
+    if (pil.x < -100 || pil.x > 1300) { pil = null; pilEl.style.display = "none"; nextPilAt = now + 60000 + Math.random() * 90000; }
+  }
+  let lastSky = 0, wLast = performance.now(), dpr = 1, groundTop = 0, groundBot = 0;
+  function sizeCanvas(){
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = appEl.clientWidth, h = appEl.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    const sr = stageEl.getBoundingClientRect(), ar = appEl.getBoundingClientRect();
+    const scale = Math.max(sr.width / 1200, sr.height / 600);
+    groundBot = sr.bottom - ar.top; groundTop = groundBot - (600 - 465) * scale;
+  }
+  function startEvent(now, type){
+    const rain = type ? type === "rain" : Math.random() < 0.45;
+    const dur = rain ? 18000 + Math.random() * 14000 : 10000 + Math.random() * 8000;
+    event = {type: rain ? "rain" : "leaves", start: now, end: now + dur, wind: 40 + Math.random() * 75, spawnAcc: 0};
+  }
+  window.gobbleWeather = type => startEvent(performance.now(), type);
+  function spawnFlake(W, wind){
+    leaves.push({
+      x: -0.15 * W + Math.random() * W * 1.05, y: -20 - Math.random() * 40,
+      vy: 30 + Math.random() * 35, wind: wind * .5, sway: 20 + Math.random() * 30, ph: Math.random() * 6.28,
+      rot: Math.random() * 6.28, vrot: (Math.random() - .5) * 4, size: 9 + Math.random() * 8,
+      land: groundTop + Math.random() * (groundBot - groundTop - 10), landedAt: 0
+    });
+  }
+  function drawFlake(L, alpha){
+    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(L.x, L.y);
+    const r = L.size * .32;
+    if (L.size > 13 && !L.landedAt) {
+      ctx.rotate(L.rot); ctx.lineCap = "round";
+      for (const [w, c] of [[4, "rgba(110,140,175,.7)"], [2, "#FFFFFF"]]) {
+        ctx.lineWidth = w; ctx.strokeStyle = c; ctx.beginPath();
+        for (let k = 0; k < 6; k++) {
+          const a = k * Math.PI / 3, x = Math.cos(a) * r * 2, y = Math.sin(a) * r * 2;
+          ctx.moveTo(0, 0); ctx.lineTo(x, y);
+          ctx.moveTo(x * .55 + Math.cos(a + .7) * r * .6, y * .55 + Math.sin(a + .7) * r * .6);
+          ctx.lineTo(x * .55, y * .55);
+          ctx.lineTo(x * .55 + Math.cos(a - .7) * r * .6, y * .55 + Math.sin(a - .7) * r * .6);
+        }
+        ctx.stroke();
+      }
+    } else {
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29);
+      ctx.fillStyle = "#FFFFFF"; ctx.fill();
+      ctx.lineWidth = 1; ctx.strokeStyle = "rgba(110,140,175,.6)"; ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function weather(now){
+    const dt = Math.min(.1, (now - wLast) / 1000); wLast = now;
+    sizeCanvas();
+    const W = cv.width / dpr, H = cv.height / dpr, still = core.reduceMotion.matches;
+    if (!event && now > nextEventAt) startEvent(now);
+    let rainTarget = 0;
+    if (event) {
+      const fadeIn = Math.min(1, (now - event.start) / 3000), fadeOut = Math.min(1, (event.end - now) / 3000);
+      const strength = Math.max(0, Math.min(fadeIn, fadeOut));
+      if (event.type === "rain") rainTarget = strength;
+      else if (!still) {
+        event.spawnAcc += dt * 3.5 * strength * (W / 1200 + .4);
+        while (event.spawnAcc >= 1) { event.spawnAcc--; spawnFlake(W, event.wind); }
+      }
+      if (now > event.end) { event = null; nextEventAt = now + 40000 + Math.random() * 80000; }
+    }
+    rainAmt += (rainTarget - rainAmt) * Math.min(1, dt * 1.5);
+    if (rainAmt < .002) rainAmt = 0;
+    if (now - lastSky > 200) { paintSky(now); lastSky = now; }
+    walkPilgrim(now, dt);
+    core.tickFx(dt);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    if (!still) {
+      leaves = leaves.filter(L => {
+        if (!L.landedAt) {
+          L.ph += dt * 2.2; L.x += (L.wind + Math.sin(L.ph) * L.sway) * dt;
+          L.y += L.vy * dt; L.rot += L.vrot * dt;
+          if (L.y >= L.land) { L.y = L.land; L.landedAt = now; }
+        }
+        const age = L.landedAt ? (now - L.landedAt) / 1000 : 0;
+        const alpha = age < 3 ? 1 : Math.max(0, 1 - (age - 3) / 3);
+        if (alpha <= 0 || L.x > W + 40) return false;
+        drawFlake(L, alpha); return true;
+      });
+      if (rainAmt > 0) {
+        ctx.fillStyle = `rgba(118,124,140,${(rainAmt * .92).toFixed(3)})`;
+        const n = Math.ceil(W / 160) + 2, drift = (now / 120) % 160;
+        ctx.beginPath(); ctx.rect(0, 0, W, 50);
+        for (let i = 0; i < n; i++) { const cx = i * 160 - 80 + drift, cy = 55 + (i % 2) * 22; ctx.moveTo(cx + 130, cy); ctx.ellipse(cx, cy, 130, 48, 0, 0, 6.29); }
+        ctx.fill();
+      }
+      const want = Math.round(rainAmt * W / 3.5);
+      while (drops.length < want) drops.push({x: Math.random() * W * 1.2 - W * .2, y: Math.random() * groundBot, v: 120 + Math.random() * 110, len: 1.6 + Math.random() * 2.6, ph: Math.random() * 6.28, land: groundTop + Math.random() * (groundBot - groundTop)});
+      if (drops.length > want) drops.length = want;
+      ctx.fillStyle = "#FFFFFF"; ctx.strokeStyle = "rgba(110,140,175,.55)"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (const d of drops) {
+        d.ph += dt * 2; d.y += d.v * dt; d.x += (d.v * .45 + Math.sin(d.ph) * 25) * dt;
+        if (d.y > d.land || d.x > W + 20) { d.y = -10 - Math.random() * 60; d.x = Math.random() * W * 1.2 - W * .2; }
+        ctx.moveTo(d.x + d.len, d.y); ctx.arc(d.x, d.y, d.len, 0, 6.29);
+      }
+      ctx.fill(); ctx.stroke();
+    }
+    requestAnimationFrame(weather);
+  }
+  requestAnimationFrame(weather);
+
+  // Elf walks up and grabs a present
+  const PLUCK_LINES = ["Hey! That’s for the nice list!", "Not that present!", "Oh no, the elf took one!", "Come back, little elf!"];
+  const pluckSvg = $("plucker");
+  (() => {
+    const clone = $("pilgrim").cloneNode(true);
+    clone.removeAttribute("style");
+    clone.querySelectorAll("[id]").forEach(n => n.id = "pk" + n.id.slice(3));
+    clone.id = "pkRoot";
+    pluckSvg.appendChild(clone);
+    const held = document.createElementNS(ns, "g");
+    held.id = "pkHeld"; held.style.display = "none";
+    held.innerHTML = '<rect x="3" y="-88" width="24" height="20" rx="2" stroke="#3B2314" stroke-width="2.5"/>' +
+                     '<rect x="12" y="-88" width="6" height="20" fill="#F4D35E" stroke="#3B2314" stroke-width="1.2"/>' +
+                     '<path d="M15 -88 c-7 -9 -13 -2 0 0 c13 -2 7 -9 0 0" fill="#F4D35E" stroke="#3B2314" stroke-width="1.5"/>';
+    $("pkArm").insertBefore(held, $("pkHand"));
+    $("pkFork").style.display = "none";
+  })();
+  const pkRoot = $("pkRoot"), pkBody = $("pkBody"), pkLegA = $("pkLegA"), pkLegB = $("pkLegB"), pkArm = $("pkArm"), pkHand = $("pkHand"), pkHeld = $("pkHeld"), pkHat = $("pkHat");
+  let pk = null, pendingPlucks = 0, pkLast = 0;
+
+  function pluckOne(){
+    const idx = core.commitLoss();
+    if (idx < 0) return null;
+    const f = feathers[idx];
+    f.classList.remove("on","fall"); f.classList.add("plucked");
+    return f;
+  }
+  function takeFeather(){
+    if (core.earned - pendingPlucks <= 0) return;
+    if (core.reduceMotion.matches) { pluckOne(); core.say(PLUCK_LINES[0], true); return; }
+    pendingPlucks++;
+    if (!pk) startPluck();
+  }
+  function startPluck(){
+    if (pil) { pil = null; pilEl.style.display = "none"; nextPilAt = performance.now() + 60000; }
+    const i = Math.max(0, core.earned - 1), side = i < FEATHERS / 2 ? -1 : 1, W = stageEl.clientWidth;
+    pk = {phase: "enter", side, x: side * (W / 2 + 140), ph: 0, t0: 0, plucked: false, arm: 0};
+    holdTurkey = true; holdFace = side;
+    pluckSvg.style.display = "block"; pkHeld.style.display = "none";
+    core.say("Uh oh… here comes an elf!", true);
+    pkLast = performance.now();
+    requestAnimationFrame(pluckLoop);
+  }
+  function flyFeather(f, fromSvgEl, toEl, toPoint, color){
+    const sr = stageEl.getBoundingClientRect();
+    const a = new DOMPoint(200, 108).matrixTransform(fromSvgEl.getScreenCTM());
+    const b = new DOMPoint(toPoint[0], toPoint[1]).matrixTransform(toEl.getScreenCTM());
+    const k = turkeyEl.getBoundingClientRect().height / 375;
+    const el = document.createElementNS(ns, "svg");
+    el.setAttribute("class", "flying-feather");
+    el.setAttribute("width", 66 * k); el.setAttribute("height", 190 * k);
+    el.setAttribute("viewBox", "-33 -95 66 190");
+    el.innerHTML = presentSvg(color, RIBBONS[COLORS.indexOf(color)] || "#F4D35E");
+    stageEl.appendChild(el);
+    const off = (x, y) => `translate(${x - sr.left - 33 * k}px, ${y - sr.top - 95 * k}px)`;
+    const anim = el.animate([
+      {transform: `${off(a.x, a.y)} rotate(0deg) scale(1)`},
+      {transform: `${off((a.x + b.x) / 2, Math.min(a.y, b.y) - 60 * k)} rotate(-20deg) scale(.7)`, offset: .45},
+      {transform: `${off(b.x, b.y)} rotate(0deg) scale(.42)`}
+    ], {duration: 450, easing: "ease-in-out", fill: "forwards"});
+    anim.onfinish = () => el.remove();
+  }
+  function pluckLoop(now){
+    if (!pk) return;
+    const dt = Math.min(.1, (now - pkLast) / 1000); pkLast = now;
+    const W = stageEl.clientWidth, k = turkeyEl.getBoundingClientRect().height / 375, s = k * 1.5;
+    const standX = tx + pk.side * 150 * k, speed = Math.max(220, W * .3);
+    let walking = false, facing = -pk.side;
+    if (pk.phase === "enter") {
+      walking = true; const d = standX - pk.x;
+      if (Math.abs(d) < speed * dt + 2) { pk.x = standX; pk.phase = "reach"; pk.t0 = now; pk.plucked = false; }
+      else pk.x += Math.sign(d) * speed * dt;
+    } else if (pk.phase === "reach") {
+      pk.x = standX; const t = (now - pk.t0) / 350; pk.arm = -115 * Math.min(1, t);
+      if (t >= 1 && !pk.plucked) {
+        pk.plucked = true;
+        if (core.soundOn) { core.setDeaf(synthSleighBells(core.outCtx) + 600); }
+        const i = core.earned - 1;
+        if (i >= 0) {
+          const color = COLORS[i % COLORS.length];
+          pkArm.setAttribute("transform", `rotate(${pk.arm} 2 -92)`);
+          flyFeather(feathers[i], feathers[i], pkHand, [15, -64], color);
+          pluckOne();
+          pkHeld.setAttribute("fill", color);
+          setTimeout(() => { if (pk) pkHeld.style.display = ""; }, 420);
+          core.say(PLUCK_LINES[Math.floor(Math.random() * PLUCK_LINES.length)], true);
+          turkeyEl.classList.remove("yelp"); void turkeyEl.getBBox(); turkeyEl.classList.add("yelp");
+          setTimeout(() => turkeyEl.classList.remove("yelp"), 750);
+        }
+        pendingPlucks = Math.max(0, pendingPlucks - 1); pk.phase = "hold"; pk.t0 = now;
+      }
+    } else if (pk.phase === "hold") {
+      pk.x = standX; const t = now - pk.t0;
+      if (t > 450) pk.arm = -115 * Math.max(0, 1 - (t - 450) / 400);
+      if (t > 1100) {
+        if (pendingPlucks > 0 && core.earned > 0) { pk.phase = "reach"; pk.t0 = now; pk.plucked = false; }
+        else { pendingPlucks = 0; pk.phase = "leave"; holdTurkey = false; }
+      }
+    } else if (pk.phase === "leave") {
+      walking = true; facing = pk.side; pk.x += pk.side * speed * dt;
+      if (Math.abs(pk.x) > W / 2 + 160) {
+        pk = null; pluckSvg.style.display = "none";
+        if (pendingPlucks > 0 && core.earned > 0) startPluck(); else pendingPlucks = 0;
+        return;
+      }
+    }
+    if (walking) pk.ph += dt * 9; else pk.ph = 0;
+    const sw = Math.sin(pk.ph) * 24, bob = walking ? -Math.abs(Math.cos(pk.ph)) * 3 : 0;
+    pkLegA.setAttribute("transform", `rotate(${sw.toFixed(1)} 0 -50)`);
+    pkLegB.setAttribute("transform", `rotate(${(-sw).toFixed(1)} 0 -50)`);
+    pkBody.setAttribute("transform", `translate(0 ${bob.toFixed(1)})`);
+    pkArm.setAttribute("transform", `rotate(${pk.arm.toFixed(1)} 2 -92)`);
+    pkHeld.setAttribute("transform", `rotate(${(-pk.arm).toFixed(1)} 15 -64)`);
+    pkHat.removeAttribute("transform"); pkRoot.setAttribute("transform", `scale(${facing} 1)`);
+    pluckSvg.style.width = (150 * s) + "px"; pluckSvg.style.height = (172 * s) + "px";
+    pluckSvg.style.left = (W / 2 + pk.x - 75 * s) + "px";
+    pluckSvg.style.bottom = Math.max(0, 20 * k - 7 * s) + "px";
+    requestAnimationFrame(pluckLoop);
+  }
+
+  paintSky(performance.now());
+})();
+</script>
+</body>
+</html>

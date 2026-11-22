@@ -312,16 +312,11 @@
   function setHallCard(on) {
     hp.show(on);
     store.set('hpon', on ? 1 : 0);
-    if (on && store.get('hpconn', '') !== '1') setHallConn(true);   // saved on its own, so closing the card keeps the hall pass on
+    if (on && !isHpConn()) setHallConn(true);
     updateHpBtnLabel();
     if (on) { hpSig = null; hpPaint(); }
     hpBadgePaint();
   }
-
-  // Each class start (Start class button or the Schedule) brings the closed card back, if the hall pass is in use.
-  TB.hpShowForClass = function () {
-    if (isHpConn() && hp.el.hidden && !document.body.classList.contains('sub')) setHallCard(true);
-  };
 
   TB.hpPauseForSub = function (inSub) {
     if (inSub) {

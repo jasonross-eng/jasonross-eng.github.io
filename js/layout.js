@@ -425,7 +425,7 @@
     if (on) {
       setArrange(false);
       TB.setPlanEdit(false);
-      if (maxEl && (maxEl.classList.contains('pick') || maxEl.classList.contains('poll') || maxEl.classList.contains('flt'))) {
+      if (maxEl && (maxEl.classList.contains('pick') || maxEl.classList.contains('poll') || (maxEl.classList.contains('flt') && !maxEl.classList.contains('sub-ok')))) {
         setMax(null); maxIcons();
       }
       $('moreMenu').classList.remove('show'); $('moreBtn').classList.remove('on');
@@ -433,6 +433,7 @@
       closeDlg();
     }
     TB.hpPauseForSub(on);
+    TB.subHooks.forEach(fn => { try { fn(!!on); } catch (e) {} });
   }
   TB.setSub = setSub;
 

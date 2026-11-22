@@ -261,18 +261,15 @@
 
   function setNoise(on) {
     document.body.classList.toggle('noiseon', on); store.set('noiseon', on ? 1 : 0);
-    $('noiseBtn').textContent = on ? 'Noise meter: On' : 'Noise meter';
-    $('nzOnBtn').classList.toggle('on', on); $('nzOnBtn').setAttribute('aria-pressed', on);
-    $('nzOnTxt').textContent = on ? 'Noise meter: On' : 'Noise meter';
+    if (TB.updateNoiseBtns) TB.updateNoiseBtns();
     if (!on) $('nzSet').classList.remove('show');
     requestAnimationFrame(() => { TB.fitPlan(); TB.applyLayout(); });
     if (on) noiseStart(); else { noiseStop(); $('noiseCard').classList.remove('loud', 'warn'); }
   }
+  TB.setSimpleNoise = setNoise;
   const nzMark = () => { $('nzMark').style.left = $('nzLim').value + '%'; };
   $('nzLim').value = store.get('noiselim', '60'); nzMark();
   $('nzLim').oninput = () => { store.set('noiselim', $('nzLim').value); nzMark(); };
-  $('noiseBtn').onclick = () => setNoise(!document.body.classList.contains('noiseon'));
-  $('nzOnBtn').onclick = () => setNoise(!document.body.classList.contains('noiseon'));
   $('nzGear').onclick = e => {
     e.stopPropagation();
     const box = $('nzSet'), r = $('nzGear').getBoundingClientRect(), open = !box.classList.contains('show');
@@ -286,7 +283,7 @@
   $('nzDone').onclick = () => $('nzSet').classList.remove('show');
   $('nzOff').onclick = () => setNoise(false);
   document.addEventListener('click', e => { if (!$('nzSet').contains(e.target) && !$('nzGear').contains(e.target)) $('nzSet').classList.remove('show'); });
-  if (store.get('noiseon', '0') === '1') setNoise(true);
+  if (store.get('noiseon', '0') === '1' && store.get('noisemode', 'seasonal') === 'bar') setNoise(true);
 
   /* ---------- start class ---------- */
   const scGet = () => ({ l: store.get('startlabel', 'Typing Club'), m: Math.max(0, Math.min(99, Number(store.get('startmin', '10')) || 0)) });
@@ -300,7 +297,6 @@
     voice = '0'; store.set('voice', '0'); paintVoice();
     TB.resetNoiseCount();
     store.del('todock_' + TB.grade);
-    if (TB.hpShowForClass) TB.hpShowForClass();
     TB.openClarity();
     toast('Ready for ' + TB.gradeWord() + (sc.m > 0 ? '. ' + (sc.l ? sc.l + ' ' : 'Timer ') + sc.m + ' min started' : ''));
   }
