@@ -63,26 +63,27 @@ Each grade has its own background. Tap the grade, tap Background, then pick a co
 More, then Top bar buttons. For each button, tap In top bar / In More to choose where it lives, and use the arrows to change the order. Start class now sits right next to More. Back to how it started undoes your changes.
 
 ## More menu
-Countdown and Background moved into More (top right). More also has:
-- Backup and restore: Save a backup file now and then and keep it in Google Drive or on a flash drive. Restore from a file puts it back, or copies your setup to another computer. Every day: On saves a backup by itself on your first tap of each school day. The file has student names in it, so keep it private.
-- Noise meter: also turned on with the Noise meter button under the voice levels in the clock. It shows how loud the room is in a bar at the bottom of the clock. The settings button at the end of the bar has the limit, the sound and Reset. Move the Limit slider; above it, the card flashes Too loud! and plays the sound you pick (Chime, Bell, Shh, Beep beep or No sound; Test plays it). Went off counts how many times; Reset sets it back to 0. It uses the microphone only to measure, and records nothing.
-- Schedule: add each class start time for each day. Turn it On, and the board switches grade and picker class by itself when each class starts.
-- Sub mode: hides editing and the picker. You pick a code; the red Exit sub mode button asks for it.
+The More menu is grouped into **Class tools** (Poll, Hall pass, Dice, QR code, Embed a website, Embed website 2, Add a picture, Noise meter) and **Board setup** (Full screen, Arrange, Hide top bar, Class flow & clean-up, Schedule, Countdown, Background, Backup and restore, Sub mode, Top bar buttons):
+- Sound on / off (top bar): mutes or unmutes all board sounds (timers, attention chime, clean-up warning, noise meter, dice, and read aloud).
+- Backup and restore: Save a backup file now and then and keep it in Google Drive or on a flash drive (with an option to include uploaded pictures). Restore from a file puts it back, or copies your setup to another computer. Every day: On saves a quick settings and roster backup on your first tap of each school day. The file has student names in it, so keep it private.
+- Noise meter: also turned on with the Noise meter button under the voice levels in the clock. It shows how loud the room is in a bar at the bottom of the clock. The settings button at the end of the bar has the limit, the sound and Reset. Move the Limit slider; above it, the card flashes Too loud! and plays the sound you pick (Chime, Bell, Shh, Beep beep or No sound; Test plays it). Went off counts how many times and resets automatically on Start class. It uses the microphone only to measure, and records nothing.
+- Schedule: add each class start time for each day. Turn it On, and the board switches grade and picker class by itself when each class starts. Tap Pause today for assemblies or delays; it resumes on its own tomorrow.
+- Sub mode: hides editing, setup tools, the picker, class race names, and the hall pass. You pick a code in a masked box so students cannot see it on the board; the red Exit sub mode button asks for it.
 
 ## Start class
-The green Start class button (top right): starts a 10 minute Typing Club timer (change it under Edit in the timer), voice level 0, Must Do / May Do checks cleared, and Teacher Clarity for the grade on the screen.
+The green Start class button (top right): starts a 10 minute Typing Club timer (change it in Class flow & clean-up), sets voice level 0, resets the Noise meter count to 0, clears Must Do / May Do checks, and opens Teacher Clarity for the grade on the screen. Active timers also survive an accidental page refresh.
 
-## Clean-up warning
-Classes are 45 minutes. 5 minutes before the end (counting from when you tap Start class, or when the Schedule starts the class), a big warning pops up with a sound and a 5 minute Clean up timer starts. Tap to close the popup; the timer keeps going. While a class is running, a "Clean up at 10:40" button shows under the date. Tap it to move this class's warning earlier or later, pick an exact time, warn now, or skip it for this class. More, then Clean-up warning, opens the same box, and also sets the class length and warning time for every class (0 turns it off).
+## Class flow & clean-up
+Classes are 45 minutes. 5 minutes before the end (counting from when you tap Start class, or when the Schedule starts the class), a big warning pops up with a sound and a 5 minute Clean up timer starts. Tap to close the popup; the timer keeps going. While a class is running, a "Clean up at 10:40" button shows under the date. Tap it (or More, Class flow & clean-up) to adjust this class's warning time, set the Start class timer, set class length and warning minutes for every class, or manage the grade's exit slip.
 
 ## Poll
-More, then Poll. Pick Smileys, Thumbs or Multiple choice, type a question if you like, and tap Start poll. Tap an answer on the board to add a vote. Student devices: On shows a code and a QR code; students go to the vote page, type the code and tap their answer. Their votes show up on the board. Votes go through a free service called ntfy.sh (no names, only the code and the answer). If the board says it cannot reach the vote service, the school filter is blocking it.
+More, then Poll. Pick Smileys, Thumbs, Multiple choice, or Short answer, type a question if you like, and tap Start poll. Tap an answer on the board to add a vote. Student devices: On shows a code and a QR code; students go to the vote page, type the code and tap their answer. Their votes show up on the board. Votes go through a free service called ntfy.sh (no names, only the code and the answer). If the board says it cannot reach the vote service, the school filter is blocking it.
 
 ## Exit slip
-More, Poll, New poll. Pick the kind (Smileys, Thumbs, Multiple choice or Short answer), type the question, and tap Save as exit slip. It is saved for the grade that is picked. At the 5 minute clean-up warning it fills the screen with the question, a QR code and a code. Students answer on their Chromebooks and the answers show on the board. Short answers stay hidden until you tap Show answers. More, Clean-up warning has Turn off, Show it now and Remove.
+More, Poll, New poll. Pick the kind (Smileys, Thumbs, Multiple choice or Short answer), type the question, and tap Save as exit slip. It is saved for the grade that is picked. At the 5 minute clean-up warning it closes any open page and fills the screen with the question, a QR code and a code. Students answer on their Chromebooks and the answers show on the board. Short answers stay hidden until you tap Reveal 1 or Show all, and any single answer can be dismissed with its × button. More, Class flow & clean-up has Turn off, Show it now and Remove.
 
 ## Hall pass
-More, then Hall pass. Kiosk setup has the steps: download the kiosk file, open jasonross-eng.github.io/kiosk.html on the door Chromebook, and pick the file there. Students tap their name, then where they are going. Only one student can be out at a time. The board shows who is out with a timer next to the name. When the student taps I'm back, the name turns green and stays on the board until you tap it. It turns red after the limit (8 minutes to start), and plays a bell. Log shows every pass and can be downloaded. Log, then Google Form, sends each finished pass to your own Google Form (and its Sheet); the steps are in that window, and the form link is saved on your board only. Names never leave your devices; only a code number, the place and the time travel through the free ntfy.sh service.
+More, then Hall pass. Kiosk setup has the steps: download the kiosk file, open jasonross-eng.github.io/kiosk.html on the door Chromebook, and pick the file there. Students tap their name, then where they are going. Only one student can be out at a time. The door kiosk stays connected in the background even when you close the Hall pass card, and a live badge appears in the top bar whenever someone is out. When the student taps I'm back, the row turns green until you tap it (and old returned rows from previous days clear automatically). It turns red after the limit (8 minutes to start), and plays a bell. Log shows every pass and can be downloaded or sent to your own Google Form. Names never leave your devices; only a code number, the place and the time travel through the free ntfy.sh service.
 
 ## Dice, websites and pictures
 More, then Dice: tap Roll. Plus and minus change how many dice (1 to 6).
@@ -122,10 +123,10 @@ New guides go in `guides.js`, pictures in `guides/<guide id>/`. Old guides stay 
 In a guide: Next/Back, "Show all" for the wall of cards, "Big" for one picture at a time.
 
 ## Keys
-- D: draw on/off (the draw bar has Blank page: a white or black page to draw on)
+- D: draw on/off (Pen, Highlighter, Arrow, Circle, Eraser, plus Blank page: a white or black page to draw on)
 - Esc: stop drawing, or close steps
 - Left / Right: back / next on a steps page
-- Ctrl+Z: undo last mark
+- Ctrl+Z: undo last mark while Draw is on
 
 ## Rules
 Public repo. No student names, class lists, or class codes.
