@@ -251,6 +251,8 @@
   // New class: take the students who are back off the card. Their passes stay in the log, and any not yet sent to
   // the Google Form are sent first. Students still out stay on the card until they come back.
   TB.hpNewClass = function () {
+    // every class starts with the Hall pass card open, even if it was closed in the last class (not in Sub mode)
+    if (hp.el.hidden && !document.body.classList.contains('sub')) setHallCard(true);
     const v = hpList(), back = v.filter(x => x.back); if (!back.length) return;
     hpLog(l => back.forEach(r => { const x = l.find(y => y.t === r.t && y.c === r.c && y.i === r.i); if (x && !x.back) x.back = r.back; }));
     hpSaveList(v.filter(x => !x.back)); hpSig = null; hpPaint(); hpBadgePaint();
