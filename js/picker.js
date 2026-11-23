@@ -401,7 +401,7 @@
     box.innerHTML = '<p id="pkHead"></p>' +
       '<input type="text" id="pkTeacher" maxlength="30" placeholder="Teacher, for example Ms. Lee" aria-label="Teacher">' +
       '<textarea id="pkText" aria-label="Students, one name per line" placeholder="Students, one name per line"></textarea>' +
-      '<div class="pkrow"><button class="chip main" id="pkSaveNames">Save</button><button class="chip" id="pkCancel">Cancel</button><button class="chip" id="pkDel">Remove class</button></div>' +
+      '<div class="pkrow"><button class="chip main" id="pkSaveNames">Save</button><button class="chip" id="pkCancel">Cancel</button><button class="chip" id="pkDel">Remove class</button><button class="chip" id="pkImp">From a spreadsheet</button></div>' +
       '<p id="pkWhere"></p>';
     w.appendChild(box);
     $('pkHead').textContent = c ? 'Edit this class.' : 'Add a ' + TB.gradeWord() + ' class: type the teacher, then the students (one per line, or paste a column from your Google Sheet).';
@@ -415,16 +415,89 @@
       if (!names.length) { $('pkText').focus(); return; }
       const l = pkClasses();
       let k = id ? l.find(x => x.id === id) : null;
-      if (k) { if (k.n.join('\n') !== names.join('\n')) { k.used = []; k.last = ''; k.sat = []; k.seat = []; k.groups = []; } k.t = t; k.n = names; }
+      if (k) {
+        const added = names.length > k.n.length && k.n.every((x, i) => names[i] === x);   // only new names at the end
+        if (!added && k.n.join('\n') !== names.join('\n')) { k.used = []; k.last = ''; k.sat = []; k.seat = []; k.groups = []; }
+        k.t = t; k.n = names;
+      }
       else { k = { id: 'c' + Date.now(), t, n: names, used: [], last: '', sat: [], seat: [], notes: '', nd: '', pts: 0, checks: {} }; l.push(k); }
       pkSaveClasses(l); store.set('pkcls_' + TB.grade, k.id); listShow();
     };
     $('pkCancel').onclick = listShow;
+    $('pkImp').onclick = pkImportDlg;
     $('pkDel').onclick = () => {
       if (!confirm('Remove the class "' + c.t + '" and its names from this board?')) return;
       pkSaveClasses(pkClasses().filter(x => x.id !== id)); store.del('pkcls_' + TB.grade); listShow();
     };
     setTimeout(() => { const t = $(c ? 'pkText' : 'pkTeacher'); if (t) t.focus(); }, 50);
+  }
+  // ---- add students from a spreadsheet ----
+  // Paste rows copied from Google Sheets (or pick a .csv file). Columns: Grade, Teacher, Student (a header row is fine).
+  // Only 2 columns: Teacher, Student for the grade that is picked. Only 1 column: students for the class that is picked.
+  // Adds missing classes and students at the end of each class; nothing is removed or reordered. Saved on this board only.
+  function pkGradeKey(v) {
+    const w = String(v || '').trim().toLowerCase().replace(/\s+grade$/, '');
+    if (/^(sp|specials?|md)$/.test(w)) return 'sp';
+    const m = w.match(/^([1-4])(st|nd|rd|th)?$/) || [null, { first: '1', second: '2', third: '3', fourth: '4' }[w]];
+    return m && m[1] ? m[1] : null;
+  }
+  function pkRows(text) {
+    const rows = [];
+    String(text).replace(/\r/g, '').split('\n').forEach(line => {
+      if (!line.trim()) return;
+      let cells;
+      if (line.includes('\t')) cells = line.split('\t');
+      else { cells = []; let cur = '', q = false; for (const ch of line) { if (ch === '"') q = !q; else if (ch === ',' && !q) { cells.push(cur); cur = ''; } else cur += ch; } cells.push(cur); }
+      rows.push(cells.map(c => c.trim()));
+    });
+    return rows;
+  }
+  function pkImport(text) {
+    let rows = pkRows(text); if (!rows.length) return { err: 'Nothing to add. Paste rows or pick a file.' };
+    let gi = -1, ti = -1, ni = -1;
+    const head = rows[0].map(h => h.toLowerCase());
+    const H = { g: /^grade( level)?$/, t: /^(teacher|homeroom|homeroom teacher|class)$/, n: /^(students?|names?|student names?|first names?)$/ };
+    if (head.some(h => H.g.test(h) || H.t.test(h) || H.n.test(h))) {
+      gi = head.findIndex(h => H.g.test(h)); ti = head.findIndex(h => H.t.test(h)); ni = head.findIndex(h => H.n.test(h));
+      rows = rows.slice(1);
+      if (ni < 0) return { err: 'Could not find the Student column. Name it Student.' };
+    } else {
+      const w = Math.max(...rows.map(r => r.length));
+      if (w >= 3) { gi = 0; ti = 1; ni = 2; } else if (w === 2) { ti = 0; ni = 1; } else ni = 0;
+    }
+    const cur = pkCur(pkClasses()), lists = {}, get = g => lists[g] || (lists[g] = pkClasses(g));
+    let added = 0, skipped = 0, newCls = 0;
+    rows.forEach(r => {
+      const name = (r[ni] || '').trim(); if (!name) return;
+      const g = gi >= 0 ? pkGradeKey(r[gi]) : TB.grade; if (!g) { skipped++; return; }
+      const t = ti >= 0 ? (r[ti] || '').trim() : (g === TB.grade && cur ? cur.t : ''); if (!t) { skipped++; return; }
+      const l = get(g); let k = l.find(x => x.t.toLowerCase() === t.toLowerCase());
+      if (!k) { k = { id: 'c' + Date.now() + Math.floor(Math.random() * 1000), t, n: [], used: [], last: '', sat: [], seat: [], notes: '', nd: '', pts: 0, checks: {} }; l.push(k); newCls++; }
+      if (k.n.some(x => x.toLowerCase() === name.toLowerCase())) return;
+      if (k.n.length >= 200) { skipped++; return; }
+      k.n.push(name); added++;
+    });
+    Object.keys(lists).forEach(g => store.set('pkclasses_' + g, JSON.stringify(lists[g])));
+    return { added, skipped, newCls };
+  }
+  TB.pkImport = pkImport;
+  function pkImportDlg() {
+    TB.openDlg('Add students from a spreadsheet', body => {
+      body.innerHTML = '<p>In Google Sheets, make columns <b>Grade</b>, <b>Teacher</b>, <b>Student</b>. Select the rows, copy (Ctrl + C), and paste them below (Ctrl + V). Or download the sheet as a .csv file (File, Download) and pick it.</p>' +
+        '<p>Grade can be 1, 2, 3, 4 or Specials. Teacher must match the name on the teacher button. Students already in a class are skipped; nothing is removed.</p>' +
+        '<textarea id="pkImpText" rows="8" style="width:100%;font-size:17px;font-family:inherit" aria-label="Rows from the spreadsheet" placeholder="Grade&#9;Teacher&#9;Student"></textarea>' +
+        '<div class="r"><button class="tool" id="pkImpGo">Add students</button><button class="tool" id="pkImpFile">Pick a .csv file</button><input type="file" id="pkImpIn" accept=".csv,.tsv,.txt,text/csv" hidden></div><p id="pkImpMsg"></p>' +
+        '<p>Saved on this board only. After adding students, download a new kiosk file for the hall pass (Hall pass, Kiosk setup).</p>';
+      const go = text => {
+        const r = pkImport(text);
+        if (r.err) { $('pkImpMsg').textContent = r.err; return; }
+        $('pkImpMsg').textContent = 'Added ' + r.added + (r.added === 1 ? ' student' : ' students') + (r.newCls ? ' and ' + r.newCls + (r.newCls === 1 ? ' new class' : ' new classes') : '') + '.' + (r.skipped ? ' Skipped ' + r.skipped + ' (no grade or teacher, or class full).' : '');
+        if (r.added || r.newCls) { listShow(); toast('Students added'); }
+      };
+      $('pkImpGo').onclick = () => go($('pkImpText').value);
+      $('pkImpFile').onclick = () => $('pkImpIn').click();
+      $('pkImpIn').onchange = e => { const f = e.target.files[0]; if (!f) return; const fr = new FileReader(); fr.onload = () => go(String(fr.result).replace(/^\ufeff/, '')); fr.readAsText(f); };
+    });
   }
   let pkPlace = () => {};
   function setPick(on) {
