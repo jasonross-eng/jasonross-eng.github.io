@@ -159,7 +159,8 @@
     if (sig !== hpSig || box.children.length !== Math.max(1, v.length)) {
       hpSig = sig; box.innerHTML = '';
       if (!v.length) box.innerHTML = '<div class="none">Nobody is out</div>';
-      v.forEach(x => {
+      // students still out on top (longest gone first), then the green "back" rows
+      v.slice().sort((a, b) => (!!a.back - !!b.back) || (a.t - b.t)).forEach(x => {
         const r = document.createElement('button'); r.className = 'hprow'; r.dataset.t = x.t;
         r.innerHTML = '<span class="who"></span><span class="tm"></span><span class="where"></span>';
         r.querySelector('.who').textContent = hpNameOf(x.c, x.i).name;
