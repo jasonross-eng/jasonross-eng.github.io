@@ -323,15 +323,16 @@
     const cleanMin = wm > 0 ? wm : 5, o = String(store.get('warnat', '')).split('|');
     let at = wm > 0 && wm < len ? startAt + (len - wm) * 60000 : 0, custom = false;
     if (startAt && o[0] === String(startAt)) { at = Number(o[1]) || 0; custom = true; }
-    return { startAt, len, wm, cleanMin, at, custom, warned: store.get('classwarned', '') === String(startAt), end: startAt + len * 60000 };
+    const end = startAt + len * 60000, span = at && at < end ? end - at : cleanMin * 60000;
+    return { startAt, len, wm, cleanMin, at, custom, span, warned: store.get('classwarned', '') === String(startAt), end };
   }
   function warnCheck() {
     const c = cwInfo(), now = Date.now();
     cwPaint(c, now);
     if (!c.startAt || !c.at || c.warned) return;
-    if (now < c.at || now >= c.at + c.cleanMin * 60000) return;
+    if (now < c.at || now >= c.at + c.span) return;
     store.set('classwarned', String(c.startAt));
-    const leftMs = c.at + c.cleanMin * 60000 - now;
+    const leftMs = c.at + c.span - now;
     setTime(Math.round(leftMs / 1000), 'Clean up'); start();
     const m = Math.max(1, Math.round(leftMs / 60000));
     $('warnBig').textContent = m + (m === 1 ? ' minute left' : ' minutes left');
@@ -341,7 +342,7 @@
     TB.exitSlipLaunch();
   }
   function cwPaint(c, now) {
-    const p = $('cwPill'), live = c.startAt && !c.warned && now < Math.max(c.end, c.at + c.cleanMin * 60000) && now >= c.startAt;
+    const p = $('cwPill'), live = c.startAt && !c.warned && now < Math.max(c.end, c.at + c.span) && now >= c.startAt;
     p.classList.toggle('on', !!live); p.classList.toggle('off', !!live && !c.at);
     if (live) p.textContent = c.at ? 'Clean up at ' + clockTime(c.at) : 'No clean-up warning';
   }
@@ -353,11 +354,21 @@
         body.innerHTML = '';
         if (live) {
           body.innerHTML = '<p><b>This class</b></p><div class="cwbig" id="cwNow"></div>' +
+            '<div class="r cwrow" id="cwMins"><span>Warn</span>' + [2, 3, 5, 7, 10, 15].map(m => '<button class="tool" data-m="' + m + '">' + m + '</button>').join('') + '<span>min before the end</span></div>' +
             '<div class="r cwrow"><button class="tool" data-d="-5">-5 min</button><button class="tool" data-d="-1">-1 min</button><button class="tool" data-d="1">+1 min</button><button class="tool" data-d="5">+5 min</button></div>' +
             '<div class="r cwrow"><span>Or pick a time:</span><input type="time" id="cwAt" aria-label="Warning time"><button class="tool" id="cwSet">Set</button></div>' +
             '<div class="r cwrow"><button class="tool" id="cwGo">Warn now</button><button class="tool" id="cwOff">No warning this class</button><button class="tool" id="cwBack">Back to normal</button></div>' +
             '<p id="cwMsg"></p>';
-          $('cwNow').textContent = c.at ? 'Warning at ' + clockTime(c.at) : 'No warning this class';
+          const before = c.at && c.at < c.end ? Math.round((c.end - c.at) / 60000) : 0;
+          $('cwNow').textContent = c.at ? 'Warning at ' + clockTime(c.at) + (before ? ' (' + before + ' min before the end)' : '') : 'No warning this class';
+          body.querySelectorAll('[data-m]').forEach(b => {
+            b.classList.toggle('on', before === Number(b.dataset.m));
+            b.onclick = () => {
+              const at = c.end - Number(b.dataset.m) * 60000;
+              if (at <= now) { $('cwMsg').textContent = 'That time has already passed. Tap Warn now instead.'; return; }
+              setAt(at);
+            };
+          });
           const setAt = ms => { store.set('warnat', c.startAt + '|' + ms); draw(); warnCheck(); };
           body.querySelectorAll('[data-d]').forEach(b => b.onclick = () => {
             const base = cwInfo().at || Math.max(now, c.end - c.cleanMin * 60000);
