@@ -19,7 +19,7 @@
 
   const hp = TB.makeFloat('hpCard', 'Hall pass', 'hprect', { x: .62, y: .5, w: .34, h: .44 }, () => setHallCard(false));
   hp.body.innerHTML = '<div class="hpbox" id="hpBox"></div>' +
-    '<div class="plrow"><span class="plleft" id="hpSt"></span><button class="chip" id="hpConnBtn"></button><button class="chip" id="hpLogBtn">Log</button><button class="chip" id="hpSetBtn">Kiosk setup</button></div>';
+    '<div class="plrow"><span class="plleft" id="hpSt"></span><button class="chip" id="hpConnBtn"></button><button class="chip" id="hpSndBtn"></button><button class="chip" id="hpLogBtn">Log</button><button class="chip" id="hpSetBtn">Kiosk setup</button></div>';
 
   function hpList() {
     let v = jget('hplist', null);
@@ -42,6 +42,7 @@
   hpPruneOldReturned();
   TB.dayChangeHooks.push(() => { hpPruneOldReturned(); hpPaint(); hpBadgePaint(); });
 
+  function hpSoundOn() { return store.get('hpsound', '1') === '1'; }
   const hpOut = () => hpList().find(x => !x.back) || null;
   function hpNameOf(c, i) {
     for (const [g] of TB.GRADES) {
@@ -79,6 +80,7 @@
       hpLog(l => { if (!known) l.push({ c: m.c, i: m.i, name: who.name, cls: who.cls ? who.cls.t : '', dest: m.dest, t: m.t, back: 0 }); });
       if (live && !inSub) {
         toast(who.name + ' went to the ' + String(m.dest).toLowerCase());
+        if (hpSoundOn()) TB.audio.hallPing(false);
         if (who.cls && m.v && who.cls.n && hpVer(who.cls.n) !== m.v) {
           setTimeout(() => toast('The kiosk has an old class list. Download a new kiosk file.'), 4200);
         }
@@ -88,7 +90,7 @@
       const v = hpList(), o = v.slice().reverse().find(x => x.c === m.c && x.i === m.i && !x.back);
       if (o) { o.back = m.t || Date.now(); hpSaveList(v); }
       hpLog(l => { const e = l.slice().reverse().find(x => x.c === m.c && x.i === m.i && !x.back); if (e) e.back = m.t || Date.now(); });
-      if (live && !inSub) toast(hpNameOf(m.c, m.i).name + ' is back');
+      if (live && !inSub) { toast(hpNameOf(m.c, m.i).name + ' is back'); if (hpSoundOn()) TB.audio.hallPing(true); }
       setTimeout(gfPump, 500);
     }
     hpPaint();
@@ -333,6 +335,10 @@
     setHallConn(next);
     toast(next ? 'Door kiosk listening' : 'Door kiosk disconnected');
   };
+  // Out / back sound: on by default, one setting for this board (hpsound). The Mute button in the top bar still silences it.
+  function hpSoundPaint() { const on = hpSoundOn(); $('hpSndBtn').textContent = on ? 'Sound: On' : 'Sound: Off'; $('hpSndBtn').classList.toggle('on', on); }
+  $('hpSndBtn').onclick = () => { store.set('hpsound', hpSoundOn() ? 0 : 1); hpSoundPaint(); if (hpSoundOn()) TB.audio.hallPing(true); toast(hpSoundOn() ? 'Hall pass sound on' : 'Hall pass sound off'); };
+  hpSoundPaint();
   $('hpLogBtn').onclick = hpLogDlg;
   $('hpSetBtn').onclick = hpSetupDlg;
   $('hpBtn').onclick = () => setHallCard(hp.el.hidden);

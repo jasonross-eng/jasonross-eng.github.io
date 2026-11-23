@@ -313,7 +313,16 @@
         }
       } catch (e) {}
     }
-    return { isMuted, setMuted, paintMute, chime, attnChime, warnSound, diceTick, nzPlay };
+    // Short, quiet two-note sound for the hall pass: notes go down when a student leaves, up when they come back.
+    function hallPing(back) {
+      if (isMuted()) return;
+      try {
+        const c = getCtx(); if (!c) return;
+        const t0 = c.currentTime + .02, notes = back ? [587, 880] : [880, 587];
+        notes.forEach((f, i) => tone(c, t0, f, i * .14, .35, 'sine', .14));
+      } catch (e) {}
+    }
+    return { isMuted, setMuted, paintMute, chime, attnChime, warnSound, diceTick, nzPlay, hallPing };
   })();
   TB.audio = audio;
 
