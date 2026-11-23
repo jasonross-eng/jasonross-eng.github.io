@@ -181,9 +181,10 @@
   setInterval(() => {
     if (!isHpConn() || document.body.classList.contains('sub')) return;
     hpSendClass(false);
-    const o = hpOut();
-    if (o && (Date.now() - o.t) >= hpLimit() * 60000 && hpAlerted !== String(o.t)) {
-      hpAlerted = String(o.t); const who = hpNameOf(o.c, o.i).name;
+    // every student who is out gets their own one-time long-absence warning (several can be out at once)
+    const o = hpList().find(x => !x.back && (Date.now() - x.t) >= hpLimit() * 60000 && !String(hpAlerted).split('|').includes(String(x.t)));
+    if (o) {
+      hpAlerted = String(hpAlerted).split('|').slice(-20).concat(String(o.t)).join('|'); const who = hpNameOf(o.c, o.i).name;
       toast(who + ' has been out ' + hpLimit() + ' minutes');
       TB.audio.nzPlay('bell');
       if (hp.el.hidden) setHallCard(true);

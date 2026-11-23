@@ -33,6 +33,14 @@
   .out .time { font-size:clamp(48px, 10vw, 110px); font-weight:700; font-variant-numeric:tabular-nums; }
   .big { font-size:clamp(28px, 5vw, 48px); padding:20px 48px; background:var(--green); color:#062b12; }
   .small { font-size:17px; padding:8px 18px; background:transparent; border:2px solid #4a2a80; color:var(--soft); }
+  /* students who are out: a small strip at the top, so the names stay free for the next student */
+  .outs { display:flex; flex-direction:column; gap:8px; }
+  .outrow { display:flex; align-items:center; gap:12px; padding:8px 12px; border-radius:14px; background:#3d1a78; border:2px solid var(--yellow); font-size:clamp(17px, 2.4vw, 24px); }
+  .outrow .nm { font-weight:700; }
+  .outrow .pl { color:var(--yellow); }
+  .outrow .tm { font-variant-numeric:tabular-nums; margin-left:auto; }
+  .outrow button { font-family:var(--font); font-weight:700; font-size:clamp(17px, 2.4vw, 24px); border:none; border-radius:12px; padding:8px 18px; cursor:pointer; background:var(--green); color:#062b12; }
+  .names button.isout { opacity:.35; }
   .setup { max-width:640px; margin:auto; display:flex; flex-direction:column; gap:14px; font-size:20px; line-height:1.4; }
   .setup ol { margin:0; padding-left:1.3em; }
   [hidden] { display:none !important; }
@@ -41,6 +49,7 @@
 <body>
 <header><h1 id="title">Hall Pass</h1><div class="st" id="st"></div></header>
 <main>
+  <div class="outs" id="outs" hidden></div>
   <section class="setup" id="setup" hidden>
     <h1>Set up this door kiosk</h1>
     <ol>
@@ -60,11 +69,6 @@
     <div class="dests" id="dests"></div>
     <div style="text-align:center"><button class="small" id="cancel">Cancel</button></div>
   </section>
-  <section class="out" id="outBox" hidden>
-    <div class="who" id="outWho"></div><div class="where" id="outWhere"></div><div class="time" id="outTime"></div>
-    <button class="big" id="back">I'm back</button>
-    <p class="msg" id="outMsg">Only one person out at a time. Others, please wait.</p>
-  </section>
 </main>
 <script>
 (function () {
@@ -74,13 +78,14 @@
   const st = { get(k) { try { return localStorage.getItem('hpk_' + k); } catch(e) { return mem[k] || null; } }, set(k, v) { try { localStorage.setItem('hpk_' + k, v); } catch(e) { mem[k] = v; } } };
   let cfg = null; try { cfg = JSON.parse(st.get('cfg')); } catch(e) {}
   let cls = null;          // { g, c } the board's current class
-  let out = null;          // { c, i, dest, t }
+  let outs = [];           // students out now: [{ c, i, dest, t }]
   let picked = null, es = null, seen = new Set();
   const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const findClass = () => { if (!cfg || !cls) return null; const l = (cfg.classes || {})[cls.g] || []; return l.find(x => x.id === cls.c) || null; };
   const post = m => fetch(RELAY + 'jre-hp-' + cfg.key, { method: 'POST', body: JSON.stringify(m) }).then(r => { if (!r.ok) throw 0; net(true); }).catch(() => net(false));
   function net(ok) { $('st').textContent = ok ? '' : 'Cannot reach the hall pass service'; $('st').classList.toggle('bad', !ok); }
-  function show(id) { ['setup', 'pickName', 'pickDest', 'outBox'].forEach(s => $(s).hidden = s !== id); }
+  function show(id) { ['setup', 'pickName', 'pickDest'].forEach(s => $(s).hidden = s !== id); $('outs').hidden = id === 'setup' || !outs.length; }
+  const isOut = (c, i) => outs.some(o => o.c === c && o.i === i);
   function nameOf(c, i) { const l = Object.values(cfg.classes || {}).flat(); const k = l.find(x => x.id === c); return k && k.n[i] ? k.n[i] : 'Someone'; }
 
   // ---------- setup ----------
@@ -103,12 +108,7 @@
   // ---------- screens ----------
   function paint() {
     if (!cfg) { show('setup'); return; }
-    if (out) {
-      show('outBox'); $('title').textContent = 'Hall Pass';
-      $('outWho').textContent = nameOf(out.c, out.i);
-      const d = DESTS.find(x => x[0] === out.dest); $('outWhere').textContent = (d ? d[1] + ' ' : '') + out.dest;
-      tick(); return;
-    }
+    paintOuts();
     const k = findClass();
     $('title').textContent = k ? k.t + (cls.g ? '' : '') : 'Hall Pass';
     if (picked !== null && k) {
@@ -119,20 +119,38 @@
     if (!cls) { $('nameMsg').textContent = 'Waiting for the board...'; return; }
     if (!k) { $('nameMsg').textContent = 'This class is not in the kiosk file. Download a new kiosk file from the board.'; return; }
     $('nameMsg').textContent = 'Tap your name.';
-    k.n.forEach((n, i) => { const b = document.createElement('button'); b.textContent = n; b.onclick = () => { picked = i; paint(); }; $('names').appendChild(b); });
+    k.n.forEach((n, i) => {
+      const b = document.createElement('button'), o = isOut(k.id, i); b.textContent = n;
+      if (o) { b.classList.add('isout'); b.disabled = true; } else b.onclick = () => { picked = i; paint(); };
+      $('names').appendChild(b);
+    });
+  }
+  // small rows at the top: name, place, time out, I'm back
+  function paintOuts() {
+    const box = $('outs'); box.innerHTML = '';
+    outs.forEach(o => {
+      const r = document.createElement('div'); r.className = 'outrow';
+      const d = DESTS.find(x => x[0] === o.dest);
+      r.innerHTML = '<span class="nm"></span><span class="pl"></span><span class="tm"></span><button>I\'m back</button>';
+      r.querySelector('.nm').textContent = nameOf(o.c, o.i);
+      r.querySelector('.pl').textContent = (d ? d[1] + ' ' : '') + o.dest;
+      r.querySelector('.tm').dataset.t = o.t;
+      r.querySelector('button').onclick = () => { outs = outs.filter(x => x !== o); paint(); post({ k: 'in', c: o.c, i: o.i, t: Date.now() }); };
+      box.appendChild(r);
+    });
+    tick();
   }
   DESTS.forEach(([n, e]) => {
     const b = document.createElement('button'); b.innerHTML = '<span></span>'; b.querySelector('span').textContent = e; b.appendChild(document.createTextNode(n));
     b.onclick = () => {
-      const k = findClass(); if (!k || picked === null || out) return;
-      out = { c: k.id, i: picked, dest: n, t: Date.now() }; picked = null; paint();
-      post({ k: 'out', c: k.id, i: out.i, dest: n, t: out.t, v: k.v });
+      const k = findClass(); if (!k || picked === null || isOut(k.id, picked)) return;
+      const o = { c: k.id, i: picked, dest: n, t: Date.now() }; outs.push(o); picked = null; paint();
+      post({ k: 'out', c: k.id, i: o.i, dest: n, t: o.t, v: k.v });
     };
     $('dests').appendChild(b);
   });
   $('cancel').onclick = () => { picked = null; paint(); };
-  $('back').onclick = () => { if (!out) return; const o = out; out = null; paint(); post({ k: 'in', c: o.c, i: o.i, t: Date.now() }); };
-  function tick() { if (!out) return; const s = Math.max(0, Math.floor((Date.now() - out.t) / 1000)); $('outTime').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  function tick() { document.querySelectorAll('.outrow .tm').forEach(e => { const s = Math.max(0, Math.floor((Date.now() - Number(e.dataset.t)) / 1000)); e.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }); }
   setInterval(tick, 1000);
   // after 30 seconds without a tap on the destination screen, go back to the names
   let idle = null; document.addEventListener('pointerdown', () => { clearTimeout(idle); idle = setTimeout(() => { if (picked !== null) { picked = null; paint(); } }, 30000); });
@@ -141,8 +159,8 @@
   function handle(m) {
     const today = dayKey(new Date());
     if (m.k === 'class') { cls = { g: m.g, c: m.c }; if (picked !== null && (!findClass() || !findClass().n[picked])) picked = null; }
-    if (m.k === 'out' && m.t && dayKey(new Date(m.t)) === today) out = { c: m.c, i: m.i, dest: m.dest, t: m.t };
-    if (m.k === 'in' && out && m.c === out.c && m.i === out.i) out = null;
+    if (m.k === 'out' && m.t && dayKey(new Date(m.t)) === today && !outs.some(o => o.t === m.t && o.c === m.c && o.i === m.i)) { outs = outs.filter(o => !(o.c === m.c && o.i === m.i)); outs.push({ c: m.c, i: m.i, dest: m.dest, t: m.t }); }
+    if (m.k === 'in') outs = outs.filter(o => !(o.c === m.c && o.i === m.i));
   }
   function start() {
     if (es) es.close();
