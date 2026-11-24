@@ -52,6 +52,7 @@
   function makeEmbed(n) {
     const sfx = n === 1 ? '' : String(n), btn = n === 1 ? 'embedBtn' : 'embed' + n + 'Btn', name = n === 1 ? 'Embed a website' : 'Embed website ' + n;
     const emb = TB.makeFloat('embedCard' + sfx, n === 1 ? 'Website' : 'Website ' + n, 'embedrect' + sfx, n === 1 ? { x: .52, y: .14, w: .45, h: .62 } : { x: .04, y: .2, w: .45, h: .62 }, () => setEmbed(false));
+    emb.el.classList.add('maxreal');   // Fill the screen gives the website the whole screen instead of zooming the card
     const embTab = document.createElement('button'); embTab.className = 'tool'; embTab.textContent = 'Open in tab';
     const embChg = document.createElement('button'); embChg.className = 'tool'; embChg.textContent = 'Change link';
     emb.head.insertBefore(embChg, emb.head.querySelector('.maxbtn')); emb.head.insertBefore(embTab, embChg);
