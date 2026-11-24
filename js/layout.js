@@ -57,7 +57,9 @@
     el.classList.remove('maxed');
     const w0 = el.offsetWidth || 300, h0 = el.offsetHeight || 200;
     const m = 12, W = innerWidth - 2 * m, H = innerHeight - 2 * m;
-    const sc = Math.min(W / w0, H / h0);
+    // Cards that hold a full web page (class maxreal, e.g. the sound meter) are really resized to the screen so the page
+    // lays itself out big; other cards keep their own layout and are scaled up.
+    const sc = el.classList.contains('maxreal') ? 1 : Math.min(W / w0, H / h0);
     el.classList.add('maxed');
     Object.assign(el.style, { left: m + 'px', top: m + 'px', width: W / sc + 'px', height: H / sc + 'px', transform: 'scale(' + sc + ')' });
     requestAnimationFrame(() => { TB.fitPlan(); TB.pkFit(); });
