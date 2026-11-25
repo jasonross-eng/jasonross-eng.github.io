@@ -33,6 +33,7 @@
   let frame = null;
 
   const sm = TB.makeFloat('smCard', 'Sound meter', 'smrect', { x: .07, y: .13, w: .86, h: .82 }, () => setSeasonal(false));
+  sm.el.classList.add('maxreal');   // Fill the screen gives the meter page the whole screen instead of zooming a small card
   sm.el.classList.add('sub-ok');
 
   const pick = document.createElement('select');
