@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cyborg Meter - Classroom Sound Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grandstander:wght@600;800;900&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="meter-core.css">
+<style>
+/* ---------- Cyborg Meter Theme Palette & Classroom Tech Lab ---------- */
+:root{
+  --sky:#DCEEFF; --sky2:#B4D8F8;
+  --field:#1D3557; --field2:#11223A;
+  --pumpkin:#0EA5E9; --gold:#F59E0B; --cranberry:#DC2626;
+}
+.app.sky-dark{
+  --field:#0F1E36; --field2:#081224;
+}
+
+.lab-bg{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+
+/* Subtle tech lab animations */
+.holo-pulse{animation:holoPulse 3.2s ease-in-out infinite alternate}
+@keyframes holoPulse{from{opacity:.38}to{opacity:.88}}
+.scan-line{animation:scanMove 4.5s linear infinite}
+@keyframes scanMove{0%{transform:translateY(0)}100%{transform:translateY(110px)}}
+
+.pip{border-radius:6px;height:12px}
+.pip.on{box-shadow:0 0 8px rgba(14,165,233,.55),inset 0 1px 0 rgba(255,255,255,.45)}
+
+/* Hero Avatar -> Cyborg */
+.hero-wrap{perspective:1400px;position:relative;height:100%;width:100%;display:flex;align-items:flex-end;justify-content:center;pointer-events:none}
+svg.cyborg{height:85%;max-height:85%;width:auto;max-width:96%;margin-bottom:1%;overflow:visible;position:relative;z-index:3;--gait:.9s;will-change:transform}
+
+.av-all{transform-box:view-box;transform-origin:200px 345px}
+.av-shadow{transform-box:view-box;transform-origin:200px 350px;transition:transform .2s}
+.calm .av-all{animation:idleBreathe 3.2s ease-in-out infinite}
+.warn .av-all{animation:warnTense .7s ease-in-out infinite}
+.loud .av-all{animation:angryShake .24s ease-in-out infinite}
+.moving .av-all{animation:walkBob var(--gait) ease-in-out infinite}
+
+@keyframes idleBreathe{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-3px) scaleY(1.012)}}
+@keyframes warnTense{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-2px) rotate(1.5deg)}}
+@keyframes angryShake{0%,100%{transform:translate(-2px,0) rotate(-2.5deg)}50%{transform:translate(2px,-3px) rotate(2.5deg)}}
+@keyframes walkBob{0%,100%{transform:translateY(0) rotate(-1.6deg)}50%{transform:translateY(-6px) rotate(1.6deg)}}
+
+.av-head{transform-box:view-box;transform-origin:200px 158px;transition:transform .25s}
+.face-r .av-head{transform:rotate(3.5deg)}
+.face-l .av-head{transform:rotate(-3.5deg)}
+.loud.face-r .av-head{transform:rotate(6deg)}
+.loud.face-l .av-head{transform:rotate(-6deg)}
+
+/* Happy vs Worried vs Angry Face Transitions */
+.face-flush{opacity:0;transition:opacity .25s}
+.warn .face-flush{opacity:.28}
+.loud .face-flush{opacity:.68}
+
+.pupil-g{transition:transform .2s}
+.face-r .pupil-g{transform:translateX(2.4px)}
+.face-l .pupil-g{transform:translateX(-2.4px)}
+.loud .pupil-dot{r:2.6}
+
+.brow-happy{opacity:1;transition:opacity .18s}
+.brow-warn{opacity:0;transition:opacity .18s}
+.brow-angry{opacity:0;transition:opacity .15s}
+.warn .brow-happy,.loud .brow-happy{opacity:0}
+.warn .brow-warn{opacity:1}
+.loud .brow-angry{opacity:1}
+
+.mouth-happy{opacity:1;transition:opacity .18s}
+.mouth-warn{opacity:0;transition:opacity .18s}
+.mouth-angry{opacity:0;transition:opacity .15s}
+.warn .mouth-happy,.loud .mouth-happy{opacity:0}
+.warn .mouth-warn{opacity:1}
+.loud .mouth-angry{opacity:1}
+
+.steam{opacity:0;transition:opacity .2s}
+.loud .steam{opacity:1}
+.steam circle{transform-box:fill-box;transform-origin:center;animation:steamUp .75s ease-out infinite}
+.steam .s2{animation-delay:-.35s}
+@keyframes steamUp{0%{transform:translateY(0) scale(.45);opacity:.95}100%{transform:translateY(-32px) scale(1.45);opacity:0}}
+
+/* Progressive Cyborg Parts (0 -> 10) */
+.cy-part{
+  opacity:0;
+  transform-box:fill-box;
+  transform-origin:center;
+  transform:scale(.45);
+  transition:transform .48s cubic-bezier(.25,1.55,.45,1),opacity .22s ease;
+}
+.cy-part.on{
+  opacity:1;
+  transform:scale(1);
+}
+.cy-glow{animation:cyGlow 2.1s ease-in-out infinite alternate}
+@keyframes cyGlow{from{opacity:.68}to{opacity:1}}
+
+/* Full 10/10 Cyborg Overdrive Celebration */
+svg.cyborg.dance{animation:cyborgVictory 2.4s ease-in-out 2}
+@keyframes cyborgVictory{
+  0%,100%{translate:0 0}
+  25%{translate:0 -26px}
+  50%{translate:0 0}
+  75%{translate:0 -34px}
+}
+.overdrive-aura{opacity:0;transition:opacity .4s}
+.crowned .overdrive-aura{opacity:1}
+
+/* Jolt when a cyborg part is taken away */
+.yelp .av-all{animation:partLost .72s ease-out!important}
+@keyframes partLost{
+  0%{transform:none}
+  20%{transform:translateY(-18px) rotate(-8deg)}
+  45%{transform:rotate(7deg)}
+  70%{transform:translateY(-6px) rotate(-4deg)}
+  100%{transform:none}
+}
+
+/* EMP Robo-Claw Drone that removes a cyborg part when loud */
+.emp-drone{position:absolute;z-index:5;top:0;left:0;display:none;overflow:visible;pointer-events:none}
+.flying-part{position:absolute;z-index:6;left:0;top:0;pointer-events:none;overflow:visible}
+
+@media (prefers-reduced-motion:reduce){
+  .av-all,.holo-pulse,.scan-line,.steam circle,.cy-glow{animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="app sky-light" id="app">
+  <header class="top">
+    <div class="brand-col">
+      <h1 class="brand display">
+        <label class="meter-pick">
+          <span class="sr-only">Choose a classroom sound meter</span>
+          <select onchange="location.href=this.value">
+            <option value="veterans.html">Veterans Meter</option>
+            <option value="gobble-meter.html">Gobble Meter</option>
+            <option value="santa.html">Santa Meter</option>
+            <option value="mlk.html">Dream Meter</option>
+            <option value="washington.html">Washington Meter</option>
+            <option value="easter.html">Bunny Meter</option>
+            <option value="circus.html">Circus Meter</option>
+            <option value="cyborg.html" selected>Cyborg Meter</option>
+          </select>
+        </label>
+      </h1>
+      <div class="status-pills">
+        <span class="pill" id="modePill"><i class="pill-dot" id="statusDot"></i><span id="statusText">Quiet &amp; Calm</span></span>
+        <span class="pill" id="streakPill" title="Current uninterrupted quiet streak">Streak: <strong id="streakVal">0:00</strong></span>
+        <span class="pill pill-goal" id="goalPill" hidden><span id="goalPillText"></span></span>
+      </div>
+    </div>
+
+    <div class="clock display" id="clock">
+      <div class="clock-readout">
+        <div class="sub" id="timeSub">left in class</div>
+        <div class="time" id="time">--:--</div>
+      </div>
+      <div class="tools">
+        <button class="tool" id="minus" title="Subtract 1 minute">-1m</button>
+        <button class="tool" id="plus" title="Add 1 minute">+1m</button>
+        <button class="tool" id="pause" title="Pause timer (Space)">Pause</button>
+        <button class="tool" id="mic" aria-pressed="false" title="Mute/unmute mic (M)">Mic on</button>
+        <button class="tool" id="voiceFilterBtn" title="Filter 300-3400 Hz human voice range to ignore HVAC &amp; chair rumble">Voice filter &#10003;</button>
+        <button class="tool" id="sound" aria-pressed="false" title="Toggle cyborg power-up &amp; alarm audio">Sound on</button>
+        <button class="tool" id="skyLock" aria-pressed="false" title="Lock bright classroom lighting for projectors">Daylight</button>
+        <button class="tool" id="histBtnTop" title="View saved class history &amp; weekly stats">History</button>
+        <button class="tool" id="full" title="Toggle full screen">Full screen</button>
+        <button class="tool" id="stop" title="End session &amp; return to setup">End</button>
+      </div>
+    </div>
+  </header>
+
+  <canvas class="weather" id="weather" aria-hidden="true"></canvas>
+  <canvas class="fx-canvas" id="fxCanvas" aria-hidden="true"></canvas>
+
+  <main class="stage">
+    <!-- Tech Classroom Background (inspired by the uploaded classroom avatar scene) -->
+    <svg class="lab-bg" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#F6E9D3"/>
+          <stop offset="100%" stop-color="#DEC6A2"/>
+        </linearGradient>
+        <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#C8A06E"/>
+          <stop offset="100%" stop-color="#9A7245"/>
+        </linearGradient>
+        <linearGradient id="boardGreen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2D6A4F"/>
+          <stop offset="100%" stop-color="#1B4332"/>
+        </linearGradient>
+        <linearGradient id="cyberGlowGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#67E8F9"/>
+          <stop offset="100%" stop-color="#0284C7"/>
+        </linearGradient>
+        <radialGradient id="floorGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#38BDF8" stop-opacity=".42"/>
+          <stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/>
+        </radialGradient>
+        <clipPath id="holoClip">
+          <rect x="860" y="130" width="230" height="140" rx="12"/>
+        </clipPath>
+      </defs>
+
+      <filter id="tod" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <feColorMatrix id="todMatrix" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+      </filter>
+
+      <g id="roomWorld" filter="url(#tod)">
+        <!-- Classroom Wall -->
+        <rect x="0" y="0" width="1200" height="470" fill="url(#wallGrad)"/>
+
+        <!-- Left & Center Green Bulletin Boards (matching the avatar's classroom!) -->
+        <g stroke="#6B4423" stroke-width="6" stroke-linejoin="round">
+          <rect x="48" y="110" width="245" height="185" rx="8" fill="url(#boardGreen)"/>
+          <rect x="330" y="110" width="440" height="185" rx="8" fill="url(#boardGreen)"/>
+        </g>
+        <!-- Bulletin Board Papers & Posters -->
+        <g stroke="#3B2314" stroke-width="2" opacity=".9">
+          <rect x="74" y="135" width="76" height="96" rx="4" fill="#FDE68A"/>
+          <rect x="172" y="150" width="88" height="72" rx="4" fill="#93C5FD"/>
+          <rect x="86" y="154" width="52" height="10" rx="2" fill="#F59E0B" stroke="none"/>
+          <rect x="86" y="172" width="48" height="8" rx="2" fill="#94A3B8" stroke="none"/>
+          <rect x="86" y="186" width="54" height="8" rx="2" fill="#94A3B8" stroke="none"/>
+
+          <rect x="360" y="136" width="112" height="128" rx="5" fill="#FFFBEB"/>
+          <rect x="492" y="142" width="120" height="88" rx="5" fill="#A7F3D0"/>
+          <rect x="632" y="136" width="108" height="128" rx="5" fill="#DDD6FE"/>
+          <circle cx="416" cy="182" r="22" fill="#38BDF8" stroke="#0284C7" stroke-width="2.5"/>
+          <path d="M406 182 l7 7 l14 -14" fill="none" stroke="#FFF" stroke-width="4" stroke-linecap="round"/>
+          <rect x="510" y="162" width="82" height="10" rx="2" fill="#059669" stroke="none"/>
+          <rect x="510" y="180" width="66" height="8" rx="2" fill="#34D399" stroke="none"/>
+        </g>
+
+        <!-- Right-Side Tech Lab Holo-Screen -->
+        <g>
+          <rect x="854" y="124" width="242" height="152" rx="14" fill="#0F172A" stroke="#334155" stroke-width="5"/>
+          <g clip-path="url(#holoClip)">
+            <rect x="860" y="130" width="230" height="140" fill="#0B192C"/>
+            <g stroke="#1E3A5F" stroke-width="1">
+              <line x1="860" y1="165" x2="1090" y2="165"/>
+              <line x1="860" y1="200" x2="1090" y2="200"/>
+              <line x1="860" y1="235" x2="1090" y2="235"/>
+              <line x1="918" y1="130" x2="918" y2="270"/>
+              <line x1="975" y1="130" x2="975" y2="270"/>
+              <line x1="1032" y1="130" x2="1032" y2="270"/>
+            </g>
+            <g class="holo-pulse" fill="none" stroke="#38BDF8" stroke-width="2.5">
+              <circle cx="975" cy="200" r="34"/>
+              <circle cx="975" cy="200" r="20" stroke-dasharray="6 4"/>
+              <path d="M895 200 H935 M1015 200 H1055"/>
+            </g>
+            <rect class="scan-line" x="860" y="128" width="230" height="8" fill="#38BDF8" opacity=".22"/>
+          </g>
+        </g>
+
+        <!-- Classroom Shelving & Pencil Cups -->
+        <g stroke="#5C3A1E" stroke-width="3" stroke-linejoin="round">
+          <rect x="0" y="348" width="380" height="122" fill="#C79256"/>
+          <rect x="820" y="348" width="380" height="122" fill="#C79256"/>
+          <rect x="0" y="342" width="386" height="14" rx="4" fill="#DDA96B"/>
+          <rect x="814" y="342" width="386" height="14" rx="4" fill="#DDA96B"/>
+          <!-- Colorful Binders & Pencil Cups -->
+          <rect x="44" y="294" width="22" height="48" rx="3" fill="#EF4444"/>
+          <rect x="70" y="290" width="22" height="52" rx="3" fill="#3B82F6"/>
+          <rect x="96" y="298" width="22" height="44" rx="3" fill="#10B981"/>
+          <rect x="1035" y="302" width="38" height="40" rx="5" fill="#F59E0B"/>
+          <line x1="1044" y1="302" x2="1040" y2="282" stroke="#EF4444" stroke-width="4" stroke-linecap="round"/>
+          <line x1="1054" y1="302" x2="1055" y2="278" stroke="#3B82F6" stroke-width="4" stroke-linecap="round"/>
+          <line x1="1064" y1="302" x2="1069" y2="283" stroke="#10B981" stroke-width="4" stroke-linecap="round"/>
+        </g>
+
+        <!-- Classroom Floor & Tech Upgrade Pad -->
+        <rect x="0" y="466" width="1200" height="134" fill="url(#floorGrad)"/>
+        <path d="M0 466 H1200" stroke="#7A532E" stroke-width="5"/>
+        <ellipse cx="600" cy="530" rx="290" ry="38" fill="url(#floorGlow)"/>
+        <ellipse cx="600" cy="532" rx="190" ry="20" fill="#0F172A" stroke="#38BDF8" stroke-width="3.5" opacity=".88"/>
+        <ellipse cx="600" cy="532" rx="160" ry="13" fill="none" stroke="#67E8F9" stroke-width="2" stroke-dasharray="12 8" opacity=".7"/>
+      </g>
+    </svg>
+
+    <!-- EMP Drone / Robo-Claw (flies in to remove a cyborg part when loud) -->
+    <svg class="emp-drone" id="empDrone" viewBox="-70 -60 140 130" aria-hidden="true">
+      <g stroke="#1E293B" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+        <!-- Hover Thrusters -->
+        <ellipse cx="-26" cy="14" rx="10" ry="4" fill="#38BDF8" opacity=".8"/>
+        <ellipse cx="26" cy="14" rx="10" ry="4" fill="#38BDF8" opacity=".8"/>
+        <!-- Drone Body -->
+        <rect x="-36" y="-22" width="72" height="34" rx="14" fill="#475569"/>
+        <rect x="-24" y="-14" width="48" height="18" rx="8" fill="#0F172A"/>
+        <!-- Angry Red Drone Eye -->
+        <circle cx="0" cy="-5" r="7.5" fill="#EF4444"/>
+        <circle cx="-2" cy="-7" r="2.2" fill="#FCA5A5" stroke="none"/>
+        <!-- Antenna -->
+        <line x1="0" y1="-22" x2="0" y2="-38"/>
+        <circle cx="0" cy="-41" r="4.5" fill="#EF4444"/>
+        <!-- Articulated Grabber Claw -->
+        <g id="droneClaw">
+          <line x1="0" y1="12" x2="0" y2="34" stroke-width="5"/>
+          <path d="M0 34 Q-14 40 -10 52 M0 34 Q14 40 10 52" fill="none" stroke="#94A3B8" stroke-width="4.5"/>
+        </g>
+      </g>
+    </svg>
+
+    <div class="bubble display" id="bubble">Lock in! Keep it quiet to upgrade my drip!</div>
+
+    <!-- Cyborg Parts Counter HUD -->
+    <div class="score" id="scoreCard">
+      <div class="score-head">
+        <div class="n display"><span id="count">0</span> / 10</div>
+        <div class="lbl">cyborg parts</div>
+      </div>
+      <div class="feather-pips" id="partPips" aria-hidden="true"></div>
+      <div class="next-wrap">
+        <div class="next" title="Progress to next cyborg upgrade"><i id="nextBar"></i></div>
+        <span class="next-pct" id="nextPct">0%</span>
+      </div>
+      <div class="fb-row">
+        <button class="give display" id="give" type="button" title="Add a cyborg upgrade (shortcut: F)">+ Give</button>
+        <button class="give take display" id="take" type="button" title="Remove a cyborg part (shortcut: T)">- Take</button>
+      </div>
+    </div>
+
+    <!-- Demo Mode Noise Simulator -->
+    <div class="demo-pad" id="demoPad" hidden>
+      <div class="demo-title display">
+        <span>Demo Sound Level</span>
+        <span id="demoVal">25%</span>
+      </div>
+      <input type="range" id="demoSlider" min="0" max="100" value="25" aria-label="Simulated room noise">
+      <div class="demo-btns">
+        <button class="demo-btn" type="button" data-demo="18">Quiet</button>
+        <button class="demo-btn" type="button" data-demo="52">Warn</button>
+        <button class="demo-btn" type="button" data-demo="88">Loud!</button>
+      </div>
+    </div>
+
+    <!-- Hero Illustrated Teacher Avatar -> Progressive Cyborg -->
+    <div class="hero-wrap">
+      <svg class="cyborg calm" id="cyborgHero" viewBox="-40 -20 480 390" role="img" aria-label="Teacher avatar who turns into a happy cyborg when the class is quiet, and loses cyborg parts when loud">
+        <defs>
+          <radialGradient id="skinGrad" cx="44%" cy="35%" r="64%">
+            <stop offset="0%" stop-color="#FAD4BC"/>
+            <stop offset="72%" stop-color="#E6AD8A"/>
+            <stop offset="100%" stop-color="#C98A66"/>
+          </radialGradient>
+          <linearGradient id="pulloverGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3B3E46"/>
+            <stop offset="100%" stop-color="#23262C"/>
+          </linearGradient>
+          <linearGradient id="metalGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#E2E8F0"/>
+            <stop offset="50%" stop-color="#94A3B8"/>
+            <stop offset="100%" stop-color="#475569"/>
+          </linearGradient>
+          <radialGradient id="arcCore" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="45%" stop-color="#67E8F9"/>
+            <stop offset="100%" stop-color="#0284C7"/>
+          </radialGradient>
+        </defs>
+
+        <!-- Ground Shadow -->
+        <ellipse class="av-shadow" cx="200" cy="350" rx="84" ry="14" fill="#0F172A" opacity=".28"/>
+
+        <g class="av-all">
+          <!-- Full Overdrive Halo Aura (10/10) -->
+          <g class="overdrive-aura">
+            <circle cx="200" cy="185" r="142" fill="none" stroke="#38BDF8" stroke-width="4" stroke-dasharray="14 10" opacity=".65"/>
+            <circle cx="200" cy="185" r="158" fill="none" stroke="#67E8F9" stroke-width="2.5" stroke-dasharray="6 12" opacity=".45"/>
+          </g>
+
+          <!-- PART 10: Cyber Holo-Wings / Jetpack Thrusters (behind body) -->
+          <g class="cy-part" id="cyPart9" stroke="#1E293B" stroke-width="3" stroke-linejoin="round">
+            <path d="M144 196 L82 146 L72 184 L126 226 Z" fill="url(#metalGrad)"/>
+            <path d="M256 196 L318 146 L328 184 L274 226 Z" fill="url(#metalGrad)"/>
+            <path class="cy-glow" d="M88 158 L128 196 L118 210 L82 178 Z" fill="#38BDF8" stroke="none"/>
+            <path class="cy-glow" d="M312 158 L272 196 L282 210 L318 178 Z" fill="#38BDF8" stroke="none"/>
+            <ellipse class="cy-glow" cx="102" cy="232" rx="8" ry="16" fill="#67E8F9" stroke="none" opacity=".8"/>
+            <ellipse class="cy-glow" cx="298" cy="232" rx="8" ry="16" fill="#67E8F9" stroke="none" opacity=".8"/>
+          </g>
+
+          <!-- Legs & Shoes -->
+          <g stroke="#1E293B" stroke-width="3.6" stroke-linejoin="round">
+            <rect x="172" y="274" width="22" height="58" rx="6" fill="#1E293B"/>
+            <rect x="206" y="274" width="22" height="58" rx="6" fill="#1E293B"/>
+            <ellipse cx="180" cy="336" rx="19" ry="9" fill="#0F172A"/>
+            <ellipse cx="220" cy="336" rx="19" ry="9" fill="#0F172A"/>
+            <path d="M168 334 H192 M208 334 H232" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round"/>
+          </g>
+
+          <!-- Human Left & Right Arms (covered when bionic arms are earned) -->
+          <g id="humanArmL" stroke="#1E293B" stroke-width="3.6" stroke-linejoin="round">
+            <path d="M148 188 C124 202 120 242 132 268 L152 264 C146 242 148 214 160 202 Z" fill="url(#pulloverGrad)"/>
+            <circle cx="142" cy="272" r="11" fill="url(#skinGrad)"/>
+          </g>
+          <g id="humanArmR" stroke="#1E293B" stroke-width="3.6" stroke-linejoin="round">
+            <path d="M252 188 C276 202 280 242 268 268 L248 264 C254 242 252 214 240 202 Z" fill="url(#pulloverGrad)"/>
+            <circle cx="258" cy="272" r="11" fill="url(#skinGrad)"/>
+          </g>
+
+          <!-- PART 6: Bionic Left Arm -->
+          <g class="cy-part" id="cyPart5" stroke="#1E293B" stroke-width="3.4" stroke-linejoin="round">
+            <path d="M148 188 C122 202 118 242 130 268 L154 264 C148 242 150 214 160 202 Z" fill="url(#metalGrad)"/>
+            <circle cx="136" cy="226" r="6" fill="#38BDF8" stroke-width="2"/>
+            <line class="cy-glow" x1="138" y1="234" x2="142" y2="256" stroke="#67E8F9" stroke-width="3" stroke-linecap="round"/>
+            <rect x="128" y="264" width="24" height="18" rx="6" fill="#64748B"/>
+            <circle class="cy-glow" cx="140" cy="273" r="4" fill="#67E8F9" stroke="none"/>
+          </g>
+
+          <!-- PART 7: Bionic Right Arm -->
+          <g class="cy-part" id="cyPart6" stroke="#1E293B" stroke-width="3.4" stroke-linejoin="round">
+            <path d="M252 188 C278 202 282 242 270 268 L246 264 C252 242 250 214 240 202 Z" fill="url(#metalGrad)"/>
+            <circle cx="264" cy="226" r="6" fill="#38BDF8" stroke-width="2"/>
+            <line class="cy-glow" x1="262" y1="234" x2="258" y2="256" stroke="#67E8F9" stroke-width="3" stroke-linecap="round"/>
+            <rect x="248" y="264" width="24" height="18" rx="6" fill="#64748B"/>
+            <circle class="cy-glow" cx="260" cy="273" r="4" fill="#67E8F9" stroke="none"/>
+          </g>
+
+          <!-- Torso: Dark Charcoal Quarter-Zip Pullover (matching the user's avatar!) -->
+          <g stroke="#1E293B" stroke-width="3.8" stroke-linejoin="round">
+            <path d="M148 182 Q200 172 252 182 L244 282 Q200 290 156 282 Z" fill="url(#pulloverGrad)"/>
+            <!-- Inner Gray Crew Shirt & Quarter-Zipper -->
+            <path d="M180 176 L200 208 L220 176 Z" fill="#525660"/>
+            <path d="M174 174 L182 162 L200 186 L218 162 L226 174 L208 202 L200 198 L192 202 Z" fill="#2D3038"/>
+            <line x1="200" y1="196" x2="200" y2="228" stroke="#94A3B8" stroke-width="3.5" stroke-linecap="round"/>
+            <rect x="197" y="222" width="6" height="9" rx="1.5" fill="#CBD5E1" stroke-width="1.5"/>
+          </g>
+
+          <!-- PART 3: Left Armored Shoulder Pauldron -->
+          <g class="cy-part" id="cyPart2" stroke="#1E293B" stroke-width="3.2" stroke-linejoin="round">
+            <path d="M132 194 C132 172 152 164 176 172 L166 202 C150 202 138 200 132 194 Z" fill="url(#metalGrad)"/>
+            <path class="cy-glow" d="M140 186 Q154 178 168 182" fill="none" stroke="#38BDF8" stroke-width="3" stroke-linecap="round"/>
+          </g>
+
+          <!-- PART 4: Right Armored Shoulder Pauldron -->
+          <g class="cy-part" id="cyPart3" stroke="#1E293B" stroke-width="3.2" stroke-linejoin="round">
+            <path d="M268 194 C268 172 248 164 224 172 L234 202 C250 202 262 200 268 194 Z" fill="url(#metalGrad)"/>
+            <path class="cy-glow" d="M260 186 Q246 178 232 182" fill="none" stroke="#38BDF8" stroke-width="3" stroke-linecap="round"/>
+          </g>
+
+          <!-- PART 5: Arc Reactor Chest Core & Armor Plate -->
+          <g class="cy-part" id="cyPart4" stroke="#1E293B" stroke-width="3" stroke-linejoin="round">
+            <polygon points="200,204 228,220 220,254 180,254 172,220" fill="url(#metalGrad)"/>
+            <circle cx="200" cy="230" r="14" fill="#0F172A"/>
+            <circle class="cy-glow" cx="200" cy="230" r="10.5" fill="url(#arcCore)" stroke="#67E8F9" stroke-width="2"/>
+            <path class="cy-glow" d="M174 226 H184 M216 226 H226 M184 246 L192 238 M216 246 L208 238" stroke="#67E8F9" stroke-width="2.2" stroke-linecap="round"/>
+          </g>
+
+          <!-- Neck & Head (Bald Teacher Avatar with Salt-and-Pepper Stubble!) -->
+          <g class="av-head">
+            <!-- Angry Steam Puffs -->
+            <g class="steam" fill="#FFF" stroke="#1E293B" stroke-width="2.2">
+              <circle class="s1" cx="152" cy="86" r="8"/>
+              <circle class="s2" cx="142" cy="70" r="5.5"/>
+              <circle class="s1" cx="248" cy="86" r="8"/>
+              <circle class="s2" cx="258" cy="70" r="5.5"/>
+            </g>
+
+            <!-- Neck -->
+            <rect x="184" y="148" width="32" height="28" rx="10" fill="url(#skinGrad)" stroke="#1E293B" stroke-width="3.6"/>
+
+            <!-- Ears -->
+            <ellipse cx="156" cy="126" rx="9" ry="13" fill="#DCA07D" stroke="#1E293B" stroke-width="3.5"/>
+            <ellipse cx="244" cy="126" rx="9" ry="13" fill="#DCA07D" stroke="#1E293B" stroke-width="3.5"/>
+
+            <!-- Bald Head Shape -->
+            <path d="M158 118 C158 76 176 64 200 64 C224 64 242 76 242 118 C242 148 225 168 200 168 C175 168 158 148 158 118 Z" fill="url(#skinGrad)" stroke="#1E293B" stroke-width="4.2"/>
+            <!-- Soft Bald Head Highlight & Forehead Lines -->
+            <ellipse cx="186" cy="82" rx="18" ry="8" transform="rotate(-14 186 82)" fill="#FFF5EE" opacity=".45"/>
+            <path d="M184 90 Q200 87 216 90 M188 97 Q200 95 212 97" fill="none" stroke="#B97B59" stroke-width="1.8" stroke-linecap="round" opacity=".55"/>
+
+            <!-- Angry Red Flush Overlay -->
+            <path class="face-flush" d="M160 118 C160 78 177 66 200 66 C223 66 240 78 240 118 C240 146 224 166 200 166 C176 166 160 146 160 118 Z" fill="#EF4444"/>
+
+            <!-- Salt-and-Pepper Stubble Beard & Mustache -->
+            <path d="M162 128 C164 152 180 166 200 166 C220 166 236 152 238 128 C230 140 218 144 200 144 C182 144 170 140 162 128 Z" fill="#8C8B94" opacity=".28"/>
+            <g fill="#CBD5E1" opacity=".6">
+              <circle cx="176" cy="146" r="1"/><circle cx="184" cy="153" r="1"/><circle cx="192" cy="157" r="1"/>
+              <circle cx="200" cy="159" r="1"/><circle cx="208" cy="157" r="1"/><circle cx="216" cy="153" r="1"/>
+              <circle cx="224" cy="146" r="1"/><circle cx="188" cy="136" r="1"/><circle cx="212" cy="136" r="1"/>
+            </g>
+
+            <!-- Eyes -->
+            <ellipse cx="183" cy="116" rx="10" ry="8.5" fill="#FFFFFF" stroke="#1E293B" stroke-width="2.6"/>
+            <ellipse cx="217" cy="116" rx="10" ry="8.5" fill="#FFFFFF" stroke="#1E293B" stroke-width="2.6"/>
+            <g class="pupil-g">
+              <circle class="pupil-dot" cx="184" cy="116" r="5.2" fill="#4A2E1B"/>
+              <circle cx="184" cy="116" r="2.4" fill="#1E140C"/>
+              <circle cx="186" cy="114" r="1.8" fill="#FFFFFF"/>
+              <circle class="pupil-dot" cx="216" cy="116" r="5.2" fill="#4A2E1B"/>
+              <circle cx="216" cy="116" r="2.4" fill="#1E140C"/>
+              <circle cx="218" cy="114" r="1.8" fill="#FFFFFF"/>
+            </g>
+
+            <!-- Eyebrows (Happy -> Worried -> Angry!) -->
+            <path class="brow-happy" d="M172 104 Q183 98 194 103 M206 103 Q217 98 228 104" fill="none" stroke="#4A3222" stroke-width="4.2" stroke-linecap="round"/>
+            <path class="brow-warn" d="M172 106 Q183 101 194 102 M206 102 Q217 101 228 106" fill="none" stroke="#4A3222" stroke-width="4.2" stroke-linecap="round"/>
+            <path class="brow-angry" d="M172 99 L195 109 M228 99 L205 109" fill="none" stroke="#2D1B10" stroke-width="5" stroke-linecap="round"/>
+
+            <!-- Nose -->
+            <path d="M200 112 Q206 126 201 132 Q195 134 191 130" fill="#D99873" stroke="#8C5336" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+            <!-- Mouths (Friendly Happy Grin -> Tense -> Angry Scowl) -->
+            <path class="mouth-happy" d="M183 141 Q200 153 217 141" fill="none" stroke="#5A2B1D" stroke-width="3.6" stroke-linecap="round"/>
+            <path class="mouth-warn" d="M187 145 Q200 142 213 145" fill="none" stroke="#5A2B1D" stroke-width="3.4" stroke-linecap="round"/>
+            <g class="mouth-angry">
+              <path d="M183 150 Q200 137 217 150 Z" fill="#7F1D1D" stroke="#1E293B" stroke-width="2.6" stroke-linejoin="round"/>
+              <path d="M188 147 H212" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+            </g>
+
+            <!-- PART 1: Cyber Ear Comms + Glowing Antenna -->
+            <g class="cy-part" id="cyPart0" stroke="#1E293B" stroke-width="2.6" stroke-linejoin="round">
+              <rect x="148" y="116" width="12" height="22" rx="5" fill="url(#metalGrad)"/>
+              <circle class="cy-glow" cx="154" cy="127" r="3.6" fill="#38BDF8" stroke="none"/>
+              <line x1="154" y1="116" x2="150" y2="94" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+              <circle class="cy-glow" cx="150" cy="92" r="4" fill="#67E8F9"/>
+            </g>
+
+            <!-- PART 2: Bionic Scanner Visor / Cyber Eye -->
+            <g class="cy-part" id="cyPart1" stroke="#1E293B" stroke-width="2.6" stroke-linejoin="round">
+              <path d="M204 108 H238 L234 126 H204 Z" fill="url(#metalGrad)" opacity=".92"/>
+              <rect class="cy-glow" x="208" y="111" width="24" height="11" rx="4" fill="#0EA5E9" opacity=".88"/>
+              <circle cx="220" cy="116.5" r="3.5" fill="#FFFFFF" stroke="none" opacity=".9"/>
+              <line x1="238" y1="116" x2="245" y2="120" stroke="#64748B" stroke-width="3.5" stroke-linecap="round"/>
+            </g>
+
+            <!-- PART 8: Cybernetic Jaw Plate -->
+            <g class="cy-part" id="cyPart7" stroke="#1E293B" stroke-width="2.4" stroke-linejoin="round">
+              <path d="M224 134 L240 130 C239 148 228 160 212 164 L214 150 Z" fill="url(#metalGrad)"/>
+              <circle class="cy-glow" cx="228" cy="146" r="3" fill="#38BDF8" stroke="none"/>
+              <line class="cy-glow" x1="218" y1="156" x2="230" y2="151" stroke="#67E8F9" stroke-width="2" stroke-linecap="round"/>
+            </g>
+
+            <!-- PART 9: Cranial Tech Crown / Forehead Neural Crest -->
+            <g class="cy-part" id="cyPart8" stroke="#1E293B" stroke-width="2.6" stroke-linejoin="round">
+              <path d="M164 90 Q200 74 236 90 L230 76 Q200 62 170 76 Z" fill="url(#metalGrad)"/>
+              <polygon class="cy-glow" points="200,66 208,77 200,86 192,77" fill="#67E8F9"/>
+              <path class="cy-glow" d="M174 82 Q184 78 190 78 M226 82 Q216 78 210 78" fill="none" stroke="#38BDF8" stroke-width="2.4" stroke-linecap="round"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </main>
+
+  <!-- Sound Meter Bar + 30-Second Rolling Sparkline -->
+  <footer class="meter-row">
+    <div class="meter-col">
+      <div class="meter-head">
+        <div class="meter-head-left">
+          <span class="zone-badge" id="zoneBadge">Safe &amp; Quiet</span>
+          <span class="filter-tag" id="filterTag">Voice filter 300-3400 Hz</span>
+        </div>
+        <div class="danger-wrap" id="dangerWrap">
+          <span>EMP Drone alert!</span>
+          <div class="danger-track"><i id="dangerFill"></i></div>
+        </div>
+      </div>
+
+      <div class="spark-wrap" title="Rolling 30-second noise history (dashed line = loudness limit)">
+        <canvas id="sparkline" aria-hidden="true"></canvas>
+        <span class="spark-lbl">Last 30s</span>
+      </div>
+
+      <div class="meter" id="meter" role="meter" aria-label="Classroom noise level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="meter-zones"></div>
+        <div class="fill" id="fill"></div>
+        <div class="meter-ticks"></div>
+        <div class="peak" id="peakMark"></div>
+        <div class="limit" id="limitMark" title="Loudness limit"></div>
+      </div>
+
+      <div class="meter-labels">
+        <span>0 &middot; Silent</span>
+        <span>1 &middot; Whisper</span>
+        <span>2 &middot; Partner</span>
+        <span>3 &middot; Too Loud!</span>
+      </div>
+    </div>
+
+    <div class="limit-ctl">
+      <div class="limit-top">
+        <label for="limit2">Loudness limit</label>
+        <span class="limit-val" id="limitVal">60%</span>
+      </div>
+      <input type="range" id="limit2" min="25" max="90" value="60" aria-label="Loudness limit">
+      <div class="presets" aria-label="Voice level presets">
+        <button class="preset" type="button" data-limit="38">Silent</button>
+        <button class="preset" type="button" data-limit="52">Whisper</button>
+        <button class="preset" type="button" data-limit="66">Partner</button>
+        <button class="preset" type="button" data-limit="80">Group</button>
+      </div>
+      <div class="grace-inline">
+        <span>Grace window</span>
+        <div class="grace-pills" aria-label="Grace window before losing a cyborg part">
+          <button class="grace-pill" type="button" data-grace="1000">1s</button>
+          <button class="grace-pill" type="button" data-grace="2000">2s</button>
+          <button class="grace-pill" type="button" data-grace="4000">4s</button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Setup Overlay -->
+  <div class="overlay" id="setup">
+    <div class="card">
+      <div class="card-head">
+        <h2 class="display">
+          <label class="meter-pick">
+            <span class="sr-only">Choose a classroom sound meter</span>
+            <select onchange="location.href=this.value">
+              <option value="veterans.html">Veterans Meter</option>
+              <option value="gobble-meter.html">Gobble Meter</option>
+              <option value="santa.html">Santa Meter</option>
+              <option value="mlk.html">Dream Meter</option>
+              <option value="washington.html">Washington Meter</option>
+              <option value="easter.html">Bunny Meter</option>
+              <option value="circus.html">Circus Meter</option>
+              <option value="cyborg.html" selected>Cyborg Meter</option>
+            </select>
+          </label>
+        </h2>
+        <button class="cal-btn" id="histBtnSetup" type="button">Class History</button>
+      </div>
+      <p>Keep the classroom under the loudness limit to power up all 10 cyborg upgrades! Stay too loud past the grace window and an EMP drone flies in to remove a cyborg part.</p>
+
+      <label class="q" for="minsInput">How many minutes are left in class?</label>
+      <div class="mins">
+        <input id="minsInput" type="number" min="1" max="180" value="20" inputmode="numeric">
+        <span>minutes</span>
+      </div>
+      <div class="chips" id="chips"></div>
+
+      <div class="q">
+        <label for="limit1">Expected voice level</label>
+        <span id="limit1Label" style="font-size:.88rem;color:var(--muted)">60%</span>
+      </div>
+      <div class="setup-presets">
+        <button class="setup-preset" type="button" data-limit="38">0 &middot; Silent<small>Independent</small></button>
+        <button class="setup-preset" type="button" data-limit="52">1 &middot; Whisper<small>Quiet work</small></button>
+        <button class="setup-preset" type="button" data-limit="66">2 &middot; Partner<small>Soft talking</small></button>
+        <button class="setup-preset" type="button" data-limit="80">3 &middot; Group<small>Discussion</small></button>
+      </div>
+      <input type="range" id="limit1" min="25" max="90" value="60">
+      <div class="range-ends"><span>Strict</span><span>Relaxed</span></div>
+
+      <!-- Speech Filter & Grace Window Controls -->
+      <div class="setup-two-col">
+        <div class="sub-box">
+          <div class="sub-box-title">
+            <span>Voice-Band Filter</span>
+            <button class="switch-btn" id="voiceFilterSetup" type="button" aria-pressed="true">ON &middot; 300-3400 Hz</button>
+          </div>
+          <div style="font-size:.77rem;color:var(--muted);line-height:1.35">Focuses on human speech and ignores low HVAC hum, chair scrapes, and footsteps.</div>
+        </div>
+        <div class="sub-box">
+          <div class="sub-box-title"><span>Grace Window</span></div>
+          <div class="seg-row">
+            <button class="seg-btn" type="button" data-grace="1000">1s Strict</button>
+            <button class="seg-btn" type="button" data-grace="2000">2s Std</button>
+            <button class="seg-btn" type="button" data-grace="4000">4s Soft</button>
+          </div>
+          <div id="graceHint" style="font-size:.76rem;color:var(--muted);margin-top:.32rem">Standard: 2s over limit removes a part</div>
+        </div>
+      </div>
+
+      <!-- Custom Class Reward Goal -->
+      <div class="q">
+        <label for="goalInput">Class reward goal <span style="font-weight:400;color:var(--muted);font-size:.86rem">(optional)</span></label>
+      </div>
+      <div class="goal-input-row">
+        <input class="goal-input" id="goalInput" type="text" maxlength="64" placeholder="e.g. Full Cyborg = 5 min extra recess!">
+        <button class="cal-btn" id="clearGoal" type="button">Clear</button>
+      </div>
+      <div class="chips" style="margin-top:.38rem">
+        <button class="chip" type="button" data-goal="5 min extra recess">5 min extra recess</button>
+        <button class="chip" type="button" data-goal="Free choice time">Free choice time</button>
+        <button class="chip" type="button" data-goal="Music break">Music break</button>
+        <button class="chip" type="button" data-goal="Class sticker star">Class sticker star</button>
+      </div>
+
+      <!-- Room Auto-Calibration -->
+      <div class="cal-box">
+        <div class="cal-row">
+          <strong style="font-size:.86rem">Room Mic Test &amp; Auto-Calibrate</strong>
+          <button class="cal-btn" id="calBtn" type="button">Test / Calibrate Room</button>
+        </div>
+        <div class="mini-meter" aria-hidden="true">
+          <i id="calFill"></i>
+          <div class="mini-limit" id="calLimit"></div>
+        </div>
+        <div id="calHint" style="font-size:.78rem;color:var(--muted);margin-top:.28rem">Optional: measure your room's quiet baseline for 2 seconds to auto-set the limit.</div>
+      </div>
+
+      <div class="go-row">
+        <button class="go display" id="start">Start listening</button>
+        <button class="go-secondary display" id="startDemo" type="button" title="Run with a manual slider instead of a microphone">Demo mode</button>
+      </div>
+      <div class="err" id="err" role="alert"></div>
+    </div>
+  </div>
+
+  <!-- Session Summary Overlay -->
+  <div class="overlay" id="done" hidden>
+    <div class="card" style="text-align:center">
+      <h2 class="display">Mission Complete!</h2>
+      <p style="margin-inline:auto">Your class unlocked</p>
+      <div class="big-feathers display"><span id="finalCount">0</span> of 10</div>
+      <p style="margin-inline:auto" id="finalMsg">cyborg parts.</p>
+      <div class="goal-result" id="goalResult" hidden></div>
+      <div class="stats-grid">
+        <div class="stat-card"><b id="statQuiet">100%</b><span>Time Quiet</span></div>
+        <div class="stat-card"><b id="statStreak">0:00</b><span>Best Streak</span></div>
+        <div class="stat-card"><b id="statPlucks">0</b><span>Parts Lost</span></div>
+      </div>
+      <button class="go display" id="again">Start again</button>
+    </div>
+  </div>
+
+  <!-- Class History & Weekly Stats Modal -->
+  <div class="overlay" id="historyModal" hidden>
+    <div class="card">
+      <div class="card-head">
+        <h2 class="display">Class History</h2>
+        <button class="cal-btn" id="histClose" type="button">Close</button>
+      </div>
+      <p>Your saved classroom sessions and 7-day averages (stored locally in this browser).</p>
+      <div class="hist-kpis">
+        <div class="stat-card"><b id="histSessions">0</b><span>7-Day Sessions</span></div>
+        <div class="stat-card"><b id="histAvgFeathers">-</b><span>Avg Parts</span></div>
+        <div class="stat-card"><b id="histAvgQuiet">-</b><span>Avg Quiet %</span></div>
+        <div class="stat-card"><b id="histBestStreak">-</b><span>Best Streak</span></div>
+      </div>
+      <div class="hist-list" id="histRows"></div>
+      <div class="hist-footer">
+        <button class="danger-link" id="histClear" type="button">Clear history</button>
+        <button class="cal-btn" type="button" onclick="document.getElementById('historyModal').hidden=true">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="meter-core.js"></script>
+<script>
+(() => {
+  const PARTS = 10;
+  const PART_NAMES = [
+    "Cyber Ear Comms",
+    "Bionic Scanner Eye",
+    "Left Shoulder Armor",
+    "Right Shoulder Armor",
+    "Arc Reactor Core",
+    "Bionic Left Arm",
+    "Bionic Right Arm",
+    "Cyber Jaw Plate",
+    "Cranial Neural Crest",
+    "Cyborg Holo-Wings"
+  ];
+  const PART_COLORS = [
+    "#38BDF8", "#0EA5E9", "#06B6D4", "#0284C7", "#67E8F9",
+    "#22D3EE", "#38BDF8", "#0EA5E9", "#06B6D4", "#F59E0B"
+  ];
+
+  const $ = id => document.getElementById(id);
+  const heroEl = $("cyborgHero"), stageEl = document.querySelector(".stage"), bubbleEl = $("bubble"), appEl = $("app");
+  const humanArmL = $("humanArmL"), humanArmR = $("humanArmR");
+
+  const parts = Array.from({ length: PARTS }, (_, i) => $("cyPart" + i));
+  const pipsEl = $("partPips");
+  const pips = [];
+  for (let i = 0; i < PARTS; i++) {
+    const pip = document.createElement("div");
+    pip.className = "pip";
+    pip.dataset.color = PART_COLORS[i % PART_COLORS.length];
+    pipsEl.appendChild(pip);
+    pips.push(pip);
+  }
+
+  function syncBodyParts(earned){
+    parts.forEach((el, i) => {
+      if (el) el.classList.toggle("on", i < earned);
+    });
+    if (humanArmL) humanArmL.style.opacity = earned >= 6 ? "0" : "1";
+    if (humanArmR) humanArmR.style.opacity = earned >= 7 ? "0" : "1";
+  }
+
+  // ---------- Sci-Fi Power-Down & Warning Synth Audio ----------
+  function playAlarmBuzz(ctx){
+    if (!ctx) return 650;
+    const t0 = ctx.currentTime + 0.02;
+    [0, 0.22].forEach(off => {
+      const t = t0 + off;
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(220, t);
+      osc.frequency.linearRampToValueAtTime(165, t + 0.16);
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(0.18, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.2);
+    });
+    return 600;
+  }
+
+  function playPowerDown(ctx){
+    if (!ctx) return 520;
+    const t0 = ctx.currentTime + 0.02;
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(640, t0);
+    osc.frequency.exponentialRampToValueAtTime(120, t0 + 0.42);
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.linearRampToValueAtTime(0.24, t0 + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.46);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t0); osc.stop(t0 + 0.48);
+    return 520;
+  }
+
+  // ---------- Initialize Shared MeterCore ----------
+  let danceUntil = 0;
+  const core = window.MeterCore.init({
+    storagePrefix: "cyborg",
+    maxItems: PARTS,
+    itemLabel: "cyborg parts",
+    lines: {
+      calm: [
+        "Look at my cyber drip!",
+        "No cap, this focus is fire!",
+        "W class! Straight up locked in.",
+        "Low-key the quietest crew ever!",
+        "Big W! Circuits are vibing."
+      ],
+      warn: [
+        "Hold up... getting a little loud, fam.",
+        "Whoa, chill! Don't ruin my drip!",
+        "Bro, check the meter... lock in!"
+      ],
+      loud: [
+        "Bruh, you all are too loud!",
+        "Not the EMP drone! My drip!",
+        "Chat, we are cooked! Too noisy!",
+        "Bruh... my circuits are glitching!"
+      ]
+    },
+    giftLines: [
+      "Sheesh! Look at my new drip!",
+      "W upgrade! Let's gooo!",
+      "New cyborg gear? Say less!",
+      "Bussin' focus! Powered up!"
+    ],
+    onMoodChange(m){
+      heroEl.classList.remove("calm", "warn", "loud");
+      heroEl.classList.add(m);
+    },
+    onCountUpdate(earned, max){
+      heroEl.classList.toggle("crowned", earned >= max);
+      syncBodyParts(earned);
+      pips.forEach((p, i) => {
+        const on = i < earned;
+        p.classList.toggle("on", on);
+        p.style.background = on ? p.dataset.color : "";
+      });
+    },
+    onGain(idx){
+      syncBodyParts(idx + 1);
+      core.say(`Unlocked: ${PART_NAMES[idx]}!`, false, 2400);
+    },
+    onReset(){
+      syncBodyParts(0);
+      heroEl.classList.remove("crowned", "dance");
+    },
+    onFull(goal){
+      core.say(goal ? `MAX DRIP! ${goal}!` : "100% CYBORG DRIP! Absolute W!", false, 5500);
+      if (core.reduceMotion.matches) return;
+      danceUntil = performance.now() + 5000;
+      heroEl.classList.remove("dance"); void heroEl.getBBox(); heroEl.classList.add("dance");
+      setTimeout(() => heroEl.classList.remove("dance"), 5000);
+    },
+    onLoudSound(ctx){
+      return playAlarmBuzz(ctx);
+    },
+    onRequestTake(){
+      takePart();
+    },
+    getBurstOrigin(){
+      const hr = heroEl.getBoundingClientRect(), ar = appEl.getBoundingClientRect();
+      return { x: hr.left - ar.left + hr.width * 0.5, y: hr.top - ar.top + hr.height * 0.35 };
+    }
+  });
+
+  // ---------- Gentle Hero Movement Loop ----------
+  let holdHero = false, holdFace = 1;
+  let tx = 0, tv = 0, target = 0, facing = 1, pauseUntil = 0, motionLast = performance.now();
+
+  function pickTarget(range){
+    if (range < 20) return 0;
+    let n = 0;
+    for (let i = 0; i < 6; i++) {
+      n = (Math.random() * 2 - 1) * range;
+      if (Math.abs(n - tx) > range * 0.35) break;
+    }
+    return n;
+  }
+
+  function motion(now){
+    const dt = Math.min(0.1, (now - motionLast) / 1000); motionLast = now;
+    const W = stageEl.clientWidth;
+    const range = Math.max(0, Math.min(130, W / 2 - heroEl.getBoundingClientRect().width * 0.42 - 16));
+    const mood = core.mood;
+    let moving = false;
+
+    if (core.reduceMotion.matches) {
+      tx = 0; tv = 0;
+    } else {
+      const speed = W * (mood === "loud" ? 0.12 : mood === "warn" ? 0.08 : 0.045);
+      if (Math.abs(target) > range) target = Math.sign(target) * range;
+      let desired = 0;
+      if (!(mood === "calm" && now < pauseUntil)) {
+        const arrived = Math.abs(target - tx) < Math.max(6, speed * 0.1);
+        if (arrived) {
+          pauseUntil = now + (mood === "loud" ? 400 : 1800 + Math.random() * 2400);
+          target = pickTarget(range);
+        }
+        if (!(mood === "calm" && now < pauseUntil)) desired = Math.sign(target - tx) * speed;
+      }
+      if (holdHero || now < danceUntil || mood === "loud") desired = 0;
+      tv += (desired - tv) * Math.min(1, dt * 4);
+      tx += tv * dt;
+      if (tx > range) { tx = range; tv = Math.min(0, tv); }
+      if (tx < -range) { tx = -range; tv = Math.max(0, tv); }
+      if (holdHero) facing = holdFace;
+      else if (Math.abs(tv) > 4) facing = tv > 0 ? 1 : -1;
+      moving = Math.abs(tv) > W * 0.006;
+    }
+
+    heroEl.classList.toggle("moving", moving);
+    heroEl.classList.toggle("face-r", facing > 0);
+    heroEl.classList.toggle("face-l", facing < 0);
+    heroEl.style.transform = `translateX(${tx.toFixed(1)}px)`;
+
+    const bLim = Math.max(0, W / 2 - bubbleEl.offsetWidth / 2 - 12);
+    const bx = Math.max(-bLim, Math.min(bLim, tx));
+    bubbleEl.style.left = `calc(50% + ${bx.toFixed(1)}px)`;
+
+    core.maybeRotateBubble(now);
+    requestAnimationFrame(motion);
+  }
+  requestAnimationFrame(motion);
+
+  // ---------- Classroom Lighting Cycle ----------
+  const DAY_MS = 8 * 60 * 1000;
+  const SKY = [
+    [0.00, "#DCEEFF", "#B4D8F8", "#000000", 0.00],
+    [0.52, "#DCEEFF", "#B4D8F8", "#000000", 0.00],
+    [0.65, "#1E293B", "#0F172A", "#0F172A", 0.25],
+    [0.90, "#1E293B", "#0F172A", "#0F172A", 0.25],
+    [1.00, "#DCEEFF", "#B4D8F8", "#000000", 0.00]
+  ];
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const mix = (a, b, f) => a.map((v, i) => v + (b[i] - v) * f);
+  const css = c => `rgb(${c.map(Math.round).join(",")})`;
+  const todEl = $("todMatrix");
+
+  let dayLock = false;
+  try { dayLock = localStorage.getItem("cyborg-daylock") === "on"; } catch(e){}
+  function syncDayLock(){
+    const b = $("skyLock");
+    b.setAttribute("aria-pressed", String(dayLock));
+    b.classList.toggle("active-day", dayLock);
+    b.textContent = dayLock ? "Daylight \u2713" : "Daylight";
+  }
+  syncDayLock();
+  $("skyLock").onclick = () => {
+    dayLock = !dayLock;
+    try { localStorage.setItem("cyborg-daylock", dayLock ? "on" : "off"); } catch(e){}
+    syncDayLock();
+    paintSky(performance.now());
+  };
+
+  const dayStart = performance.now() - 0.1 * DAY_MS;
+  function paintSky(now){
+    const t = dayLock ? 0.2 : ((now - dayStart) % DAY_MS) / DAY_MS;
+    let k = 0; while (k < SKY.length - 2 && t > SKY[k + 1][0]) k++;
+    const A = SKY[k], B = SKY[k + 1], f = (t - A[0]) / (B[0] - A[0] || 1);
+    const top = mix(hex(A[1]), hex(B[1]), f), bot = mix(hex(A[2]), hex(B[2]), f);
+    document.body.style.background = `linear-gradient(180deg, ${css(top)} 0%, ${css(bot)} 70%)`;
+    const ta = A[4] + (B[4] - A[4]) * f;
+    const tc = mix(hex(A[3]), hex(B[3]), f).map(v => v / 255);
+    const g = (1 - ta).toFixed(3);
+    todEl.setAttribute("values", `${g} 0 0 0 ${(tc[0] * ta).toFixed(3)}  0 ${g} 0 0 ${(tc[1] * ta).toFixed(3)}  0 0 ${g} 0 ${(tc[2] * ta).toFixed(3)}  0 0 0 1 0`);
+
+    const lum = (0.299 * top[0] + 0.587 * top[1] + 0.114 * top[2]) / 255;
+    appEl.classList.toggle("sky-dark", lum < 0.52);
+    appEl.classList.toggle("sky-light", lum >= 0.52);
+  }
+
+  // ---------- Ambient Cyber Sparks ----------
+  const cv = $("weather"), ctx = cv.getContext("2d");
+  let motes = [], wLast = performance.now(), lastSky = 0, dpr = 1;
+  function sizeCanvas(){
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = appEl.clientWidth, h = appEl.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    }
+  }
+
+  function ambient(now){
+    const dt = Math.min(0.1, (now - wLast) / 1000); wLast = now;
+    sizeCanvas();
+    const W = cv.width / dpr, H = cv.height / dpr;
+    if (now - lastSky > 200) { paintSky(now); lastSky = now; }
+    core.tickFx(dt);
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    if (!core.reduceMotion.matches) {
+      const want = 6 + core.earned * 2;
+      while (motes.length < want) {
+        motes.push({
+          x: Math.random() * W, y: H * 0.25 + Math.random() * H * 0.65,
+          vy: -(12 + Math.random() * 18), ph: Math.random() * 6.28, r: 1.8 + Math.random() * 2.2
+        });
+      }
+      if (motes.length > want) motes.length = want;
+      for (const m of motes) {
+        m.ph += dt * 2.2; m.y += m.vy * dt;
+        if (m.y < H * 0.12) { m.y = H * 0.88; m.x = Math.random() * W; }
+        const a = 0.22 + 0.45 * Math.abs(Math.sin(m.ph));
+        ctx.fillStyle = core.mood === "loud" ? `rgba(239,68,68,${a.toFixed(2)})` : `rgba(56,189,248,${a.toFixed(2)})`;
+        ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, 6.29); ctx.fill();
+      }
+    }
+    requestAnimationFrame(ambient);
+  }
+  requestAnimationFrame(ambient);
+
+  // ---------- EMP Drone Flies In & Removes a Cyborg Part ----------
+  const LOST_LINES = [
+    "Bruh! It just took my drip!",
+    "Oof! Big L, my upgrade is gone!",
+    "Bro, quiet down! I lost a part!",
+    "Nooo, not my cyborg gear, fam!"
+  ];
+  const droneSvg = $("empDrone");
+  let dr = null, pendingTakes = 0, drLast = 0;
+
+  function dropOnePart(){
+    const idx = core.commitLoss();
+    if (idx < 0) return -1;
+    syncBodyParts(idx);
+    return idx;
+  }
+
+  function takePart(){
+    if (core.earned - pendingTakes <= 0) return;
+    if (core.reduceMotion.matches) { dropOnePart(); core.say(LOST_LINES[0], true); return; }
+    pendingTakes++;
+    if (!dr) startDrone();
+  }
+
+  function startDrone(){
+    const side = tx > 0 ? -1 : 1;
+    const W = stageEl.clientWidth;
+    dr = { phase: "enter", side, x: side * (W / 2 + 130), y: 40, t0: 0, grabbed: false };
+    holdHero = true; holdFace = side;
+    droneSvg.style.display = "block";
+    core.say("Uh oh... EMP drone incoming, chat!", true);
+    drLast = performance.now();
+    requestAnimationFrame(droneLoop);
+  }
+
+  function droneLoop(now){
+    if (!dr) return;
+    const dt = Math.min(0.1, (now - drLast) / 1000); drLast = now;
+    const W = stageEl.clientWidth, H = stageEl.clientHeight;
+    const k = heroEl.getBoundingClientRect().height / 390;
+    const s = Math.max(0.75, k * 1.15);
+    const targetX = tx + dr.side * 65 * k;
+    const hoverY = Math.max(36, H * 0.24);
+    const speed = Math.max(250, W * 0.34);
+
+    if (dr.phase === "enter") {
+      const dx = targetX - dr.x, dy = hoverY - dr.y;
+      dr.x += dx * Math.min(1, dt * 6);
+      dr.y += dy * Math.min(1, dt * 6);
+      if (Math.hypot(dx, dy) < 10) { dr.phase = "grab"; dr.t0 = now; dr.grabbed = false; }
+    } else if (dr.phase === "grab") {
+      const t = (now - dr.t0) / 360;
+      dr.y = hoverY + Math.sin(Math.min(1, t) * Math.PI) * 34 * k;
+      if (t >= 0.55 && !dr.grabbed) {
+        dr.grabbed = true;
+        if (core.soundOn) {
+          const ms = playPowerDown(core.outCtx);
+          core.setDeaf(ms + 500);
+        }
+        const i = core.earned - 1;
+        if (i >= 0) {
+          const hr = heroEl.getBoundingClientRect(), ar = appEl.getBoundingClientRect();
+          core.spawnBurst(hr.left - ar.left + hr.width * 0.5, hr.top - ar.top + hr.height * 0.36, 18, ["#EF4444", "#F59E0B", "#38BDF8", "#FFFFFF"]);
+          dropOnePart();
+          core.say(LOST_LINES[Math.floor(Math.random() * LOST_LINES.length)], true);
+          heroEl.classList.remove("yelp"); void heroEl.getBBox(); heroEl.classList.add("yelp");
+          setTimeout(() => heroEl.classList.remove("yelp"), 760);
+        }
+        pendingTakes = Math.max(0, pendingTakes - 1);
+      }
+      if (t >= 1) {
+        if (pendingTakes > 0 && core.earned > 0) { dr.t0 = now; dr.grabbed = false; }
+        else { pendingTakes = 0; dr.phase = "leave"; holdHero = false; }
+      }
+    } else if (dr.phase === "leave") {
+      dr.x += dr.side * speed * dt;
+      dr.y -= 120 * dt;
+      if (Math.abs(dr.x) > W / 2 + 150) {
+        dr = null; droneSvg.style.display = "none";
+        if (pendingTakes > 0 && core.earned > 0) startDrone(); else pendingTakes = 0;
+        return;
+      }
+    }
+
+    const bob = Math.sin(now / 140) * 4;
+    droneSvg.style.width = (140 * s) + "px";
+    droneSvg.style.height = (130 * s) + "px";
+    droneSvg.style.left = (W / 2 + dr.x - 70 * s) + "px";
+    droneSvg.style.top = (dr.y + bob) + "px";
+    requestAnimationFrame(droneLoop);
+  }
+
+  paintSky(performance.now());
+})();
+</script>
+</body>
+</html>
