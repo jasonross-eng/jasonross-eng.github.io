@@ -7,7 +7,9 @@
     ['veterans.html', 'Veterans Meter'],
     ['mlk.html', 'Dream Meter'],
     ['washington.html', 'Washington Meter'],
-    ['easter.html', 'Bunny Meter']
+    ['easter.html', 'Bunny Meter'],
+    ['circus.html', 'Circus Meter'],
+    ['cyborg.html', 'Cyborg Meter']
   ];
   const METER_SET = new Set(METERS.map(m => m[0]));
 
@@ -31,7 +33,6 @@
   let frame = null;
 
   const sm = TB.makeFloat('smCard', 'Sound meter', 'smrect', { x: .07, y: .13, w: .86, h: .82 }, () => setSeasonal(false));
-  sm.el.classList.add('maxreal');   // Fill the screen gives the meter page the whole screen instead of zooming a small card
   sm.el.classList.add('sub-ok');
 
   const pick = document.createElement('select');
